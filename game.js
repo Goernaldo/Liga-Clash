@@ -10,6 +10,7 @@ const teamClasses = [
   "Episch",
   "Legendär",
   "Elite",
+  "Icon",
 ];
 
 const CARD_CLASS_RANGES = [
@@ -24,12 +25,14 @@ const CARD_CLASS_RANGES = [
   { min: 210, max: 229 },
   { min: 230, max: 249 },
   { min: 250, max: 299 },
+  { min: 300, max: 349 },
 ];
 
 const CARD_MAX_LEVEL = 100;
 const PRO_MAX_LEVEL = 100;
 const PRO_MAX_STARS = 5;
 const PLAYER_IMAGE_PLACEHOLDER = "assets/players/placeholder.svg";
+const CARD_SYSTEM = globalThis.LigaClashCardSystem || null;
 
 const CARD_SERIES = [
   { value: "standard", label: "Standard", bonus: 0 },
@@ -557,6 +560,7 @@ els.appDialog?.addEventListener("click", (event) => {
 });
 els.featureContent.addEventListener("click", handleFeatureClick);
 els.featureContent.addEventListener("change", handleFeatureChange);
+els.featureContent.addEventListener("input", handleFeatureChange);
 document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
   button.addEventListener("click", () => handleAdminNav(button));
 });
@@ -1017,20 +1021,20 @@ function careerTable() {
 
 function renderCollectionFeature() {
   const cards = filteredOwnedCards("collection");
+  const visibleCards = virtualCardWindow(cards);
   const proReady = cards.filter((card) => fusionPartnerFor(card)).length;
   setFeature(
     "Sammlung",
-    `${cards.length} / ${state.deck.length} Karten`,
+    `${ownedCardCount()} / ${GAME_CARDS.length} Karten`,
     `
       <div class="feature-toolbar">
         ${ownedCardFilters("collection")}
-        <button class="feature-action" type="button" data-feature-action="sort-rating">Nach Rating sortieren</button>
-        <button class="feature-action" type="button" data-feature-action="add-random-card">Gratis Scout</button>
       </div>
       <div class="owned-filter-summary"><strong>Evolution</strong><div class="pill-row"><span>Max-Level ${CARD_MAX_LEVEL}</span><span>${proReady} Fusionen bereit</span><span>Bronze 100+100 = Bronzestern</span><span>Silber 100+100 = Silberstern</span><span>Gold+ 100+100 = Goldstern</span><span>Level 99 fusioniert nicht</span></div></div>
       ${ownedCardFilterSummary(cards)}
-      <div class="mini-deck">
-        ${cards.length ? cards.map((card) => miniCard(card, false, "collection")).join("") : emptyOwnedFilterMessage()}
+      ${cards.length > visibleCards.length ? `<p class="virtual-note">${visibleCards.length} von ${cards.length} Karten sichtbar. Filter oder Suche eingrenzen fuer weitere Karten.</p>` : ""}
+      <div class="mini-deck collection-grid" data-virtual-total="${cards.length}">
+        ${visibleCards.length ? visibleCards.map((card) => miniCard(card, false, "collection")).join("") : emptyOwnedFilterMessage("collection")}
       </div>
     `
   );
@@ -1078,6 +1082,7 @@ function missionTile(id, title, text, reward, ready) {
 
 function renderDeckFeature() {
   const cards = filteredOwnedCards("deck");
+  const visibleCards = virtualCardWindow(cards);
   setFeature(
     "Deck",
     `${state.selected.length}/${MATCH_CARD_COUNT} aktive Karten`,
@@ -1088,7 +1093,7 @@ function renderDeckFeature() {
       </div>
       ${ownedCardFilterSummary(cards)}
       <div class="mini-deck">
-        ${cards.length ? cards.map((card) => miniCard(card, true, "deck")).join("") : emptyOwnedFilterMessage()}
+        ${visibleCards.length ? visibleCards.map((card) => miniCard(card, true, "deck")).join("") : emptyOwnedFilterMessage("deck")}
       </div>
       <button class="feature-action" type="button" data-feature-action="play-now">Mit diesem Deck spielen</button>
     `
@@ -1097,29 +1102,101 @@ function renderDeckFeature() {
 
 function ownedCardFilters(scope) {
   const filters = ownedFilterState(scope);
-  const leagues = ownedLeagues();
-  const clubs = ownedClubs(filters.league);
-  const positions = ownedPositions(filters.league, filters.club);
+  const source = cardCollectionRecords(scope === "collection");
+  const leagues = cardOptionValues(source, "league", "Alle Ligen");
+  const clubs = cardOptionValues(source.filter((card) => filters.league === "Alle Ligen" || card.league === filters.league), "club", "Alle Vereine");
+  const positions = cardOptionValues(source, "position", "Alle Positionen");
+  const categories = cardOptionValues(source, "category", "Alle Kategorien");
+  const rarities = ["Alle Seltenheiten", ...teamClasses];
+  const nations = cardOptionValues(source, "nation", "Alle Nationen");
   const leagueOptions = [{ value: "Alle Ligen", label: "Alle Ligen" }, ...leagues.map((league) => ({ value: league, label: league }))];
   const clubOptions = [{ value: "Alle Vereine", label: "Alle Vereine" }, ...clubs.map((club) => ({ value: club, label: club }))];
   const positionOptions = [{ value: "Alle Positionen", label: "Alle Positionen" }, ...positions.map((position) => ({ value: position, label: position }))];
   return `
+    <label class="owned-filter search-filter">
+      Suche
+      <input data-feature-filter="${scope}" data-filter-type="search" value="${escapeAttr(filters.search)}" placeholder="Spieler, Verein, Nation..." />
+    </label>
     <label class="owned-filter">
       Liga
       <select data-feature-filter="${scope}" data-filter-type="league">
-        ${leagueOptions.map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.league ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+        ${leagueOptions.filter(uniqueOption).map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.league ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
       </select>
     </label>
     <label class="owned-filter">
       Verein
       <select data-feature-filter="${scope}" data-filter-type="club">
-        ${clubOptions.map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.club ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+        ${clubOptions.filter(uniqueOption).map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.club ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
       </select>
     </label>
     <label class="owned-filter">
       Position
       <select data-feature-filter="${scope}" data-filter-type="position">
-        ${positionOptions.map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.position ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+        ${positionOptions.filter(uniqueOption).map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === filters.position ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Kategorie
+      <select data-feature-filter="${scope}" data-filter-type="category">
+        ${categories.map((value) => `<option value="${escapeAttr(value)}" ${value === filters.category ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Seltenheit
+      <select data-feature-filter="${scope}" data-filter-type="rarity">
+        ${rarities.map((value) => `<option value="${escapeAttr(value)}" ${value === filters.rarity ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Nation
+      <select data-feature-filter="${scope}" data-filter-type="nation">
+        ${nations.map((value) => `<option value="${escapeAttr(value)}" ${value === filters.nation ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Besitz
+      <select data-feature-filter="${scope}" data-filter-type="owned">
+        ${["Alle Karten", "Besitz", "Nicht erhalten"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.owned ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Favoriten
+      <select data-feature-filter="${scope}" data-filter-type="favorite">
+        ${["Alle", "Favoriten", "Keine Favoriten"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.favorite ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Overall
+      <select data-feature-filter="${scope}" data-filter-type="overall">
+        ${["Alle Overall", "50-99", "100-149", "150-199", "200-249", "250-349"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.overall ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Level
+      <select data-feature-filter="${scope}" data-filter-type="level">
+        ${["Alle Level", "1-10", "11-20", "21-30", "31-50", "51-100"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.level ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Sterne
+      <select data-feature-filter="${scope}" data-filter-type="stars">
+        ${["Alle Sterne", "1 Stern", "2 Sterne", "3 Sterne", "4 Sterne", "5 Sterne"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.stars ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Sortieren
+      <select data-feature-filter="${scope}" data-filter-type="sort">
+        ${[
+          ["name", "Name"],
+          ["overall", "Overall"],
+          ["rarity", "Seltenheit"],
+          ["level", "Level"],
+          ["stars", "Sterne"],
+          ["club", "Verein"],
+          ["nation", "Nation"],
+          ["position", "Position"],
+          ["newest", "Neueste"],
+        ].map(([value, label]) => `<option value="${escapeAttr(value)}" ${value === filters.sort ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}
       </select>
     </label>
   `;
@@ -1127,21 +1204,29 @@ function ownedCardFilters(scope) {
 
 function ownedFilterState(scope) {
   state.cardFilters = state.cardFilters || {};
-  state.cardFilters[scope] = {
-    league: state.cardFilters[scope]?.league || "Alle Ligen",
-    club: state.cardFilters[scope]?.club || "Alle Vereine",
-    position: state.cardFilters[scope]?.position || "Alle Positionen",
-  };
-  if (!ownedLeagues().includes(state.cardFilters[scope].league) && state.cardFilters[scope].league !== "Alle Ligen") {
-    state.cardFilters[scope].league = "Alle Ligen";
-  }
-  if (!ownedClubs(state.cardFilters[scope].league).includes(state.cardFilters[scope].club) && state.cardFilters[scope].club !== "Alle Vereine") {
-    state.cardFilters[scope].club = "Alle Vereine";
-  }
-  if (!ownedPositions(state.cardFilters[scope].league, state.cardFilters[scope].club).includes(state.cardFilters[scope].position) && state.cardFilters[scope].position !== "Alle Positionen") {
-    state.cardFilters[scope].position = "Alle Positionen";
-  }
+  const defaults = defaultCardFilters()[scope] || defaultCardFilters().collection;
+  state.cardFilters[scope] = { ...defaults, ...(state.cardFilters[scope] || {}) };
   return state.cardFilters[scope];
+}
+
+function uniqueOption(option, index, array) {
+  return array.findIndex((item) => item.value === option.value) === index;
+}
+
+function cardOptionValues(records, field, fallback) {
+  if (CARD_SYSTEM?.optionValues) return CARD_SYSTEM.optionValues(records, field, fallback);
+  return [fallback, ...[...new Set(records.map((card) => card[field]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b)))];
+}
+
+function cardCollectionRecords(includeCatalog = false) {
+  if (CARD_SYSTEM?.collectionRecords) {
+    return CARD_SYSTEM.collectionRecords({
+      catalogCards: includeCatalog ? GAME_CARDS : state.deck,
+      ownedCards: state.deck,
+      helpers: { rating },
+    });
+  }
+  return (includeCatalog ? GAME_CARDS : state.deck).map((card) => ({ ...card, owned: state.deck.some((owned) => sourceCardId(owned) === sourceCardId(card)), overall: rating(card), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: card.nation || "Deutschland" }));
 }
 
 function ownedLeagues() {
@@ -1193,13 +1278,18 @@ function positionSortValue(position) {
 
 function filteredOwnedCards(scope) {
   const filters = ownedFilterState(scope);
-  return state.deck.filter((card) => {
-    const league = card.league || getClub(card.club).league;
-    const leagueMatches = filters.league === "Alle Ligen" || league === filters.league;
-    const clubMatches = filters.club === "Alle Vereine" || card.club === filters.club;
-    const positionMatches = filters.position === "Alle Positionen" || card.pos === filters.position;
-    return leagueMatches && clubMatches && positionMatches;
-  });
+  const records = cardCollectionRecords(scope === "collection");
+  const filtered = CARD_SYSTEM?.filterRecords ? CARD_SYSTEM.filterRecords(records, filters) : records;
+  return CARD_SYSTEM?.sortRecords ? CARD_SYSTEM.sortRecords(filtered, filters.sort) : filtered.sort((a, b) => rating(b) - rating(a));
+}
+
+function virtualCardWindow(cards) {
+  const limit = 96;
+  return cards.slice(0, limit);
+}
+
+function ownedCardCount() {
+  return new Set(state.deck.map((card) => sourceCardId(card))).size;
 }
 
 function ownedCardFilterSummary(cards) {
@@ -1215,8 +1305,11 @@ function ownedCardFilterSummary(cards) {
   return `<div class="owned-filter-summary"><strong>${cards.length} Karten gefunden</strong>${topClubs ? `<div class="pill-row">${topClubs}</div>` : ""}</div>`;
 }
 
-function emptyOwnedFilterMessage() {
-  return `<article class="feature-card empty-card-filter"><h3>Keine Karten gefunden</h3><p>Du besitzt fuer diese Liga-, Vereins- und Positionsauswahl noch keine Spieler.</p></article>`;
+function emptyOwnedFilterMessage(scope = "collection") {
+  const text = scope === "deck"
+    ? "Du besitzt fuer diese Filterauswahl noch keine Spieler."
+    : "Fuer diese Filterauswahl wurden keine Karten im Katalog gefunden.";
+  return `<article class="feature-card empty-card-filter"><h3>Keine Karten gefunden</h3><p>${text}</p></article>`;
 }
 
 function renderShopFeature() {
@@ -1492,32 +1585,116 @@ function refreshCardManagementFeature() {
 }
 
 function miniCard(card, selectable, context = "") {
+  const model = cardViewModel(card);
   const selected = state.selected.includes(card.id);
-  const tier = normalizeClassIndex(card.cls);
+  const tier = normalizeClassIndex(model.cls);
   const club = getClub(card.club);
-  const level = cardLevel(card);
-  const proReady = fusionPartnerFor(card);
+  const level = model.level;
+  const proReady = model.owned ? fusionPartnerFor(card) : false;
+  const cardId = escapeAttr(card.id);
+  const sourceId = escapeAttr(sourceCardId(card));
   return `
-    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""}" ${selectable ? `data-feature-action="toggle-card" data-card="${card.id}"` : ""}>
+    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""}" ${selectable && model.owned ? `data-feature-action="toggle-card" data-card="${cardId}"` : ""}>
       <div class="card-top">
-        <div class="rating">${rating(card)}</div>
-        <span class="card-position">${card.pos}</span>
+        <div class="rating">${model.overall}</div>
+        <span class="card-position">${escapeHtml(model.position)}</span>
         <img class="card-crest" src="${club.crest}" alt="${club.name} Wappen" />
       </div>
       ${proBadge(card)}
-      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(cardSeriesLabel(card.series))}</span>
+      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(model.rarity)} | ${escapeHtml(cardSeriesLabel(card.series))}</span>
       ${renderCardPhoto(card)}
-      <div class="card-name">${card.name}</div>
-      <div class="card-progress"><span>${proStars(card) ? `Evolution Level ${level}/${PRO_MAX_LEVEL}` : `Level ${level}/${CARD_MAX_LEVEL}`}</span><i style="--level-progress:${level}%"></i></div>
-      ${renderCardStats(card)}
+      <div class="card-name">${escapeHtml(card.name)}</div>
+      <div class="card-meta-row"><span>${escapeHtml(model.flag)}</span><span>${escapeHtml(model.nation)}</span><span>${escapeHtml(model.category)}</span></div>
+      <div class="card-progress"><span>${model.starsText} | Level ${level}/${model.maxLevel} | XP ${model.xp}</span><i style="--level-progress:${Math.min(100, Math.round(level / model.maxLevel * 100))}%"></i></div>
+      ${model.owned ? renderCardStats(card) : `<div class="missing-card-lock">Nicht erhalten</div>`}
+      <div class="card-ownership"><span>${model.owned ? "Besitz" : "Katalog"}</span><span>Duplikate ${model.duplicateCount}</span></div>
       ${context === "collection" ? `
         <div class="card-actions">
-          <button type="button" data-feature-action="level-card" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
-          <button type="button" data-feature-action="level-card-small" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>+1</button>
-          <button type="button" data-feature-action="pro-card" data-card="${card.id}" ${proReady ? "" : "disabled"}>Evolution</button>
+          <button type="button" data-feature-action="card-details" data-card="${sourceId}">Details</button>
+          <button type="button" data-feature-action="toggle-favorite" data-card="${sourceId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
+          <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
+          <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${proReady ? "" : "disabled"}>Evolution</button>
         </div>
       ` : ""}
     </article>
+  `;
+}
+
+function cardViewModel(card) {
+  const sourceId = sourceCardId(card);
+  const ownedMatches = state.deck.filter((owned) => sourceCardId(owned) === sourceId);
+  const owned = ownedMatches.length > 0 || Boolean(card.owned);
+  const reference = ownedMatches[0] || card;
+  const model = CARD_SYSTEM?.normalizeCardRecord
+    ? CARD_SYSTEM.normalizeCardRecord({ ...card, ...reference, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1) }, { rating })
+    : { ...card, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1), overall: rating(reference), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: "Deutschland", flag: "DE", level: cardLevel(reference), stars: 1, maxLevel: CARD_MAX_LEVEL, xp: 0 };
+  const stars = Math.max(1, Math.min(5, Number(model.stars) || 1));
+  return {
+    ...model,
+    favorite: Boolean(reference.favorite),
+    starsText: "S".repeat(stars).replace(/S/g, "*"),
+  };
+}
+
+function cardCategory(card) {
+  return CARD_SYSTEM?.positionDefinition ? CARD_SYSTEM.positionDefinition(card.pos).category : isGoalkeeper(card) ? "Torwart" : ["IV", "CB", "LV", "RV"].includes(String(card.pos).toUpperCase()) ? "Verteidigung" : ["ST", "MS", "LA", "RA"].includes(String(card.pos).toUpperCase()) ? "Angriff" : "Mittelfeld";
+}
+
+function toggleFavoriteCard(cardId) {
+  const target = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  if (!target) {
+    showToast("Favoriten sind nur fuer Besitzkarten verfuegbar.", "error");
+    return;
+  }
+  target.favorite = !target.favorite;
+  saveState();
+  showToast(target.favorite ? "Karte als Favorit markiert." : "Favorit entfernt.", "success");
+}
+
+function showCardDetails(cardId) {
+  const catalog = GAME_CARDS.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  const owned = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  const card = owned || catalog;
+  if (!card) {
+    showToast("Karte nicht gefunden.", "error");
+    return;
+  }
+  const model = cardViewModel(card);
+  const club = getClub(card.club);
+  openDialog(
+    `${card.name} | ${model.position}`,
+    "",
+  );
+  els.appDialogMessage.innerHTML = `
+    <div class="card-detail-layout">
+      <div class="card-detail-preview">
+        ${miniCard(card, false, "")}
+      </div>
+      <div class="card-detail-data">
+        <div class="pill-row">
+          <span>${escapeHtml(model.rarity)}</span>
+          <span>${escapeHtml(model.category)}</span>
+          <span>${escapeHtml(model.nation)} ${escapeHtml(model.flag)}</span>
+          <span>${model.owned ? "Besitz" : "Nicht erhalten"}</span>
+        </div>
+        <dl class="card-detail-list">
+          <dt>Karten-ID</dt><dd>${escapeHtml(model.cardId)}</dd>
+          <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
+          <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
+          <dt>Overall</dt><dd>${model.overall}</dd>
+          <dt>Level</dt><dd>${model.level}/${model.maxLevel}</dd>
+          <dt>Sterne</dt><dd>${model.starsText}</dd>
+          <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || "MAX"}</dd>
+          <dt>Duplikate</dt><dd>${model.duplicateCount}</dd>
+          <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
+        </dl>
+        ${model.owned ? renderCardStats(card) : `<p class="muted">Diese Karte ist noch nicht in deiner Sammlung. Werte und Rahmen werden im Katalog angezeigt.</p>`}
+        <div class="future-development">
+          <strong>Zukuenftige Entwicklung</strong>
+          <p>Naechste Ausbaustufe: ${model.level >= model.maxLevel ? "Max-Level dieser Sternstufe erreicht" : `Level ${model.level + 1}`}. Sterne erweitern das Max-Level bis 100.</p>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1554,6 +1731,11 @@ function handleFeatureClick(event) {
   } else if (action === "toggle-card") {
     toggleSelected(target.dataset.card);
     renderDeckFeature();
+  } else if (action === "toggle-favorite") {
+    toggleFavoriteCard(target.dataset.card);
+    renderCollectionFeature();
+  } else if (action === "card-details") {
+    showCardDetails(target.dataset.card);
   } else if (action === "level-card") {
     levelCard(target.dataset.card);
     render();
@@ -1637,6 +1819,8 @@ function handleFeatureChange(event) {
     filters.position = "Alle Positionen";
   } else if (type === "position") {
     filters.position = field.value;
+  } else if (Object.prototype.hasOwnProperty.call(filters, type)) {
+    filters[type] = field.value;
   }
   if (scope === "deck") {
     renderDeckFeature();
@@ -3293,9 +3477,10 @@ function rewardTypeLabel(type) {
 }
 
 function defaultCardFilters() {
+  const cardDefaults = CARD_SYSTEM?.DEFAULT_FILTERS || {};
   return {
-    collection: { league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen" },
-    deck: { league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen" },
+    collection: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen" },
+    deck: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen", owned: "Besitz" },
   };
 }
 
@@ -4437,7 +4622,8 @@ function generateCard(cls) {
 function cardDef(id, name, pos, club, cls, atk, mid, def, photo = "", series = "standard") {
   const normalizedClass = normalizeClassIndex(cls);
   const performance = SEASON_PERFORMANCE_DATA[id] || generatedSeasonPerformance(pos, atk, mid, def);
-  return withClub({ id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo });
+  const base = withClub({ id, cardId: id, playerId: id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo, nation: "Deutschland", flag: "DE", level: 1, stars: 1, xp: 0, status: "active" });
+  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating: (card) => rating({ ...base, ...card }) }) : base;
 }
 
 function cloneCardForCollection(card, prefix = "owned") {
@@ -4843,8 +5029,12 @@ function normalizeCard(card) {
   const normalized = withClub({ ...card, club: mappedClubName, cls: normalizeClassIndex(card.cls), series: normalizeCardSeries(card.series) });
   normalized.performance = normalized.performance || SEASON_PERFORMANCE_DATA[sourceCardId(normalized)] || generatedSeasonPerformance(normalized.pos, normalized.atk, normalized.mid, normalized.def);
   normalized.stats = buildCardStats(normalized.pos, normalized.atk, normalized.mid, normalized.def, normalized.cls, normalized.performance);
-  return {
+  const base = {
     ...normalized,
+    cardId: normalized.cardId || sourceCardId(normalized),
+    playerId: normalized.playerId || sourceCardId(normalized),
+    nation: normalized.nation || "Deutschland",
+    flag: normalized.flag || "DE",
     photo: normalized.photo || "",
     externalIds: normalized.externalIds || {},
     manualImagePath: normalized.manualImagePath || "",
@@ -4862,9 +5052,17 @@ function normalizeCard(card) {
     sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
     series: normalizeCardSeries(normalized.series),
     level: normalizeCardLevel(card.level),
+    stars: Math.max(1, Number(card.stars) || CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) || 1),
+    xp: Math.max(0, Number(card.xp) || 0),
+    status: normalized.status || "active",
+    owned: true,
+    ownedCount: Math.max(1, Number(normalized.ownedCount) || 1),
+    duplicateCount: Math.max(0, Number(normalized.duplicateCount) || 0),
+    frame: normalized.frame || CARD_SYSTEM?.rarityByIndex?.(normalized.cls)?.id || "common",
     proStars: normalizeProStars(card.proStars),
     proQuality: normalizeProStars(card.proStars) ? normalizeProQuality(card.proQuality) : "",
   };
+  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating }) : base;
 }
 
 function normalizeClassIndex(value) {
