@@ -765,9 +765,14 @@ function packTile(pack) {
       <span class="pack-pool">${packPoolLabel(pool)} | ${packPositionLabel(positions)}</span>
       <span class="pack-count">${cardCount} ${cardCount === 1 ? "Karte" : "Karten"}</span>
       ${hasFreePack ? `<strong class="pack-free">Gratis verfuegbar x${freeCount}</strong>` : `<strong>${cost} ${label}</strong>`}
-      <button type="button" data-feature-action="buy-pack" data-pack-id="${id}" data-cost="${cost}" data-currency="${currency}" data-min="${minClass}" data-max="${maxClass}" data-pool="${pool}" data-positions="${escapeAttr(positions.join(","))}" data-count="${cardCount}" ${!hasFreePack && amount < cost ? "disabled" : ""}>${hasFreePack ? "Gratis oeffnen" : "Pack oeffnen"}</button>
+      <button type="button" data-feature-action="buy-pack" ${packActionAttributes(pack)} ${!hasFreePack && amount < cost ? "disabled" : ""}>${hasFreePack ? "Gratis oeffnen" : "Pack oeffnen"}</button>
     </article>
   `;
+}
+
+function packActionAttributes(pack) {
+  const normalized = normalizeBoosterPack(pack);
+  return `data-pack-id="${escapeAttr(normalized.id)}" data-cost="${normalized.cost}" data-currency="${escapeAttr(normalized.currency)}" data-min="${normalized.minClass}" data-max="${normalized.maxClass}" data-pool="${escapeAttr(normalized.pool)}" data-positions="${escapeAttr(normalized.positions.join(","))}" data-count="${normalized.cardCount}"`;
 }
 
 function renderCareerFeature() {
@@ -2405,6 +2410,7 @@ function renderCalendarCells(activeEvents, selectedEventId) {
 
 function renderPlayerEventDetails(event) {
   const [day, month] = event.date.split(".");
+  const eventPack = state.boosterPacks.find((pack) => pack.id === "pack-silver") || defaultBoosterPacks().find((pack) => pack.id === "pack-silver");
   return `
     <h3>Event Details</h3>
     <div class="event-detail-card">
@@ -2422,7 +2428,7 @@ function renderPlayerEventDetails(event) {
     <div class="event-rewards">
       ${event.rewards.map((reward) => `<span>${escapeHtml(reward)}</span>`).join("")}
     </div>
-    <button class="feature-action" type="button" data-feature-action="buy-pack" data-pack="silver">Booster oeffnen</button>
+    <button class="feature-action" type="button" data-feature-action="buy-pack" ${packActionAttributes(eventPack)}>Booster oeffnen</button>
   `;
 }
 
@@ -2768,7 +2774,7 @@ function renderAdminDatabase() {
       const owned = state.deck.some((ownedCard) => sourceCardId(ownedCard) === card.id && cardSeries(ownedCard) === cardSeries(card));
       return `
         <tr class="${owned ? "player-row" : ""}">
-          <td><span class="player-cell"><img src="${playerPhoto(card)}" alt="${card.name} Profilbild" />${card.name}</span></td>
+          <td><span class="player-cell">${renderPlayerListPhoto(card)}${card.name}</span></td>
           <td><span class="club-cell"><img src="${getClub(card.club).crest}" alt="${card.club} Wappen" />${getClub(card.club).name}</span></td>
           <td>${card.pos}</td>
           <td>${card.league}</td>
@@ -4124,8 +4130,9 @@ function playerPhoto(card) {
   return card.photo || "";
 }
 
-function playerPhotoUrl(name) {
-  return "";
+function renderPlayerListPhoto(card) {
+  const photo = playerPhoto(card);
+  return photo ? `<img src="${escapeAttr(photo)}" alt="${escapeAttr(card.name)} Profilbild" />` : "";
 }
 
 function withClub(card) {

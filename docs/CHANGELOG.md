@@ -10,6 +10,8 @@ Alle Eintraege basieren auf dem vorhandenen Projektstand und den zuletzt erstell
 - LocalStorage-Speichern gegen Quota-/Private-Mode-Fehler abgesichert, damit die laufende Session spielbar bleibt.
 - LocalStorage-Testplan um korrupten Spielstand erweitert.
 - Aktive Projektdateien auf Encoding-Mojibake gescannt.
+- Leere Spielerfoto-`img`-Tags in der Admin-Spielerliste entfernt; fehlende Bilder bleiben leer statt als kaputte Grafik zu erscheinen.
+- Booster-Button in Spieler-Eventdetails an die aktuellen Pack-Daten angebunden, damit Admin-Anpassungen wie Kartenanzahl und Preis dort ebenfalls greifen.
 
 ### Karten-Cleanup
 
