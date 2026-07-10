@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Liga Clash Games</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section id="homeOverlay" class="home-overlay" aria-label="Hauptmenue">
+      <div class="stadium-atmosphere" aria-hidden="true">
+        <span class="floodlight floodlight-left"></span>
+        <span class="floodlight floodlight-right"></span>
+        <span class="stadium-haze haze-low"></span>
+        <span class="stadium-haze haze-mid"></span>
+        <span class="stadium-particles"></span>
+        <span class="light-sweep"></span>
+      </div>
+      <header class="overlay-topbar">
+        <button id="openLogin" class="user-block account-button" type="button">
+          <div id="headerAvatar" class="avatar-mark">LC</div>
+          <div>
+            <strong id="headerUserName">G&Ouml;RNALDOBERLIN</strong>
+            <span id="headerUserRole">LEVEL 25</span>
+            <div class="xp-track"><i></i><b>3250 / 5100 XP</b></div>
+          </div>
+        </button>
+
+        <div class="club-block">
+          <div class="club-crest">W</div>
+          <div>
+            <strong>WERDER BREMEN</strong>
+            <span>★★★★☆</span>
+          </div>
+        </div>
+
+        <div class="overlay-logo">
+          <b>LIGA CLASH</b>
+          <strong>GAMES</strong>
+          <span>THE FOOTBALL CARD GAME</span>
+        </div>
+
+        <div class="wallet">
+          <span class="coin">S</span><strong id="menuCoins">125.450</strong><button type="button" data-action="shop">+</button>
+          <span class="gem">D</span><strong>2.350</strong><button type="button" data-action="shop">+</button>
+        </div>
+
+        <nav class="quick-icons" aria-label="Schnellzugriff">
+          <button type="button" title="Nachrichten" data-action="messages">✉</button>
+          <button type="button" title="Freunde" data-action="friends">👥</button>
+          <button id="openAdmin" type="button" title="Admin Center">⚙</button>
+        </nav>
+      </header>
+
+      <div class="overlay-grid">
+        <div class="menu-column">
+          <button class="menu-tile booster" type="button" data-action="fusion">
+            <span class="pack-row">
+              <i>LVL 100</i><i>FUSION</i><i>STERN</i><i>PRO</i>
+            </span>
+            <span class="tile-mini-icon cards-icon"></span>
+            <strong>FUSION</strong>
+            <em>KARTEN LEVELN</em>
+          </button>
+
+          <button class="menu-tile collection" type="button" data-action="collection">
+            <span class="card-fan">
+              <i>82</i><i>88</i><i>85</i>
+            </span>
+            <span class="tile-mini-icon purple-cards-icon"></span>
+            <strong>SAMMLUNG</strong>
+            <em>DEINE KARTEN</em>
+          </button>
+        </div>
+
+        <button id="startFromOverlay" class="play-tile" type="button">
+          <span class="play-bg-lines"></span>
+          <span class="player-silhouettes">
+            <i class="menu-player-card keeper">
+              <b>81</b><small>TW</small><span></span><em>KARL<br />HAIN</em>
+            </i>
+            <i class="menu-player-card striker">
+              <b>86</b><small>ST</small><span></span><em>LEONARDO<br />BITTENCOURT</em>
+            </i>
+            <i class="menu-player-card creator">
+              <b>90</b><small>ZM</small><span></span><em>JAMAL<br />MUSIALA</em>
+            </i>
+          </span>
+          <span class="play-streak">123</span>
+          <span class="pitch-icon"></span>
+          <strong>PLAY</strong>
+          <em>KARTEN BATTLE</em>
+        </button>
+
+        <div class="menu-column">
+          <button class="menu-tile league" type="button" data-action="league">
+            <span class="stadium-art"></span>
+            <span class="tile-icon trophy-icon"></span>
+            <strong>LIGA & MISSIONEN</strong>
+            <em>SPIELE & AUFGABEN</em>
+          </button>
+
+          <button class="menu-tile deck" type="button" data-action="deck">
+            <span class="deck-art"><i></i><i></i><i></i></span>
+            <span class="tile-icon people-icon"></span>
+            <strong>DECK</strong>
+            <em>DEIN TEAM</em>
+          </button>
+
+          <button class="menu-tile shop" type="button" data-action="shop">
+            <span class="shop-art"><i></i><b></b></span>
+            <span class="tile-icon cart-icon"></span>
+            <strong>SHOP</strong>
+            <em>MUENZEN & ITEMS</em>
+          </button>
+        </div>
+      </div>
+
+      <section class="menu-event-strip" aria-label="Aktuelle Events">
+        <div>
+          <strong>AKTUELLE EVENTS</strong>
+          <span id="menuEventHint">Aus dem Admin Center gesteuert</span>
+        </div>
+        <div id="menuEventList" class="menu-event-list"></div>
+      </section>
+
+      <footer class="overlay-footer">
+        <nav class="bottom-nav" aria-label="Hauptnavigation">
+          <button class="active" type="button" data-action="home">⌂<span>HAUPTMENUE</span></button>
+          <button type="button" data-action="booster">▣<span>BOOSTER</span></button>
+          <button type="button" data-action="news">▤<span>NEWS</span></button>
+          <button type="button" data-action="events">▣<span>EVENTS</span></button>
+          <button type="button" data-action="rankings">▥<span>RANGLISTEN</span></button>
+          <button type="button" data-action="club">⬟<span>CLUB</span></button>
+        </nav>
+        <button id="dailyBonus" class="daily-bonus" type="button">
+          <strong>TAEGLICHER BONUS</strong>
+          <span>NAECHSTER BONUS IN:</span>
+          <em>15:47:32</em>
+          <i class="bonus-crate"></i>
+          <b>CLAIM</b>
+        </button>
+      </footer>
+    </section>
+
+    <section id="featurePanel" class="feature-panel is-hidden" aria-label="Menuefunktion">
+      <div class="feature-window">
+        <header class="feature-header">
+          <div>
+            <p id="featureEyebrow" class="eyebrow">Hauptmenue</p>
+            <h2 id="featureTitle">Funktion</h2>
+          </div>
+          <button id="closeFeature" class="admin-close" type="button">X</button>
+        </header>
+        <div id="featureContent" class="feature-content"></div>
+      </div>
+    </section>
+
+    <section id="loginPanel" class="login-panel is-hidden" aria-label="Login">
+      <div class="login-window">
+        <header class="feature-header">
+          <div>
+            <p class="eyebrow">Account</p>
+            <h2>Login & Rechte</h2>
+          </div>
+          <button id="closeLogin" class="admin-close" type="button">X</button>
+        </header>
+        <div class="login-grid">
+          <form id="loginForm" class="login-card">
+            <h3>Einloggen</h3>
+            <label>
+              Benutzer
+              <select id="loginUserSelect"></select>
+            </label>
+            <label>
+              PIN
+              <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="0000" />
+            </label>
+            <button class="feature-action" type="submit">Einloggen</button>
+            <p id="loginStatus" class="muted">Owner-PIN im Prototyp: 0000</p>
+          </form>
+          <form id="profileForm" class="login-card">
+            <h3>Profil bearbeiten</h3>
+            <label>
+              Anzeigename
+              <input id="profileNameInput" type="text" autocomplete="nickname" />
+            </label>
+            <label>
+              E-Mail
+              <input id="profileEmailInput" type="email" autocomplete="email" />
+            </label>
+            <label>
+              PIN
+              <input id="profilePinInput" type="password" inputmode="numeric" autocomplete="new-password" />
+            </label>
+            <button class="feature-action" type="submit">Profil speichern</button>
+          </form>
+          <article class="login-card">
+            <h3>Aktiver Account</h3>
+            <div class="login-active-user">
+              <div id="loginActiveAvatar" class="admin-avatar">G</div>
+              <div>
+                <strong id="loginActiveName">G&Ouml;RNALDOBERLIN</strong>
+                <span id="loginActiveRole">Owner</span>
+              </div>
+            </div>
+            <p class="muted">Rollen steuern spaeter Rechte fuer Admin Center, Events, Booster und Benutzerverwaltung.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="adminCenter" class="admin-center is-hidden" aria-label="Admin Center">
+      <div class="admin-window">
+        <aside class="admin-sidebar">
+          <div class="admin-brand">
+            <div class="admin-shield">LC</div>
+            <div>
+              <strong>LIGA CLASH</strong>
+              <span>GAMES</span>
+              <b>ADMIN CENTER</b>
+            </div>
+          </div>
+          <nav class="admin-nav" aria-label="Admin Navigation">
+            <button type="button" data-admin-section="dashboard">⌂ <span>Dashboard</span></button>
+            <button type="button" data-admin-section="clubs">▦ <span>Vereine & Ligen</span></button>
+            <button type="button" data-admin-section="import">♟ <span>Spieler Import</span></button>
+            <button type="button" data-admin-section="cards">▣ <span>Spieler & Karten</span></button>
+            <button type="button" data-admin-section="transfers">↻ <span>Transfers & Updates</span></button>
+            <button type="button" data-admin-section="editor">✎ <span>Karten Editor</span></button>
+            <button type="button" data-admin-section="boosters">▤ <span>Booster & Packs</span></button>
+            <button class="active" type="button" data-admin-section="events">▣ <span>Kalender & Events</span></button>
+            <button type="button" data-admin-section="missions">☑ <span>Missionen</span></button>
+            <button type="button" data-admin-section="users">♚ <span>Benutzer & Rechte</span></button>
+            <button type="button" data-admin-section="settings">⚙ <span>Einstellungen</span></button>
+            <button type="button" data-admin-section="logs">☰ <span>Logs</span></button>
+          </nav>
+          <button id="closeAdmin" class="admin-back" type="button">← Zurueck zum Spiel</button>
+        </aside>
+
+        <div class="admin-main">
+          <header class="admin-header">
+            <div class="admin-top-card"><span>Version</span><strong>0.2.0 ALPHA</strong></div>
+            <div class="admin-top-card"><span>Saison</span><strong>2026/27</strong></div>
+            <div class="admin-top-card"><span>Datenbank</span><strong>Online</strong></div>
+            <div class="admin-top-card wide"><span>Letzte Synchronisation</span><strong>Heute, 12:45 Uhr</strong></div>
+            <div class="admin-user">
+              <div id="adminHeaderAvatar" class="admin-avatar">G</div>
+              <div><strong id="adminHeaderName">G&Ouml;RNALDOBERLIN</strong><span id="adminHeaderRole">Owner</span></div>
+            </div>
+          </header>
+
+          <section class="admin-hero">
+            <div>
+              <p class="eyebrow">Kalender & Events</p>
+              <h2>Kalender & Events</h2>
+              <span>Plane und verwalte alle Events, Updates und Releases</span>
+            </div>
+            <div class="admin-metrics">
+              <article><i>♙</i><span>Gesamt Spieler</span><strong>5.782</strong><em>+132 heute</em></article>
+              <article><i>▱</i><span>Gesamt Karten</span><strong>12.456</strong><em>+287 heute</em></article>
+              <article><i>⬟</i><span>Vereine</span><strong>84</strong><em>+84 integriert</em></article>
+              <article><i>▤</i><span>Booster Types</span><strong>12</strong><em>+0 heute</em></article>
+              <article><i>♚</i><span>Aktive Benutzer</span><strong>1.248</strong><em>+56 heute</em></article>
+            </div>
+          </section>
+
+          <section class="admin-calendar-board">
+            <div class="admin-calendar-main">
+              <header class="calendar-toolbar">
+                <div class="calendar-arrows">
+                  <button type="button">‹</button>
+                  <button type="button">›</button>
+                  <button type="button">Heute</button>
+                </div>
+                <h3>Juli 2026</h3>
+                <div class="calendar-tabs">
+                  <button class="active" type="button">Monat</button>
+                  <button type="button">Woche</button>
+                  <button type="button">Liste</button>
+                </div>
+              </header>
+              <div class="calendar-weekdays">
+                <span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span>
+              </div>
+              <div id="adminCalendarGrid" class="calendar-grid"></div>
+            </div>
+
+            <aside id="adminEventDetails" class="admin-event-details">
+              <h3>Event Details</h3>
+            </aside>
+
+            <section class="admin-card upcoming-events">
+              <h3>Anstehende Events</h3>
+              <div id="adminEventList"></div>
+            </section>
+
+            <section id="adminEventCategories" class="admin-card event-categories">
+              <h3>Event Kategorien</h3>
+            </section>
+
+            <section class="admin-card quick-event-add">
+              <h3>Neues Event anlegen</h3>
+              <div class="event-create-form">
+                <label>
+                  Eventname
+                  <input id="adminNewEventTitle" placeholder="z.B. Weekend Booster Cup" />
+                </label>
+                <label>
+                  Kategorie
+                  <select id="adminNewEventType">
+                    <option>Booster Event</option>
+                    <option>Verein Release</option>
+                    <option>Liga Release</option>
+                    <option>Karten Stufe</option>
+                    <option>Mission Event</option>
+                    <option>Transfer Update</option>
+                    <option>Taeglicher Bonus</option>
+                    <option>Winter Event</option>
+                    <option>Halloween Event</option>
+                    <option>Team of the Season</option>
+                    <option>DFB-Pokal</option>
+                    <option>WM 2026</option>
+                    <option>Bundesliga 26/27</option>
+                    <option>Spezial Event</option>
+                  </select>
+                </label>
+                <label>
+                  Startdatum
+                  <input id="adminNewEventDate" placeholder="05.07.2026" />
+                </label>
+                <label>
+                  Startzeit
+                  <input id="adminNewEventStartTime" type="time" value="00:00" />
+                </label>
+                <label>
+                  Enddatum
+                  <input id="adminNewEventEndDate" placeholder="06.07.2026" />
+                </label>
+                <label>
+                  Endzeit
+                  <input id="adminNewEventEndTime" type="time" value="23:59" />
+                </label>
+                <label class="wide">
+                  Beschreibung
+                  <textarea id="adminNewEventDescription" rows="3" placeholder="Beschreibung fuer Spieler und Admin Center"></textarea>
+                </label>
+              </div>
+              <h4>Typ schnell waehlen</h4>
+              <div>
+                <button type="button" data-event-template="Booster Event">Booster Event</button>
+                <button type="button" data-event-template="Verein Release">Verein Release</button>
+                <button type="button" data-event-template="Liga Release">Liga Release</button>
+                <button type="button" data-event-template="Karten Stufe">Karten Stufe</button>
+                <button type="button" data-event-template="Mission Event">Mission Event</button>
+                <button type="button" data-event-template="Transfer Update">Transfer Update</button>
+                <button type="button" data-event-template="Taeglicher Bonus">Taeglicher Bonus</button>
+                <button type="button" data-event-template="Winter Event">Winter Event</button>
+                <button type="button" data-event-template="Halloween Event">Halloween Event</button>
+                <button type="button" data-event-template="Team of the Season">Team of the Season</button>
+                <button type="button" data-event-template="DFB-Pokal">DFB-Pokal</button>
+                <button type="button" data-event-template="WM 2026">WM 2026</button>
+                <button type="button" data-event-template="Bundesliga 26/27">Bundesliga 26/27</button>
+                <button type="button" data-event-template="Spezial Event">Spezial Event</button>
+              </div>
+              <button id="adminCreateEvent" class="create-event" type="button">Neues Event erstellen</button>
+            </section>
+          </section>
+
+          <div class="admin-content-grid">
+            <section class="admin-card admin-import">
+              <h3>Spieler Import</h3>
+              <p>Neue Spieler und Kaderdaten importieren</p>
+              <div class="admin-db-filters">
+                <label>
+                  Liga auswaehlen
+                  <select id="adminDbLeague"></select>
+                </label>
+                <label>
+                  Verein auswaehlen
+                  <select id="adminDbClub"></select>
+                </label>
+                <label>
+                  Spieler auswaehlen
+                  <select id="adminDbPlayer"></select>
+                </label>
+              </div>
+              <div class="admin-actions">
+                <button id="adminRefreshDb" type="button">Kader importieren</button>
+                <button type="button">Alle Vereine synchronisieren</button>
+              </div>
+              <p id="adminDbSummary" class="admin-db-summary">0 Vereine, 0 Karten angezeigt</p>
+              <div id="adminClubList" class="admin-club-list"></div>
+            </section>
+
+            <section class="admin-card admin-transfers">
+              <h3>Aktuelle Transfers</h3>
+              <p>Automatisch erkannte Transfers Sommer & Winter</p>
+              <div class="transfer-list">
+                <article><b>Nick Woltemade</b><span>VfB Stuttgart → FC Bayern Muenchen</span><em>Sommer</em></article>
+                <article><b>Maximilian Beier</b><span>TSG Hoffenheim → Borussia Dortmund</span><em>Sommer</em></article>
+                <article><b>Rocco Reitz</b><span>Borussia M'gladbach → Bayer 04 Leverkusen</span><em>Sommer</em></article>
+                <article><b>Tom Rothe</b><span>Union Berlin → SC Freiburg</span><em>Sommer</em></article>
+                <article><b>Luca Netz</b><span>Borussia M'gladbach → Eintracht Frankfurt</span><em>Sommer</em></article>
+              </div>
+            </section>
+
+            <section class="admin-card admin-quick">
+              <h3>Schnellaktionen</h3>
+              <button id="adminCoins" type="button"><span>▣</span><b>+10.000 Coins</b><em>Waehrung hinzufuegen</em></button>
+              <button id="adminGems" type="button"><span>◇</span><b>+500 Diamanten</b><em>Premiumwaehrung hinzufuegen</em></button>
+              <button id="adminAddCard" type="button"><span>▤</span><b>Spieler Karten generieren</b><em>Karten fuer Spieler erstellen</em></button>
+              <button id="adminGodCard" type="button"><span>★</span><b>Elite-Testkarte</b><em>Starke Karte zur Sammlung</em></button>
+              <button id="adminWin" type="button"><span>✓</span><b>Sieg simulieren</b><em>LP und Fortschritt testen</em></button>
+            </section>
+
+            <section class="admin-card admin-boosters">
+              <h3>Booster & Packs</h3>
+              <p>Neue Booster anlegen, Preise einstellen und Packs aktivieren oder deaktivieren</p>
+              <div class="booster-admin-form">
+                <label>
+                  Packname
+                  <input id="adminBoosterName" placeholder="z.B. Bundesliga Pack" />
+                </label>
+                <label>
+                  Preis
+                  <input id="adminBoosterCost" type="number" min="0" step="1" value="100" />
+                </label>
+                <label>
+                  Waehrung
+                  <select id="adminBoosterCurrency">
+                    <option value="coins">Coins</option>
+                    <option value="gems">Diamanten</option>
+                  </select>
+                </label>
+                <label>
+                  Min. Klasse
+                  <select id="adminBoosterMinClass"></select>
+                </label>
+                <label>
+                  Max. Klasse
+                  <select id="adminBoosterMaxClass"></select>
+                </label>
+                <label>
+                  Karten pro Pack
+                  <input id="adminBoosterCardCount" type="number" min="1" max="20" step="1" value="1" />
+                </label>
+                <label>
+                  Kartenpool
+                  <select id="adminBoosterPool"></select>
+                </label>
+                <label>
+                  Positionen
+                  <select id="adminBoosterPositions"></select>
+                </label>
+                <label>
+                  Bildpfad
+                  <select id="adminBoosterImage">
+                    <option value="">Platzhalter</option>
+                    <option value="assets/packs/bronze.png">Bronze Pack Bild</option>
+                    <option value="assets/packs/silver.png">Silber Pack Bild</option>
+                    <option value="assets/packs/gold.png">Gold Pack Bild</option>
+                    <option value="assets/packs/elite.png">Elite Pack Bild</option>
+                  </select>
+                </label>
+                <label class="wide">
+                  Beschreibung
+                  <textarea id="adminBoosterDescription" rows="3" placeholder="Beschreibung fuer Spieler"></textarea>
+                </label>
+              </div>
+              <button id="adminCreateBooster" class="create-event" type="button">Booster anlegen</button>
+              <div id="adminBoosterList" class="admin-booster-list"></div>
+            </section>
+
+            <section class="admin-card admin-controls">
+              <h3>Fortschritt & Saison-Test</h3>
+              <label>
+                Liga-Punkte
+                <input id="adminLpInput" type="number" min="0" step="5" />
+              </label>
+              <button id="adminSetLp" type="button">LP setzen</button>
+              <label>
+                Liga
+                <select id="adminLeagueSelect"></select>
+              </label>
+              <label>
+                Teamklasse
+                <select id="adminClassSelect"></select>
+              </label>
+              <label>
+                Neue Kartenklasse
+                <select id="adminCardClass"></select>
+              </label>
+              <div class="admin-actions">
+                <button id="adminWeek" type="button">Woche abrechnen</button>
+                <button id="adminReset" type="button">Spielstand resetten</button>
+              </div>
+            </section>
+
+            <section class="admin-card admin-database">
+              <div class="admin-db-head">
+                <div>
+                  <h3>Vereine & Spieler Datenbank</h3>
+                  <p>Alle integrierten Vereine und Karten nach Liga gefiltert</p>
+                </div>
+              </div>
+              <div class="admin-table-wrap">
+                <table class="mini-table">
+                  <thead>
+                    <tr>
+                      <th>Spieler</th>
+                      <th>Verein</th>
+                      <th>Pos</th>
+                      <th>Liga</th>
+                      <th>Klasse</th>
+                      <th>Serie</th>
+                      <th>Rating</th>
+                      <th>Werte</th>
+                      <th>Besitz</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminPlayerRows"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="admin-card admin-recent">
+              <h3>Kuerzlich erstellte Karten</h3>
+              <div class="admin-card-preview">
+                <article><strong>86</strong><span>ST</span><b>Ducksch</b><em>Werder Bremen</em></article>
+                <article><strong>82</strong><span>MF</span><b>Stage</b><em>Werder Bremen</em></article>
+                <article><strong>79</strong><span>CB</span><b>Pieper</b><em>Werder Bremen</em></article>
+                <article><strong>75</strong><span>GK</span><b>Zetterer</b><em>Werder Bremen</em></article>
+                <article class="rare"><strong>89</strong><span>CAM</span><b>Wirtz</b><em>Bayer 04 Leverkusen</em></article>
+              </div>
+            </section>
+
+            <section class="admin-card admin-users">
+              <h3>Benutzer & Rechte</h3>
+              <p>Admins, Owner, Moderatoren und Spieler verwalten</p>
+              <div class="admin-user-tools">
+                <label>
+                  Neuer Name
+                  <input id="adminNewUserName" type="text" value="NeuerModerator" />
+                </label>
+                <label>
+                  Rolle
+                  <select id="adminNewUserRole">
+                    <option value="Moderator">Moderator</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Owner">Owner</option>
+                    <option value="User">User</option>
+                  </select>
+                </label>
+                <button id="adminAddUser" type="button">Benutzer anlegen</button>
+              </div>
+              <div class="admin-user-tools wallet-tools">
+                <label>
+                  Benutzer
+                  <select id="adminWalletUser"></select>
+                </label>
+                <label>
+                  Credits
+                  <input id="adminWalletCoins" type="number" min="0" step="1" value="1000" />
+                </label>
+                <label>
+                  Diamanten
+                  <input id="adminWalletGems" type="number" min="0" step="1" value="100" />
+                </label>
+                <button id="adminGrantWallet" type="button">Gutschreiben</button>
+              </div>
+              <div id="adminUserList" class="admin-user-list"></div>
+            </section>
+
+            <section class="admin-card admin-system">
+              <h3>System Informationen</h3>
+              <dl>
+                <dt>Datenbank Status</dt><dd>Online</dd>
+                <dt>Speicherplatz</dt><dd>78% belegt</dd>
+                <dt>API Football</dt><dd>Verbunden</dd>
+                <dt>Letztes Backup</dt><dd>21.06.2026 02:00</dd>
+                <dt>Server Status</dt><dd>Alle Systeme online</dd>
+              </dl>
+              <div class="admin-actions">
+                <button type="button">Backup erstellen</button>
+                <button type="button">Cache leeren</button>
+              </div>
+            </section>
+
+            <section class="admin-card admin-reward-pools">
+              <h3>Preis-Pool: Schnelles KI-Spiel</h3>
+              <p>Bis zu 5 moegliche Belohnungen fuer schnelle Offline-Spiele einstellen.</p>
+              <div id="quickRewardPoolList" class="admin-reward-pool-list"></div>
+              <button id="saveQuickRewardPool" type="button">Preis-Pool speichern</button>
+            </section>
+          </div>
+
+          <p id="adminStatus" class="admin-status">Admin Center bereit.</p>
+        </div>
+      </div>
+    </section>
+
+    <main id="gameApp" class="app-shell is-hidden">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Saison 1 Prototype</p>
+          <h1>Liga Clash Games</h1>
+        </div>
+        <div class="profile-strip" aria-label="Spielerstatus">
+          <div>
+            <span>Liga</span>
+            <strong id="playerLeague">2. Bundesliga</strong>
+          </div>
+          <div>
+            <span>Teamklasse</span>
+            <strong id="teamClass">Ungewöhnlich</strong>
+          </div>
+          <div>
+            <span>LP</span>
+            <strong id="leaguePoints">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="match-stage" aria-label="Matchbereich">
+        <div class="pitch-panel">
+          <div class="scoreboard">
+            <div>
+              <span>Dein Verein</span>
+              <strong id="homeScore">0</strong>
+            </div>
+            <div class="versus">vs</div>
+            <div>
+              <span id="opponentName">FC Rheinpark</span>
+              <strong id="awayScore">0</strong>
+            </div>
+          </div>
+
+          <div class="pitch" aria-label="Spielfeld">
+            <div class="pitch-line center"></div>
+            <div class="pitch-circle"></div>
+            <div class="zone zone-attack">
+              <span>Angriff</span>
+              <div id="attackSlot" class="lineup-slot"></div>
+            </div>
+            <div class="zone zone-mid">
+              <span>Mittelfeld</span>
+              <div id="midSlot" class="lineup-slot"></div>
+            </div>
+            <div class="zone zone-defense">
+              <span>Abwehr</span>
+              <div id="defenseSlot" class="lineup-slot"></div>
+            </div>
+            <div class="zone zone-keeper">
+              <span>Torwart</span>
+              <div id="keeperSlot" class="lineup-slot"></div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="segmented" role="group" aria-label="Formation">
+              <button class="formation-button active" data-formation="2-2-1">2-2-1</button>
+              <button class="formation-button" data-formation="2-1-2">2-1-2</button>
+              <button class="formation-button" data-formation="1-2-2">1-2-2</button>
+              <button class="formation-button" data-formation="3-1-1">3-1-1</button>
+            </div>
+            <div class="segmented" role="group" aria-label="Taktik">
+              <button class="tactic-button active" data-tactic="pressing">Pressing</button>
+              <button class="tactic-button" data-tactic="balance">Balance</button>
+              <button class="tactic-button" data-tactic="konter">Konter</button>
+            </div>
+            <button id="playMatch" class="primary-button" type="button">Match starten</button>
+          </div>
+        </div>
+
+        <aside class="side-panel">
+          <div class="panel-block">
+            <div class="panel-title">
+              <h2>Matchmaking</h2>
+              <span id="matchmakingTag">Teamklasse zuerst</span>
+            </div>
+          <p id="opponentDetails" class="muted"></p>
+            <button id="backToMenu" class="ghost-button compact" type="button">Hauptmenue</button>
+          </div>
+
+          <div class="panel-block">
+            <div class="panel-title">
+              <h2>Letzte Aktion</h2>
+              <span id="resultTag">Bereit</span>
+            </div>
+            <ol id="matchLog" class="match-log"></ol>
+          </div>
+        </aside>
+      </section>
+
+      <section class="lower-grid">
+        <section class="deck-area" aria-label="Deck">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Kader</p>
+              <h2>Aktives Deck</h2>
+            </div>
+            <button id="openPack" class="ghost-button" type="button">Scout-Pack oeffnen</button>
+          </div>
+          <div id="deckGrid" class="deck-grid"></div>
+        </section>
+
+        <section class="league-table-area" aria-label="Ligatabelle">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Dienstagabend</p>
+              <h2>Wochenwertung</h2>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Platz</th>
+                <th>Spieler</th>
+                <th>LP</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="leagueBody"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
