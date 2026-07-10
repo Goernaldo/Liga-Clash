@@ -1,0 +1,41 @@
+{
+  "providerId": "sportmonks-fixture",
+  "candidatesByPlayerId": {
+    "ducksch": [
+      {
+        "provider": "sportmonks",
+        "id": 100001,
+        "display_name": "Marvin Ducksch",
+        "name": "Marvin Ducksch",
+        "common_name": "M. Ducksch",
+        "position": "ST",
+        "club": "Werder Bremen",
+        "image_path": "fixture://marvin-ducksch"
+      }
+    ],
+    "stage": [
+      {
+        "provider": "sportmonks",
+        "id": 100002,
+        "display_name": "Jens Stage",
+        "name": "Jens Stage",
+        "common_name": "J. Stage",
+        "position": "ZM",
+        "club": "Werder Bremen",
+        "image_path": ""
+      }
+    ],
+    "friedl": [
+      {
+        "provider": "sportmonks",
+        "id": 100003,
+        "display_name": "Marco Friedl",
+        "name": "Marco Friedl",
+        "common_name": "M. Friedl",
+        "position": "Defender",
+        "club": "",
+        "image_path": "fixture://marco-friedl"
+      }
+    ]
+  }
+}

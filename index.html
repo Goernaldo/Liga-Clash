@@ -49,6 +49,8 @@
           <button type="button" title="Nachrichten" data-action="messages">✉</button>
           <button type="button" title="Freunde" data-action="friends">👥</button>
           <button id="openAdmin" type="button" title="Admin Center">⚙</button>
+          <button type="button" title="Benachrichtigungen" data-action="notifications">!</button>
+          <button type="button" title="Einstellungen" data-action="settings">⚙</button>
         </nav>
       </header>
 
@@ -195,6 +197,25 @@
             </div>
             <p class="muted">Rollen steuern spaeter Rechte fuer Admin Center, Events, Booster und Benutzerverwaltung.</p>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <div id="loadingOverlay" class="loading-overlay is-hidden" role="status" aria-live="polite">
+      <div class="loading-card">
+        <span></span>
+        <strong>LADE LIGA CLASH</strong>
+      </div>
+    </div>
+
+    <div id="toastRoot" class="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+    <section id="appDialog" class="app-dialog is-hidden" aria-label="Dialog" aria-modal="true" role="dialog">
+      <div class="app-dialog-window">
+        <h2 id="appDialogTitle">Hinweis</h2>
+        <p id="appDialogMessage">Aktion abgeschlossen.</p>
+        <div class="app-dialog-actions">
+          <button id="appDialogClose" class="feature-action" type="button">OK</button>
         </div>
       </div>
     </section>

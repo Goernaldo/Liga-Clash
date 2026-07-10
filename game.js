@@ -29,6 +29,7 @@ const CARD_CLASS_RANGES = [
 const CARD_MAX_LEVEL = 100;
 const PRO_MAX_LEVEL = 100;
 const PRO_MAX_STARS = 5;
+const PLAYER_IMAGE_PLACEHOLDER = "assets/players/placeholder.svg";
 
 const CARD_SERIES = [
   { value: "standard", label: "Standard", bonus: 0 },
@@ -439,6 +440,12 @@ const els = {
   headerUserName: document.querySelector("#headerUserName"),
   headerUserRole: document.querySelector("#headerUserRole"),
   headerAvatar: document.querySelector("#headerAvatar"),
+  loadingOverlay: document.querySelector("#loadingOverlay"),
+  toastRoot: document.querySelector("#toastRoot"),
+  appDialog: document.querySelector("#appDialog"),
+  appDialogTitle: document.querySelector("#appDialogTitle"),
+  appDialogMessage: document.querySelector("#appDialogMessage"),
+  appDialogClose: document.querySelector("#appDialogClose"),
   adminHeaderName: document.querySelector("#adminHeaderName"),
   adminHeaderRole: document.querySelector("#adminHeaderRole"),
   adminHeaderAvatar: document.querySelector("#adminHeaderAvatar"),
@@ -532,18 +539,22 @@ els.cpuDifficulty?.addEventListener("change", () => {
   render();
 });
 
-els.startFromOverlay.addEventListener("click", handlePlayTileTap);
+els.startFromOverlay.addEventListener("click", () => navigateTo("play"));
 els.backToMenu.addEventListener("click", showMenu);
 els.playMatch.addEventListener("click", playMatch);
 els.openPack.addEventListener("click", openPack);
-els.openAdmin.addEventListener("click", openAdminCenter);
+els.openAdmin.addEventListener("click", () => navigateTo("admin"));
 els.closeAdmin.addEventListener("click", closeAdminCenter);
-els.openLogin.addEventListener("click", openLoginPanel);
+els.openLogin.addEventListener("click", () => navigateTo("profile"));
 els.closeLogin.addEventListener("click", closeLoginPanel);
 els.loginForm.addEventListener("submit", handleLoginSubmit);
 els.profileForm.addEventListener("submit", handleProfileSubmit);
 els.closeFeature.addEventListener("click", closeFeaturePanel);
 els.dailyBonus.addEventListener("click", claimDailyBonus);
+els.appDialogClose?.addEventListener("click", closeDialog);
+els.appDialog?.addEventListener("click", (event) => {
+  if (event.target === els.appDialog) closeDialog();
+});
 els.featureContent.addEventListener("click", handleFeatureClick);
 els.featureContent.addEventListener("change", handleFeatureChange);
 document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
@@ -657,19 +668,125 @@ els.adminDbPlayer.addEventListener("change", () => {
   renderAdminDatabase();
 });
 
-document.querySelectorAll("[data-action]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const action = button.dataset.action;
-    if (action === "home") {
-      closeFeaturePanel();
-      return;
-    }
-    openFeature(action);
-  });
+els.homeOverlay.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!button || !els.homeOverlay.contains(button)) return;
+  event.preventDefault();
+  navigateTo(button.dataset.action);
 });
+
+window.addEventListener("hashchange", handleRouteFromHash);
+window.addEventListener("load", () => setLoading(false));
 
 render();
 initAdminControls();
+handleRouteFromHash();
+
+function normalizeRoute(action) {
+  return {
+    play: "career",
+    missions: "league",
+    profile: "profile",
+    settings: "settings",
+    notifications: "notifications",
+    admin: "admin",
+  }[action] || action || "home";
+}
+
+function navigateTo(action) {
+  const route = normalizeRoute(action);
+  const nextHash = `#${route}`;
+  if (window.location.hash !== nextHash) {
+    window.location.hash = route;
+    return;
+  }
+  applyRoute(route);
+}
+
+function handleRouteFromHash() {
+  const route = normalizeRoute(window.location.hash.replace(/^#/, "") || "home");
+  applyRoute(route);
+}
+
+function applyRoute(route) {
+  updateMainNavigation(route);
+  setLoading(route !== "home", `OEFFNE ${route.toUpperCase()}`);
+  setTimeout(() => setLoading(false), 220);
+  if (route === "home") {
+    closeFeaturePanel();
+    closeLoginPanel();
+    closeAdminCenter();
+    return;
+  }
+  if (route === "profile") {
+    closeFeaturePanel();
+    closeAdminCenter();
+    openLoginPanel();
+    return;
+  }
+  if (route === "admin") {
+    closeFeaturePanel();
+    closeLoginPanel();
+    openAdminCenter();
+    return;
+  }
+  if (route === "career") {
+    closeLoginPanel();
+    closeAdminCenter();
+    handlePlayTileTap();
+    return;
+  }
+  closeLoginPanel();
+  closeAdminCenter();
+  openFeature(route);
+}
+
+function updateMainNavigation(route) {
+  const activeRoute = normalizeRoute(route);
+  document.body.dataset.route = activeRoute;
+  document.querySelectorAll("[data-action]").forEach((button) => {
+    const buttonRoute = normalizeRoute(button.dataset.action);
+    const isActive =
+      buttonRoute === activeRoute ||
+      (activeRoute === "career" && button.dataset.action === "play") ||
+      (activeRoute === "league" && button.dataset.action === "missions");
+    button.classList.toggle("active", isActive);
+    if (isActive) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+}
+
+function setLoading(active, text = "LADE LIGA CLASH") {
+  if (!els.loadingOverlay) return;
+  els.loadingOverlay.classList.toggle("is-hidden", !active);
+  const label = els.loadingOverlay.querySelector("strong");
+  if (label) label.textContent = text;
+}
+
+function showToast(message, type = "info") {
+  if (!els.toastRoot) return;
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  els.toastRoot.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("is-visible"));
+  setTimeout(() => {
+    toast.classList.remove("is-visible");
+    toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+  }, 2600);
+}
+
+function openDialog(title, message) {
+  if (!els.appDialog) return;
+  els.appDialogTitle.textContent = title;
+  els.appDialogMessage.textContent = message;
+  els.appDialog.classList.remove("is-hidden");
+  els.appDialogClose?.focus();
+}
+
+function closeDialog() {
+  els.appDialog?.classList.add("is-hidden");
+}
 
 function showGame(target) {
   els.homeOverlay.classList.add("is-hidden");
@@ -718,11 +835,17 @@ function openFeature(action) {
     club: renderClubFeature,
     messages: renderMessagesFeature,
     friends: renderFriendsFeature,
+    notifications: renderNotificationsFeature,
+    settings: renderSettingsFeature,
   };
 
-  if (!views[action]) return;
+  if (!views[action]) {
+    showToast("Diese Ansicht ist noch nicht verfuegbar.", "error");
+    return;
+  }
   views[action]();
   els.featurePanel.classList.remove("is-hidden");
+  updateMainNavigation(action);
 }
 
 function closeFeaturePanel() {
@@ -1292,6 +1415,61 @@ function renderFriendsFeature() {
   );
 }
 
+function renderNotificationsFeature() {
+  const activeEvents = state.events.filter((event) => event.active).slice(0, 3);
+  setFeature(
+    "Benachrichtigungen",
+    "Status",
+    `
+      <div class="feature-list">
+        ${messageTile("Account bereit", `${escapeHtml(activeUser().name)} ist angemeldet. Coins und Diamanten sind synchronisiert.`)}
+        ${messageTile("XP-Fortschritt", "Level 25 | 3250 / 5100 XP. Die XP-Leiste wird im Header angezeigt.")}
+        ${activeEvents.length
+          ? activeEvents.map((event) => messageTile(event.title, `${event.type} startet am ${event.date} um ${event.startTime || "00:00"}.`)).join("")
+          : messageTile("Keine aktiven Events", "Sobald Events aktiv sind, erscheinen sie hier und im Hauptmenue.")}
+      </div>
+    `
+  );
+}
+
+function renderSettingsFeature() {
+  const user = activeUser();
+  setFeature(
+    "Einstellungen",
+    "Profil & Bedienung",
+    `
+      <div class="feature-grid two">
+        <article class="feature-card settings-profile-card">
+          <div class="login-active-user">
+            <div class="admin-avatar">${escapeHtml(userInitials(user.name))}</div>
+            <div>
+              <strong>${escapeHtml(user.name)}</strong>
+              <span>Level 25</span>
+            </div>
+          </div>
+          <p>Bearbeite Anzeigename, E-Mail und PIN im Profilfenster.</p>
+          <button type="button" data-feature-action="open-profile">Profil bearbeiten</button>
+        </article>
+        <article class="feature-card">
+          <h3>Anzeige</h3>
+          <p>Stadionlicht, Partikel, Kachelglow und Hover-Effekte verwenden das bestehende Liga-Clash-Design.</p>
+          <div class="pill-row"><span>HUD aktiv</span><span>Touch optimiert</span><span>Responsive</span></div>
+        </article>
+        <article class="feature-card">
+          <h3>Sound & Vibration</h3>
+          <p>UI-Taps, Pack-Feedback und Coin-Animationen nutzen dezente Browser-Effekte, wenn das Geraet sie unterstuetzt.</p>
+          <button type="button" data-feature-action="settings-info">Systemhinweis</button>
+        </article>
+        <article class="feature-card">
+          <h3>Admin Center</h3>
+          <p>${canOpenAdmin(user) ? "Deine Rolle darf das Admin Center oeffnen." : "Admin Center ist nur fuer Owner und Admin sichtbar."}</p>
+          <button type="button" data-feature-action="open-admin" ${canOpenAdmin(user) ? "" : "disabled"}>Admin Center oeffnen</button>
+        </article>
+      </div>
+    `
+  );
+}
+
 function messageTile(title, text) {
   return `<article class="message-row"><h3>${title}</h3><p>${text}</p></article>`;
 }
@@ -1302,7 +1480,7 @@ function friendTile(name, league, lp) {
 
 function renderCardPhoto(card, className = "card-photo") {
   const photo = playerPhoto(card);
-  return photo ? `<img class="${className}" src="${escapeAttr(photo)}" alt="${escapeAttr(card.name)} Profilbild" loading="lazy" />` : "";
+  return photo ? `<img class="${className}" src="${escapeAttr(photo)}" alt="${escapeAttr(card.name)} Profilbild" loading="lazy" onerror="this.onerror=null;this.src='${PLAYER_IMAGE_PLACEHOLDER}'" />` : "";
 }
 
 function refreshCardManagementFeature() {
@@ -1433,6 +1611,14 @@ function handleFeatureClick(event) {
     render();
     animateCoinChange(fromCoins, state.coins, target);
     renderFriendsFeature();
+  } else if (action === "open-profile") {
+    closeFeaturePanel();
+    navigateTo("profile");
+  } else if (action === "open-admin") {
+    closeFeaturePanel();
+    navigateTo("admin");
+  } else if (action === "settings-info") {
+    openDialog("Liga Clash Einstellungen", "Diese Phase stellt die Benutzeroberflaeche bereit. Gameplay-, Booster- und Shop-Systeme werden hier nicht erweitert.");
   }
 }
 
@@ -1869,7 +2055,8 @@ function calculateChemistry() {
 function openAdminCenter() {
   const user = activeUser();
   if (!canOpenAdmin(user)) {
-    openLoginPanel(`Admin Center nur fuer Owner, Admins und Moderatoren. Aktuell: ${user.role}.`);
+    showToast("Admin Center nur fuer Owner und Admin.", "error");
+    openLoginPanel(`Admin Center nur fuer Owner und Admin. Aktuell: ${user.role}.`);
     return;
   }
   renderAdminControls();
@@ -1913,14 +2100,17 @@ function handleLoginSubmit(event) {
   const user = state.adminUsers.find((item) => item.id === els.loginUserSelect.value);
   if (!user) {
     els.loginStatus.textContent = "Benutzer nicht gefunden.";
+    showToast("Benutzer nicht gefunden.", "error");
     return;
   }
   if (user.locked) {
     els.loginStatus.textContent = `${user.name} ist gesperrt.`;
+    showToast("Dieser Benutzer ist gesperrt.", "error");
     return;
   }
   if (!verifyPin(user, els.loginPin.value)) {
     els.loginStatus.textContent = "PIN stimmt nicht.";
+    showToast("PIN stimmt nicht.", "error");
     return;
   }
   syncActiveUserWallet();
@@ -1930,6 +2120,7 @@ function handleLoginSubmit(event) {
   updateAccountUi();
   render();
   saveState();
+  showToast(`Eingeloggt als ${user.name}.`, "success");
   setTimeout(closeLoginPanel, 350);
 }
 
@@ -1944,6 +2135,7 @@ function handleProfileSubmit(event) {
   renderLoginPanel();
   renderAdminUsers();
   saveState();
+  showToast("Profil gespeichert.", "success");
 }
 
 function initAdminControls() {
@@ -2158,7 +2350,7 @@ function activeUser() {
 }
 
 function canOpenAdmin(user) {
-  return ["Owner", "Admin", "Moderator"].includes(user.role) && !user.locked;
+  return ["Owner", "Admin"].includes(user.role) && !user.locked;
 }
 
 function verifyPin(user, pin) {
@@ -2177,6 +2369,8 @@ function updateAccountUi() {
   els.loginActiveName.textContent = user.name;
   els.loginActiveRole.textContent = user.role;
   els.loginActiveAvatar.textContent = initials;
+  els.openAdmin.hidden = !canOpenAdmin(user);
+  els.openAdmin.setAttribute("aria-hidden", String(!canOpenAdmin(user)));
 }
 
 function userInitials(name) {
@@ -4623,7 +4817,15 @@ function getClub(name) {
 }
 
 function playerPhoto(card) {
-  return card.photo || "";
+  return resolvePlayerImage(card).src;
+}
+
+function resolvePlayerImage(card) {
+  if (card.manualImagePath) return { src: card.manualImagePath, source: "manual" };
+  if (card.localImagePath && card.imageStatus === "cached") return { src: card.localImagePath, source: "cache" };
+  if (card.imageUrl && card.imageStatus === "remote_allowed") return { src: card.imageUrl, source: "remote" };
+  if (card.photo) return { src: card.photo, source: "legacy" };
+  return { src: PLAYER_IMAGE_PLACEHOLDER, source: "placeholder" };
 }
 
 function renderPlayerListPhoto(card) {
@@ -4644,6 +4846,19 @@ function normalizeCard(card) {
   return {
     ...normalized,
     photo: normalized.photo || "",
+    externalIds: normalized.externalIds || {},
+    manualImagePath: normalized.manualImagePath || "",
+    localImagePath: normalized.localImagePath || "",
+    imageUrl: normalized.imageUrl || "",
+    imageProvider: normalized.imageProvider || "",
+    imageExternalId: normalized.imageExternalId || "",
+    imageStatus: normalized.imageStatus || "placeholder",
+    imageUpdatedAt: normalized.imageUpdatedAt || "",
+    imageLicense: normalized.imageLicense || "",
+    imageAuthor: normalized.imageAuthor || "",
+    imageAttributionUrl: normalized.imageAttributionUrl || "",
+    imageMatchConfidence: Number(normalized.imageMatchConfidence) || 0,
+    imageManuallyVerified: Boolean(normalized.imageManuallyVerified),
     sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
     series: normalizeCardSeries(normalized.series),
     level: normalizeCardLevel(card.level),

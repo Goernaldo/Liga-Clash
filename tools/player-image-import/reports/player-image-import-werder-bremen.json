@@ -1,0 +1,98 @@
+{
+  "generatedAt": "2026-07-10T21:02:42.291Z",
+  "phase": "player-image-import-phase-1",
+  "club": "Werder Bremen",
+  "provider": "sportmonks-fixture",
+  "dryRun": true,
+  "scope": "single_club_test",
+  "summary": {
+    "total": 3,
+    "matched": 1,
+    "matchRate": 33.33,
+    "missingImages": 1,
+    "uncertain": 1
+  },
+  "results": [
+    {
+      "player": {
+        "id": "ducksch",
+        "name": "Marvin Ducksch",
+        "pos": "ST",
+        "club": "Werder Bremen",
+        "cls": 5
+      },
+      "status": "matched",
+      "confidence": 100,
+      "candidate": {
+        "provider": "sportmonks",
+        "externalId": 100001,
+        "name": "Marvin Ducksch",
+        "imagePathPresent": true
+      },
+      "license": {
+        "provider": "sportmonks-fixture",
+        "externalId": 100001,
+        "license": "fixture_no_real_image_rights",
+        "attributionRequired": false,
+        "cacheAllowed": false,
+        "remoteDisplayAllowed": false,
+        "commercialUseAllowed": false,
+        "licenseReviewStatus": "test_fixture_only"
+      }
+    },
+    {
+      "player": {
+        "id": "stage",
+        "name": "Jens Stage",
+        "pos": "ZM",
+        "club": "Werder Bremen",
+        "cls": 4
+      },
+      "status": "missing_image",
+      "confidence": 100,
+      "candidate": {
+        "provider": "sportmonks",
+        "externalId": 100002,
+        "name": "Jens Stage",
+        "imagePathPresent": false
+      },
+      "license": {
+        "provider": "sportmonks-fixture",
+        "externalId": 100002,
+        "license": "fixture_no_real_image_rights",
+        "attributionRequired": false,
+        "cacheAllowed": false,
+        "remoteDisplayAllowed": false,
+        "commercialUseAllowed": false,
+        "licenseReviewStatus": "test_fixture_only"
+      }
+    },
+    {
+      "player": {
+        "id": "friedl",
+        "name": "Marco Friedl",
+        "pos": "IV",
+        "club": "Werder Bremen",
+        "cls": 4
+      },
+      "status": "needs_review",
+      "confidence": 75,
+      "candidate": {
+        "provider": "sportmonks",
+        "externalId": 100003,
+        "name": "Marco Friedl",
+        "imagePathPresent": true
+      },
+      "license": {
+        "provider": "sportmonks-fixture",
+        "externalId": 100003,
+        "license": "fixture_no_real_image_rights",
+        "attributionRequired": false,
+        "cacheAllowed": false,
+        "remoteDisplayAllowed": false,
+        "commercialUseAllowed": false,
+        "licenseReviewStatus": "test_fixture_only"
+      }
+    }
+  ]
+}
