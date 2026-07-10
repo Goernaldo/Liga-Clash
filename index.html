@@ -648,16 +648,23 @@
 
           <div class="controls">
             <div class="segmented" role="group" aria-label="Formation">
-              <button class="formation-button active" data-formation="2-2-1">2-2-1</button>
-              <button class="formation-button" data-formation="2-1-2">2-1-2</button>
-              <button class="formation-button" data-formation="1-2-2">1-2-2</button>
-              <button class="formation-button" data-formation="3-1-1">3-1-1</button>
+              <button class="formation-button active" data-formation="1-2-1-1">1-2-1-1</button>
+              <button class="formation-button" data-formation="1-1-2-1">1-1-2-1</button>
+              <button class="formation-button" data-formation="1-1-1-2">1-1-1-2</button>
             </div>
             <div class="segmented" role="group" aria-label="Taktik">
               <button class="tactic-button active" data-tactic="pressing">Pressing</button>
               <button class="tactic-button" data-tactic="balance">Balance</button>
               <button class="tactic-button" data-tactic="konter">Konter</button>
             </div>
+            <label class="difficulty-select">
+              CPU
+              <select id="cpuDifficulty">
+                <option value="easy">Leicht</option>
+                <option value="normal" selected>Normal</option>
+                <option value="hard">Schwer</option>
+              </select>
+            </label>
             <button id="playMatch" class="primary-button" type="button">Match starten</button>
           </div>
         </div>
@@ -679,6 +686,14 @@
             </div>
             <ol id="matchLog" class="match-log"></ol>
           </div>
+          <div class="panel-block">
+            <div class="panel-title">
+              <h2>Battle-Zone</h2>
+              <span id="roundTag">Runde 0/5</span>
+            </div>
+            <div id="battleBoard" class="battle-board"></div>
+          </div>
+          <div id="matchSummary" class="panel-block match-summary"></div>
         </aside>
       </section>
 
@@ -716,6 +731,6 @@
       </section>
     </main>
 
-    <script src="game.js"></script>
+    <script src="game.js?v=gameplay-core-1"></script>
   </body>
 </html>

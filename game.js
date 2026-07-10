@@ -354,32 +354,63 @@ const baseCards = [
   cloneCardForCollection(GAME_CARDS.find((card) => card.id === "doekhi")),
   cloneCardForCollection(GAME_CARDS.find((card) => card.id === "fuehrich")),
   cloneCardForCollection(GAME_CARDS.find((card) => card.id === "guenter")),
+  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "stage")),
+  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "musiala")),
+  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "kimmich")),
 ];
 
 const names = ["Thomas", "Max", "Anna", "Chris", "Kevin", "Tim", "Marco", "Leyla", "Nico", "Sara", "Ben", "Milan", "Noah", "Lina", "David", "Yara", "Omar"];
 const opponents = ["FC Rheinpark", "Union Hafenstadt", "SV Allee 04", "VfB Nordkurve", "SC Bergtal", "Rot-Weiss Zentrum"];
 const careerOpponents = ["SV Gruenwald", "FC Nord", "Berlin SC", "Rot-Weiss Zentrum", "Union Hafenstadt", "Energie Cottbus", "Werder Bremen", "Borussia Dortmund", "FC Bayern Muenchen", "Champions XI"];
 const matchSituations = [
-  { label: "Konter", call: "Tempo + Abschluss entscheiden", stats: [{ key: "pace", weight: 0.55 }, { key: "finish", weight: 0.45 }], tactic: "konter", goalBias: 1 },
-  { label: "Fluegelangriff", call: "Tempo + Dribbling entscheiden", stats: [{ key: "pace", weight: 0.48 }, { key: "dribble", weight: 0.52 }], tactic: "konter", goalBias: 0 },
-  { label: "Flanke", call: "Passspiel + Spielintelligenz entscheiden", stats: [{ key: "passing", weight: 0.62 }, { key: "iq", weight: 0.38 }], tactic: "balance", goalBias: 0 },
-  { label: "Hoher Ball", call: "Physis + Abschluss entscheiden", stats: [{ key: "physical", weight: 0.58 }, { key: "finish", weight: 0.42 }], tactic: "balance", goalBias: 1 },
-  { label: "Freistoss", call: "Abschluss + Spielintelligenz entscheiden", stats: [{ key: "finish", weight: 0.62 }, { key: "iq", weight: 0.38 }], tactic: "balance", goalBias: 1 },
-  { label: "Spielaufbau", call: "Passspiel + Teamgeist entscheiden", stats: [{ key: "passing", weight: 0.65 }, { key: "teamgeist", weight: 0.35 }], tactic: "balance", goalBias: 0 },
-  { label: "Eins gegen Eins", call: "Dribbling + Tempo entscheiden", stats: [{ key: "dribble", weight: 0.58 }, { key: "pace", weight: 0.42 }], tactic: "konter", goalBias: 1 },
-  { label: "Pressing", call: "Defensive + Physis entscheiden", stats: [{ key: "defense", weight: 0.58 }, { key: "physical", weight: 0.42 }], tactic: "pressing", goalBias: -1 },
-  { label: "Letzte Abwehraktion", call: "Defensive + Spielintelligenz entscheiden", stats: [{ key: "defense", weight: 0.68 }, { key: "iq", weight: 0.32 }], tactic: "pressing", goalBias: -1 },
-  { label: "Fernschuss", call: "Abschluss + Passspiel entscheiden", stats: [{ key: "finish", weight: 0.62 }, { key: "passing", weight: 0.38 }], tactic: "konter", goalBias: 1 },
+  { id: "striker-vs-centerback", label: "Stuermer gegen Innenverteidiger", call: "Abschluss + Physis gegen Defensive", category: "Abschluss", stats: [{ key: "finish", weight: 0.62 }, { key: "physical", weight: 0.38 }], playerGroups: ["attack"], cpuGroups: ["defense"], tactic: "konter", goalBias: 1 },
+  { id: "wing-vs-fullback", label: "Fluegelduell", call: "Tempo + Dribbling entscheiden", category: "Tempo-Duell", stats: [{ key: "pace", weight: 0.52 }, { key: "dribble", weight: 0.48 }], playerGroups: ["attack", "mid"], cpuGroups: ["defense"], tactic: "konter", goalBias: 0 },
+  { id: "midfield-control", label: "Mittelfeldduell", call: "Passspiel + Spielintelligenz entscheiden", category: "Passspiel", stats: [{ key: "passing", weight: 0.62 }, { key: "iq", weight: 0.38 }], playerGroups: ["mid"], cpuGroups: ["mid"], tactic: "balance", goalBias: 0 },
+  { id: "keeper-reaction", label: "Angreifer gegen Torwart", call: "Abschluss gegen Torwartreaktion", category: "Torwartreaktion", stats: [{ key: "finish", weight: 0.58 }, { key: "iq", weight: 0.42 }], playerGroups: ["attack"], cpuGroups: ["keeper"], tactic: "konter", goalBias: 1 },
+  { id: "build-up", label: "Spielaufbau", call: "Passspiel + Teamgeist entscheiden", category: "Spielaufbau", stats: [{ key: "passing", weight: 0.65 }, { key: "teamgeist", weight: 0.35 }], playerGroups: ["mid", "defense"], cpuGroups: ["mid", "attack"], tactic: "balance", goalBias: 0 },
+  { id: "pressing-duel", label: "Zweikampf", call: "Defensive + Physis entscheiden", category: "Zweikampf", stats: [{ key: "defense", weight: 0.58 }, { key: "physical", weight: 0.42 }], playerGroups: ["defense", "mid"], cpuGroups: ["attack", "mid"], tactic: "pressing", goalBias: -1 },
+  { id: "last-block", label: "Letzte Abwehraktion", call: "Defensive + Spielintelligenz entscheiden", category: "Verteidigung", stats: [{ key: "defense", weight: 0.68 }, { key: "iq", weight: 0.32 }], playerGroups: ["keeper", "defense"], cpuGroups: ["attack"], tactic: "pressing", goalBias: -1 },
+  { id: "long-shot", label: "Fernschuss", call: "Abschluss + Technik entscheiden", category: "Abschluss", stats: [{ key: "finish", weight: 0.58 }, { key: "dribble", weight: 0.42 }], playerGroups: ["attack", "mid"], cpuGroups: ["keeper", "defense"], tactic: "konter", goalBias: 1 },
 ];
 
 const FORMATIONS = {
-  "2-2-1": { defense: 2, mid: 2, attack: 1 },
-  "2-1-2": { defense: 2, mid: 1, attack: 2 },
-  "1-2-2": { defense: 1, mid: 2, attack: 2 },
-  "3-1-1": { defense: 3, mid: 1, attack: 1 },
+  "1-2-1-1": { keeper: 1, defense: 2, mid: 2, attack: 1, label: "1-2-1-1" },
+  "1-1-2-1": { keeper: 1, defense: 2, mid: 1, attack: 2, label: "1-1-2-1" },
+  "1-1-1-2": { keeper: 1, defense: 1, mid: 2, attack: 2, label: "1-1-1-2" },
+  "2-2-1": { keeper: 1, defense: 2, mid: 2, attack: 1, label: "1-2-2-1", legacy: true },
+  "2-1-2": { keeper: 1, defense: 2, mid: 1, attack: 2, label: "1-2-1-2", legacy: true },
+  "1-2-2": { keeper: 1, defense: 1, mid: 2, attack: 2, label: "1-1-2-2", legacy: true },
+  "3-1-1": { keeper: 1, defense: 3, mid: 1, attack: 1, label: "1-3-1-1", legacy: true },
 };
 
-const MATCH_CARD_COUNT = 6;
+const DEFAULT_FORMATION = "1-2-1-1";
+const MATCH_ACTIVE_COUNT = 6;
+const MATCH_FIELD_COUNT = 5;
+const MATCH_SUBSTITUTE_COUNT = 3;
+const MATCH_CARD_COUNT = 9;
+const MATCH_ROUNDS = 5;
+
+const MATCH_BALANCE = {
+  randomMin: -4,
+  randomMax: 6,
+  tacticBonus: 4,
+  formationBonus: 3,
+  levelBonusPerStep: 0.22,
+  starBonus: 4,
+  reuseCards: false,
+  positionFit: {
+    exact: 1,
+    similar: 0.88,
+    offRole: 0.68,
+    wrong: 0.45,
+  },
+};
+
+const CPU_DIFFICULTIES = {
+  easy: { label: "Leicht", classOffset: -2, decisionSkill: 0.62, deckBonus: -7 },
+  normal: { label: "Normal", classOffset: 0, decisionSkill: 0.86, deckBonus: 0 },
+  hard: { label: "Schwer", classOffset: 1, decisionSkill: 1, deckBonus: 6 },
+};
 
 const state = loadState();
 
@@ -465,10 +496,14 @@ const els = {
   midSlot: document.querySelector("#midSlot"),
   defenseSlot: document.querySelector("#defenseSlot"),
   keeperSlot: document.querySelector("#keeperSlot"),
+  cpuDifficulty: document.querySelector("#cpuDifficulty"),
+  battleBoard: document.querySelector("#battleBoard"),
+  roundTag: document.querySelector("#roundTag"),
+  matchSummary: document.querySelector("#matchSummary"),
 };
 
 let selectedTactic = "pressing";
-let selectedFormation = "2-2-1";
+let selectedFormation = normalizeFormationKey(state.formation);
 let currentOpponent = createOpponent();
 
 document.body.classList.add("menu-open");
@@ -485,10 +520,16 @@ document.querySelectorAll(".formation-button").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".formation-button").forEach((item) => item.classList.remove("active"));
     button.classList.add("active");
-    selectedFormation = FORMATIONS[button.dataset.formation] ? button.dataset.formation : "2-2-1";
+    selectedFormation = normalizeFormationKey(button.dataset.formation);
     state.formation = selectedFormation;
     render();
   });
+});
+
+els.cpuDifficulty?.addEventListener("change", () => {
+  state.cpuDifficulty = normalizeCpuDifficulty(els.cpuDifficulty.value);
+  currentOpponent = createOpponent();
+  render();
 });
 
 els.startFromOverlay.addEventListener("click", handlePlayTileTap);
@@ -1590,7 +1631,7 @@ function rewardSummary(rewards) {
 }
 
 function simulateOfflineMatch(opponent, mode) {
-  const lineup = buildFormationLineup(activeMatchCards(), selectedFormation);
+  const lineup = buildFormationLineup(activeMatchCards(), selectedFormation).lineup;
   const selectedCards = lineupCards(lineup);
   let availableCards = [...selectedCards];
   const opponentBoost = mode === "challenge" ? 12 : mode === "quick" ? -4 : 0;
@@ -2160,6 +2201,7 @@ function normalizePin(pin, role = "User") {
 function renderAdminBoosters() {
   els.adminBoosterList.innerHTML = state.boosterPacks.length
     ? state.boosterPacks.map((pack) => {
+      const normalizedPack = normalizeBoosterPack(pack);
       const imageOptions = boosterImageOptions()
         .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === pack.image ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
         .join("");
@@ -2180,7 +2222,7 @@ function renderAdminBoosters() {
         .map((name, index) => `
           <label>
             ${escapeHtml(classLabel(index))}
-            <input data-pack-drop-rate="${index}" type="number" min="0" max="100" step="0.1" value="${pack.dropRates[index] ?? 0}" />
+            <input data-pack-drop-rate="${index}" type="number" min="0" max="100" step="0.1" value="${normalizedPack.dropRates[index] ?? 0}" />
           </label>
         `)
         .join("");
@@ -2822,7 +2864,11 @@ function createInitialState() {
     log: ["Waehle eine Taktik und starte dein erstes Ligamatch."],
     deck: baseCards,
     selected: baseCards.slice(0, MATCH_CARD_COUNT).map((card) => card.id),
-    formation: "2-2-1",
+    formation: DEFAULT_FORMATION,
+    cpuDifficulty: "normal",
+    activeMatch: null,
+    matchHistory: [],
+    pendingRewardBoard: null,
     cardFilters: defaultCardFilters(),
     leagueRows,
     record: { win: 0, draw: 0, loss: 0 },
@@ -2839,7 +2885,7 @@ function createInitialState() {
 
 function normalizeState(saved) {
   const fresh = createInitialState();
-  const migratedDeck = Array.isArray(saved.deck) && saved.deck.length ? saved.deck.map(normalizeCard) : fresh.deck;
+  const migratedDeck = ensureStarterDeckSize(Array.isArray(saved.deck) && saved.deck.length ? saved.deck.map(normalizeCard) : fresh.deck);
   const migratedSelected = Array.isArray(saved.selected) && saved.selected.length ? migrateSelectedIds(saved.selected, migratedDeck) : fresh.selected;
   const migratedEvents = Array.isArray(saved.events)
     ? removeLegacyDemoEvents(saved.events.map(normalizeEvent))
@@ -2857,7 +2903,11 @@ function normalizeState(saved) {
     ...fresh,
     ...saved,
     teamClassIndex: normalizeClassIndex(saved.teamClassIndex ?? fresh.teamClassIndex),
-    formation: FORMATIONS[saved.formation] ? saved.formation : fresh.formation,
+    formation: normalizeFormationKey(saved.formation || fresh.formation),
+    cpuDifficulty: normalizeCpuDifficulty(saved.cpuDifficulty),
+    activeMatch: normalizeStoredMatch(saved.activeMatch),
+    matchHistory: normalizeMatchHistory(saved.matchHistory),
+    pendingRewardBoard: normalizePendingRewardBoard(saved.pendingRewardBoard),
     gems: Number.isFinite(saved.gems) ? saved.gems : fresh.gems,
     dailyClaimed: Boolean(saved.dailyClaimed),
     mailGiftClaimed: Boolean(saved.mailGiftClaimed),
@@ -2907,6 +2957,89 @@ function normalizeCareerState(career) {
     tickets: Math.max(0, Number(career?.tickets) || 0),
     record: { ...fresh.record, ...(career?.record || {}) },
     log: Array.isArray(career?.log) ? career.log.slice(0, 6) : fresh.log,
+  };
+}
+
+function normalizeFormationKey(key) {
+  const legacyMap = {
+    "2-2-1": "1-2-1-1",
+    "2-1-2": "1-1-2-1",
+    "1-2-2": "1-1-1-2",
+    "3-1-1": "1-2-1-1",
+  };
+  const normalized = legacyMap[key] || key;
+  return FORMATIONS[normalized] ? normalized : DEFAULT_FORMATION;
+}
+
+function normalizeCpuDifficulty(value) {
+  return CPU_DIFFICULTIES[value] ? value : "normal";
+}
+
+function ensureStarterDeckSize(deck) {
+  const cards = Array.isArray(deck) ? [...deck] : [];
+  const existingIds = new Set(cards.map((card) => card.id));
+  baseCards.forEach((starterCard) => {
+    if (cards.length >= MATCH_CARD_COUNT) return;
+    if (existingIds.has(starterCard.id)) return;
+    cards.push(normalizeCard({ ...starterCard }));
+    existingIds.add(starterCard.id);
+  });
+  return cards;
+}
+
+function normalizeStoredMatch(match) {
+  if (!match || typeof match !== "object" || !match.id) return null;
+  const storedStatus = ["active", "completed", "aborted"].includes(match.status) ? match.status : "aborted";
+  const status = storedStatus === "active" ? "aborted" : storedStatus;
+  return {
+    id: String(match.id),
+    date: match.date || new Date().toISOString(),
+    status,
+    mode: match.mode || "cpu",
+    playerDeck: Array.isArray(match.playerDeck) ? match.playerDeck.slice(0, MATCH_CARD_COUNT) : [],
+    cpuDeck: Array.isArray(match.cpuDeck) ? match.cpuDeck.slice(0, MATCH_CARD_COUNT) : [],
+    cpu: {
+      name: match.cpu?.name || "CPU",
+      power: Math.max(1, Number(match.cpu?.power) || 1),
+      classIndex: normalizeClassIndex(match.cpu?.classIndex),
+      leagueIndex: clamp(Number(match.cpu?.leagueIndex) || 0, 0, leagues.length - 1),
+    },
+    difficulty: normalizeCpuDifficulty(match.difficulty),
+    formation: normalizeFormationKey(match.formation),
+    rounds: Array.isArray(match.rounds) ? match.rounds.slice(0, MATCH_ROUNDS) : [],
+    score: normalizeMatchScore(match.score),
+    result: status === "aborted" ? "pending" : ["win", "loss", "draw", "pending"].includes(match.result) ? match.result : "pending",
+    usedCards: Array.isArray(match.usedCards) ? match.usedCards : [],
+    rewards: normalizeMatchRewards(match.rewards),
+  };
+}
+
+function normalizeMatchScore(score) {
+  return {
+    player: Math.max(0, Number(score?.player) || 0),
+    cpu: Math.max(0, Number(score?.cpu) || 0),
+  };
+}
+
+function normalizeMatchRewards(rewards) {
+  return {
+    selectionCount: Math.max(0, Number(rewards?.selectionCount) || 0),
+    prepared: Boolean(rewards?.prepared),
+    claimed: Boolean(rewards?.claimed),
+  };
+}
+
+function normalizeMatchHistory(history) {
+  return Array.isArray(history) ? history.map(normalizeStoredMatch).filter(Boolean).slice(0, 20) : [];
+}
+
+function normalizePendingRewardBoard(board) {
+  if (!board || typeof board !== "object" || !board.matchId) return null;
+  return {
+    matchId: String(board.matchId),
+    result: ["win", "loss", "draw"].includes(board.result) ? board.result : "loss",
+    selectionCount: Math.max(0, Number(board.selectionCount) || 0),
+    status: board.status === "ready" ? "ready" : "prepared",
   };
 }
 
@@ -3433,10 +3566,13 @@ function saveState() {
 
 function render() {
   updateAccountUi();
-  selectedFormation = FORMATIONS[state.formation] ? state.formation : selectedFormation;
+  state.formation = normalizeFormationKey(state.formation);
+  state.cpuDifficulty = normalizeCpuDifficulty(state.cpuDifficulty);
+  selectedFormation = state.formation;
   document.querySelectorAll(".formation-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.formation === selectedFormation);
   });
+  if (els.cpuDifficulty) els.cpuDifficulty.value = state.cpuDifficulty;
   const lineup = getLineup();
   const avgClass = Math.round(state.deck.reduce((sum, card) => sum + card.cls, 0) / state.deck.length);
   state.teamClassIndex = Math.max(state.teamClassIndex, avgClass);
@@ -3453,8 +3589,8 @@ function render() {
   els.homeScore.textContent = state.homeScore;
   els.awayScore.textContent = state.awayScore;
   els.opponentName.textContent = currentOpponent.name;
-  els.opponentDetails.textContent = `${currentOpponent.name} | ${leagues[currentOpponent.leagueIndex]} | ${teamClasses[currentOpponent.classIndex]} | Staerke ${currentOpponent.power}`;
-  els.resultTag.textContent = "Bereit";
+  els.opponentDetails.textContent = `${currentOpponent.name} | ${leagues[currentOpponent.leagueIndex]} | ${teamClasses[currentOpponent.classIndex]} | CPU ${CPU_DIFFICULTIES[state.cpuDifficulty].label} | Staerke ${currentOpponent.power}`;
+  els.resultTag.textContent = matchResultLabel(state.activeMatch);
   els.playMatch.disabled = false;
   els.openPack.textContent = `Scout-Pack (${state.coins}/100)`;
   els.openPack.disabled = state.coins < 100;
@@ -3465,6 +3601,8 @@ function render() {
   renderSlot(els.keeperSlot, lineup.keeper);
   renderDeck();
   renderLog();
+  renderBattleBoard();
+  renderMatchSummary();
   renderLeague();
   renderAdminControls();
   saveState();
@@ -3565,6 +3703,105 @@ function renderLog() {
   });
 }
 
+function matchResultLabel(match) {
+  if (!match) return "Bereit";
+  if (match.status === "aborted") return "Abgebrochen erkannt";
+  if (match.status !== "completed") return "Match laeuft";
+  if (match.result === "win") return "Sieg";
+  if (match.result === "loss") return "Niederlage";
+  if (match.result === "draw") return "Unentschieden";
+  return "Bereit";
+}
+
+function renderBattleBoard() {
+  if (!els.battleBoard) return;
+  const match = state.activeMatch;
+  if (!match || !match.rounds?.length) {
+    els.roundTag.textContent = `Runde 0/${MATCH_ROUNDS}`;
+    els.battleBoard.innerHTML = `
+      <p class="muted">Starte ein Match, um die fuenf transparent berechneten Runden zu sehen.</p>
+    `;
+    return;
+  }
+  els.roundTag.textContent = `Runde ${match.rounds.length}/${MATCH_ROUNDS}`;
+  els.battleBoard.innerHTML = match.rounds.map((round) => `
+    <article class="battle-round ${round.winner === "player" ? "won" : "lost"}">
+      <header>
+        <strong>Runde ${round.round}</strong>
+        <span>${escapeHtml(round.category)}</span>
+      </header>
+      <h3>${escapeHtml(round.situation)}</h3>
+      <p>${escapeHtml(round.call)}</p>
+      <div class="battle-versus">
+        ${battleSide("Du", round.player, round.winner === "player")}
+        <b>${round.player.total}:${round.cpu.total}</b>
+        ${battleSide("CPU", round.cpu, round.winner === "cpu")}
+      </div>
+      <details>
+        <summary>Berechnung anzeigen</summary>
+        <div class="calc-grid">
+          ${calculationRows(round.player, "Deine Karte")}
+          ${calculationRows(round.cpu, "CPU-Karte")}
+        </div>
+      </details>
+    </article>
+  `).join("");
+}
+
+function battleSide(label, data, won) {
+  return `
+    <div class="battle-side ${won ? "winner" : ""}">
+      <span>${label}</span>
+      <strong>${escapeHtml(data.name)}</strong>
+      <em>${escapeHtml(data.pos)} | ${escapeHtml(data.positionText)}</em>
+    </div>
+  `;
+}
+
+function calculationRows(data, label) {
+  return `
+    <dl>
+      <dt>${label}</dt><dd>${escapeHtml(data.name)}</dd>
+      <dt>Grundwert</dt><dd>${data.base}</dd>
+      <dt>Kategorie</dt><dd>${escapeHtml(data.category)}</dd>
+      <dt>Levelbonus</dt><dd>+${data.levelBonus}</dd>
+      <dt>Sternbonus</dt><dd>+${data.starBonus}</dd>
+      <dt>Position</dt><dd>${Math.round(data.positionModifier * 100)}%</dd>
+      <dt>Taktik</dt><dd>+${data.tacticBonus}</dd>
+      <dt>Formation</dt><dd>+${data.formationBonus}</dd>
+      <dt>Zufall</dt><dd>${data.random >= 0 ? "+" : ""}${data.random}</dd>
+      <dt>Weitere Mods</dt><dd>${data.extraModifier >= 0 ? "+" : ""}${data.extraModifier}</dd>
+      <dt>Endwert</dt><dd>${data.total}</dd>
+    </dl>
+  `;
+}
+
+function renderMatchSummary() {
+  if (!els.matchSummary) return;
+  const match = state.activeMatch;
+  if (!match || !match.rounds?.length) {
+    const substitutes = getLineup().substitutes || [];
+    els.matchSummary.innerHTML = `
+      <div class="panel-title"><h2>Matchabschluss</h2><span>Bereit</span></div>
+      <p class="muted">Noch kein Matchresultat gespeichert.</p>
+      <h3>Ersatzbank</h3>
+      <div class="bench-list">${substitutes.length ? substitutes.map(benchChip).join("") : "<span>Keine Ersatzspieler</span>"}</div>
+    `;
+    return;
+  }
+  const resultLabel = match.result === "win" ? "Sieg" : match.result === "loss" ? "Niederlage" : "Unentschieden";
+  els.matchSummary.innerHTML = `
+    <div class="panel-title"><h2>Matchabschluss</h2><span>${resultLabel}</span></div>
+    <div class="summary-score"><strong>${match.score.player}:${match.score.cpu}</strong><em>${escapeHtml(match.cpu.name)}</em></div>
+    <p>${rewardBoardText(match)} fuer das spaetere 5x5-Belohnungsboard vorbereitet.</p>
+    <p class="muted">Match-ID: ${escapeHtml(match.id)}</p>
+  `;
+}
+
+function benchChip(card) {
+  return `<span>${escapeHtml(card.pos)} ${escapeHtml(card.name)}</span>`;
+}
+
 function renderLeague() {
   const rows = [{ name: "Du", lp: state.lp, player: true }, ...state.leagueRows].sort((a, b) => b.lp - a.lp);
   els.leagueBody.innerHTML = "";
@@ -3595,7 +3832,7 @@ function toggleSelected(id) {
 }
 
 function getLineup() {
-  return buildFormationLineup(activeMatchCards(), selectedFormation);
+  return buildFormationLineup(activeMatchCards(), selectedFormation).lineup;
 }
 
 function activeMatchCards() {
@@ -3604,14 +3841,24 @@ function activeMatchCards() {
   return [...selectedCards, ...fillCards].slice(0, MATCH_CARD_COUNT);
 }
 
-function buildFormationLineup(cards, formationKey = "2-2-1") {
-  const formation = FORMATIONS[formationKey] || FORMATIONS["2-2-1"];
-  const available = [...cards];
-  const keeper = takeBest(available, (card) => isGoalkeeper(card), defensivePower) || takeBest(available, () => true, defensivePower);
-  const defense = takeMany(available, formation.defense, isDefender, defensivePower);
-  const mid = takeMany(available, formation.mid, isMidfielder, midfieldPower);
-  const attack = takeMany(available, formation.attack, isAttacker, attackingPower);
-  return { keeper, defense, mid, attack };
+function buildFormationLineup(cards, formationKey = DEFAULT_FORMATION) {
+  const formation = FORMATIONS[normalizeFormationKey(formationKey)];
+  const available = [...cards].filter(Boolean);
+  const errors = [];
+  const keeper = takeBest(available, (card) => positionFit(card, "keeper").kind !== "wrong", defensivePower);
+  if (!keeper) errors.push("kein Torwart im Deck");
+  const defense = takeManyForRole(available, formation.defense, "defense", defensivePower);
+  const mid = takeManyForRole(available, formation.mid, "mid", midfieldPower);
+  const attack = takeManyForRole(available, formation.attack, "attack", attackingPower);
+  const active = [keeper, ...defense, ...mid, ...attack].filter(Boolean);
+  if (active.length < MATCH_ACTIVE_COUNT) errors.push("Deck unvollstaendig fuer die Formation");
+  const substitutes = available.slice(0, MATCH_SUBSTITUTE_COUNT);
+  return {
+    lineup: { keeper, defense, mid, attack, substitutes },
+    active,
+    substitutes,
+    errors,
+  };
 }
 
 function takeBest(cards, predicate, scoreFn) {
@@ -3632,62 +3879,310 @@ function takeMany(cards, count, predicate, scoreFn) {
   return picked;
 }
 
+function takeManyForRole(cards, count, role, scoreFn) {
+  const picked = [];
+  for (let index = 0; index < count; index += 1) {
+    const exactOrSimilar = takeBest(cards, (card) => ["exact", "similar"].includes(positionFit(card, role).kind), scoreFn);
+    const offRole = exactOrSimilar || takeBest(cards, (card) => positionFit(card, role).kind === "offRole", scoreFn);
+    const fallback = offRole || takeBest(cards, () => true, scoreFn);
+    if (fallback) picked.push(fallback);
+  }
+  return picked;
+}
+
 function isDefender(card) {
-  return ["IV", "CB", "LV", "RV", "LWB", "RWB", "DM"].includes(String(card.pos || "").toUpperCase());
+  return ["IV", "CB", "LV", "RV", "LWB", "RWB", "DM", "ZDM"].includes(normalizeCardPosition(card.pos));
 }
 
 function isMidfielder(card) {
-  return ["DM", "ZM", "OM", "CAM", "LM", "RM"].includes(String(card.pos || "").toUpperCase());
+  return ["DM", "ZDM", "ZM", "OM", "ZOM", "CAM", "LM", "RM"].includes(normalizeCardPosition(card.pos));
 }
 
 function isAttacker(card) {
-  return ["ST", "MS", "LA", "RA", "LM", "RM", "CAM"].includes(String(card.pos || "").toUpperCase());
+  return ["ST", "MS", "LA", "RA", "LF", "RF", "LM", "RM", "CAM", "ZOM"].includes(normalizeCardPosition(card.pos));
 }
 
 function playMatch() {
-  state.homeScore = 0;
-  state.awayScore = 0;
-  const lineup = getLineup();
-  const selectedCards = lineupCards(lineup);
-  let availableCards = [...selectedCards];
-  const log = [];
+  const prepared = prepareMatch("league");
+  if (!prepared.ok) {
+    state.log = [prepared.message, ...state.log].slice(0, 8);
+    render();
+    return;
+  }
+  const match = runMatchEngine(prepared);
+  applyFinishedMatch(match, { lp: true, coins: true, leagueRows: true });
+}
 
-  drawMatchSituations(5).forEach((situation) => {
-    if (!availableCards.length) availableCards = [...selectedCards];
-    const card = chooseCardForMatchSituation(availableCards, lineup, situation);
-    availableCards = availableCards.filter((item) => item.id !== card.id);
-    const tacticBonus = selectedTactic === situation.tactic ? 7 : 0;
-    const playerPower = situationPower(card, situation) + tacticBonus + rand(0, 16);
-    const opponentPower = currentOpponent.power + situation.goalBias + rand(-9, 17);
-
-    if (playerPower >= opponentPower + 7) {
-      state.homeScore += 1;
-      log.unshift(`${situation.label}: ${situation.call}. ${card.name} gewinnt die Szene. Tor fuer dich.`);
-    } else if (opponentPower >= playerPower + 9) {
-      state.awayScore += 1;
-      log.unshift(`${situation.label}: ${situation.call}. ${currentOpponent.name} setzt sich durch. Gegentor.`);
-    } else {
-      log.unshift(`${situation.label}: ${situation.call}. ${card.name} haelt dagegen, kein Tor.`);
-    }
-  });
-
-  const result = state.homeScore > state.awayScore ? "win" : state.homeScore === state.awayScore ? "draw" : "loss";
+function applyFinishedMatch(match, rewards = {}) {
+  const result = match.result;
   const points = result === "win" ? 25 : result === "draw" ? 10 : 5;
   const coins = result === "win" ? 45 : result === "draw" ? 25 : 15;
   const fromCoins = state.coins;
   state.record[result] += 1;
-  state.lp += points;
-  state.coins += coins;
-  state.leagueRows = state.leagueRows.map((row) => ({ ...row, lp: row.lp + rand(0, 24) }));
-  state.log = [`${state.homeScore}:${state.awayScore} gegen ${currentOpponent.name}. +${points} LP, +${coins} Coins.`, ...log, ...state.log].slice(0, 8);
+  if (rewards.lp) state.lp += points;
+  if (rewards.coins) state.coins += coins;
+  if (rewards.leagueRows) state.leagueRows = state.leagueRows.map((row) => ({ ...row, lp: row.lp + rand(0, 24) }));
+  state.homeScore = match.score.player;
+  state.awayScore = match.score.cpu;
+  state.activeMatch = match;
+  state.matchHistory = [match, ...state.matchHistory].slice(0, 20);
+  state.pendingRewardBoard = prepareRewardBoard(match);
+  state.log = [`${match.score.player}:${match.score.cpu} gegen ${match.cpu.name}. ${rewardBoardText(match)} vorbereitet.`, ...match.rounds.map(roundLogLine), ...state.log].slice(0, 8);
   currentOpponent = createOpponent();
-  maybePromoteLeague();
+  if (rewards.lp) maybePromoteLeague();
   render();
   animateCoinChange(fromCoins, state.coins, els.playMatch);
 }
 
 function lineupCards(lineup) {
   return [lineup.keeper, ...lineup.defense, ...lineup.mid, ...lineup.attack].filter(Boolean);
+}
+
+function prepareMatch(mode = "league") {
+  const playerDeck = activeMatchCards();
+  const playerCheck = validateMatchDeck(playerDeck, state.formation);
+  if (!playerCheck.ok) return { ok: false, message: playerCheck.errors.join(" | ") };
+  const cpuDeck = buildCpuDeck(state.cpuDifficulty, playerDeck);
+  const cpuCheck = validateMatchDeck(cpuDeck, state.formation);
+  if (!cpuCheck.ok) return { ok: false, message: `CPU-Deck ungueltig: ${cpuCheck.errors.join(" | ")}` };
+  return {
+    ok: true,
+    mode,
+    difficulty: state.cpuDifficulty,
+    formation: normalizeFormationKey(state.formation),
+    playerDeck,
+    playerLineup: playerCheck.lineup,
+    cpu: currentOpponent,
+    cpuDeck,
+    cpuLineup: cpuCheck.lineup,
+  };
+}
+
+function validateMatchDeck(cards, formationKey = DEFAULT_FORMATION) {
+  const uniqueIds = new Set();
+  const errors = [];
+  const cleanCards = cards.filter(Boolean);
+  cleanCards.forEach((card) => {
+    if (!card.id || uniqueIds.has(card.id)) errors.push("doppelte oder fehlende Karteninstanz");
+    uniqueIds.add(card.id);
+    if (!card.name || !card.pos) errors.push("fehlende Kartendaten");
+  });
+  if (!cleanCards.length) errors.push("kein Deck vorhanden");
+  if (cleanCards.length < MATCH_ACTIVE_COUNT) errors.push("Deck unvollstaendig");
+  if (cleanCards.length < MATCH_CARD_COUNT) errors.push(`Deck benoetigt ${MATCH_CARD_COUNT} Karten inklusive Ersatzbank`);
+  if (!cleanCards.some(isGoalkeeper)) errors.push("kein Torwart");
+  const built = buildFormationLineup(cleanCards, formationKey);
+  errors.push(...built.errors);
+  return { ok: !errors.length, errors: [...new Set(errors)], lineup: built.lineup, active: built.active, substitutes: built.substitutes };
+}
+
+function buildCpuDeck(difficultyKey, playerDeck) {
+  const difficulty = CPU_DIFFICULTIES[normalizeCpuDifficulty(difficultyKey)];
+  const targetClass = clamp(Math.round(playerDeck.reduce((sum, card) => sum + normalizeClassIndex(card.cls), 0) / Math.max(1, playerDeck.length)) + difficulty.classOffset, 0, teamClasses.length - 1);
+  const pool = GAME_CARDS
+    .filter((card) => Math.abs(normalizeClassIndex(card.cls) - targetClass) <= 2)
+    .sort((a, b) => rating(b) - rating(a));
+  const source = pool.length ? pool : GAME_CARDS;
+  const picked = [];
+  const needs = [
+    { role: "keeper", count: 1 },
+    { role: "defense", count: 2 },
+    { role: "mid", count: 2 },
+    { role: "attack", count: 2 },
+  ];
+  needs.forEach(({ role, count }) => {
+    for (let index = 0; index < count; index += 1) {
+      const candidate = chooseCpuDeckCard(source, picked, role, difficulty);
+      if (candidate) picked.push(cloneCardForCollection(candidate, `cpu-${difficultyKey}-${picked.length}`));
+    }
+  });
+  while (picked.length < MATCH_CARD_COUNT) {
+    const candidate = chooseCpuDeckCard(source, picked, "sub", difficulty);
+    if (!candidate) break;
+    picked.push(cloneCardForCollection(candidate, `cpu-${difficultyKey}-${picked.length}`));
+  }
+  return picked.slice(0, MATCH_CARD_COUNT);
+}
+
+function chooseCpuDeckCard(source, picked, role, difficulty) {
+  const usedSources = new Set(picked.map((card) => sourceCardId(card)));
+  const candidates = source.filter((card) => !usedSources.has(sourceCardId(card)) && (role === "sub" || positionFit(card, role).kind !== "wrong"));
+  const sorted = [...(candidates.length ? candidates : source.filter((card) => !usedSources.has(sourceCardId(card))))].sort((a, b) => rating(b) - rating(a));
+  if (!sorted.length) return null;
+  if (difficulty.decisionSkill < 0.7 && sorted.length > 2) return sorted[rand(0, Math.min(3, sorted.length - 1))];
+  if (difficulty.decisionSkill < 1 && sorted.length > 1) return sorted[rand(0, Math.min(1, sorted.length - 1))];
+  return sorted[0];
+}
+
+function runMatchEngine(prepared) {
+  const match = {
+    id: `match-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date: new Date().toISOString(),
+    status: "active",
+    mode: prepared.mode,
+    difficulty: prepared.difficulty,
+    formation: prepared.formation,
+    playerDeck: prepared.playerDeck.map((card) => card.id),
+    cpuDeck: prepared.cpuDeck.map((card) => card.id),
+    cpu: { name: prepared.cpu.name, power: prepared.cpu.power, classIndex: prepared.cpu.classIndex, leagueIndex: prepared.cpu.leagueIndex },
+    score: { player: 0, cpu: 0 },
+    rounds: [],
+    usedCards: [],
+    result: "pending",
+    rewards: { selectionCount: 0, prepared: false, claimed: false },
+  };
+  state.activeMatch = match;
+  saveState();
+  const playerUsed = new Set();
+  const cpuUsed = new Set();
+  drawMatchSituations(MATCH_ROUNDS).forEach((situation, index) => {
+    const round = resolveMatchRound({
+      round: index + 1,
+      situation,
+      playerLineup: prepared.playerLineup,
+      cpuLineup: prepared.cpuLineup,
+      playerUsed,
+      cpuUsed,
+      difficulty: CPU_DIFFICULTIES[prepared.difficulty],
+    });
+    if (round.winner === "player") match.score.player += 1;
+    if (round.winner === "cpu") match.score.cpu += 1;
+    match.rounds.push(round);
+    match.usedCards.push(round.player.cardId, round.cpu.cardId);
+  });
+  match.result = match.score.player > match.score.cpu ? "win" : match.score.player < match.score.cpu ? "loss" : "draw";
+  match.status = "completed";
+  match.rewards = {
+    selectionCount: rewardSelectionsForResult(match.result),
+    prepared: true,
+    claimed: false,
+  };
+  return match;
+}
+
+function resolveMatchRound({ round, situation, playerLineup, cpuLineup, playerUsed, cpuUsed, difficulty }) {
+  const playerCard = chooseBattleCard(playerLineup, situation, playerUsed, { isCpu: false, difficulty });
+  const cpuCard = chooseBattleCard(cpuLineup, situation, cpuUsed, { isCpu: true, difficulty });
+  if (!MATCH_BALANCE.reuseCards) {
+    playerUsed.add(playerCard.id);
+    cpuUsed.add(cpuCard.id);
+  }
+  const playerCalc = calculateRoundValue(playerCard, situation, selectedTactic, "player", difficulty);
+  const cpuCalc = calculateRoundValue(cpuCard, situation, situation.tactic, "cpu", difficulty);
+  const winner = playerCalc.total >= cpuCalc.total ? "player" : "cpu";
+  return {
+    round,
+    situation: situation.label,
+    category: situation.category,
+    call: situation.call,
+    winner,
+    player: { cardId: playerCard.id, name: playerCard.name, pos: playerCard.pos, ...playerCalc },
+    cpu: { cardId: cpuCard.id, name: cpuCard.name, pos: cpuCard.pos, ...cpuCalc },
+  };
+}
+
+function chooseBattleCard(lineup, situation, usedCards, options = {}) {
+  const groups = options.isCpu ? situation.cpuGroups : situation.playerGroups;
+  const candidates = groups.flatMap((group) => lineupGroupCards(lineup, group)).filter(Boolean);
+  const unused = candidates.filter((card) => !usedCards.has(card.id));
+  const fallbackUnused = lineupCards(lineup).filter((card) => !usedCards.has(card.id));
+  const pool = unused.length ? unused : fallbackUnused.length ? fallbackUnused : candidates.length ? candidates : lineupCards(lineup);
+  const sorted = [...pool].sort((a, b) => situationPower(b, situation) - situationPower(a, situation));
+  if (!options.isCpu) return sorted[0] || pool[0];
+  const skill = options.difficulty?.decisionSkill ?? 0.86;
+  if (skill < 0.7 && sorted.length > 2) return sorted[rand(0, Math.min(2, sorted.length - 1))];
+  if (skill < 1 && sorted.length > 1 && rand(1, 100) > 78) return sorted[1];
+  return sorted[0] || pool[0];
+}
+
+function lineupGroupCards(lineup, group) {
+  if (group === "keeper") return [lineup.keeper].filter(Boolean);
+  if (group === "defense") return lineup.defense || [];
+  if (group === "mid") return lineup.mid || [];
+  if (group === "attack") return lineup.attack || [];
+  if (group === "substitutes") return lineup.substitutes || [];
+  return lineupCards(lineup);
+}
+
+function calculateRoundValue(card, situation, tactic, side, difficulty) {
+  const base = situationPower(card, situation);
+  const role = preferredRoleForSituation(situation, side);
+  const fit = positionFit(card, role);
+  const levelBonus = Math.round(cardLevel(card) * MATCH_BALANCE.levelBonusPerStep);
+  const starBonus = proStars(card) * MATCH_BALANCE.starBonus;
+  const tacticBonus = tactic === situation.tactic ? MATCH_BALANCE.tacticBonus : 0;
+  const formationBonus = fit.kind === "exact" ? MATCH_BALANCE.formationBonus : 0;
+  const cpuBonus = 0;
+  const random = rand(MATCH_BALANCE.randomMin, MATCH_BALANCE.randomMax);
+  const modifiedBase = Math.round(base * fit.multiplier);
+  return {
+    base,
+    category: situation.category,
+    levelBonus,
+    starBonus,
+    positionModifier: fit.multiplier,
+    positionText: fit.label,
+    tacticBonus,
+    formationBonus,
+    random,
+    extraModifier: cpuBonus,
+    total: Math.max(1, modifiedBase + levelBonus + starBonus + tacticBonus + formationBonus + random + cpuBonus),
+  };
+}
+
+function preferredRoleForSituation(situation, side) {
+  const groups = side === "cpu" ? situation.cpuGroups : situation.playerGroups;
+  return groups[0] || "attack";
+}
+
+function normalizeCardPosition(position) {
+  const normalized = String(position || "").toUpperCase();
+  const aliases = { ZDM: "DM", ZOM: "CAM", LF: "LA", RF: "RA", TW: "TW", GK: "TW" };
+  return aliases[normalized] || normalized;
+}
+
+function positionFit(card, role) {
+  const pos = normalizeCardPosition(card.pos);
+  const exact = {
+    keeper: ["TW"],
+    defense: ["IV", "CB", "LV", "RV"],
+    mid: ["DM", "ZM", "OM", "CAM", "LM", "RM"],
+    attack: ["ST", "MS", "LA", "RA"],
+  };
+  const similar = {
+    keeper: [],
+    defense: ["DM", "LWB", "RWB", "LM", "RM"],
+    mid: ["LWB", "RWB", "LA", "RA", "LV", "RV"],
+    attack: ["LM", "RM", "CAM", "OM"],
+  };
+  if ((exact[role] || []).includes(pos)) return { kind: "exact", multiplier: MATCH_BALANCE.positionFit.exact, label: "passende Position" };
+  if ((similar[role] || []).includes(pos)) return { kind: "similar", multiplier: MATCH_BALANCE.positionFit.similar, label: "aehnliche Position" };
+  if (role !== "keeper" && pos !== "TW") return { kind: "offRole", multiplier: MATCH_BALANCE.positionFit.offRole, label: "positionsfremd" };
+  return { kind: "wrong", multiplier: MATCH_BALANCE.positionFit.wrong, label: "falsche Position" };
+}
+
+function rewardSelectionsForResult(result) {
+  if (result === "win") return 4;
+  if (result === "loss") return 2;
+  return 3;
+}
+
+function prepareRewardBoard(match) {
+  return {
+    matchId: match.id,
+    result: match.result,
+    selectionCount: rewardSelectionsForResult(match.result),
+    status: "prepared",
+  };
+}
+
+function rewardBoardText(match) {
+  return `${match.rewards.selectionCount} Belohnungsauswahlen`;
+}
+
+function roundLogLine(round) {
+  const result = round.winner === "player" ? "Punkt fuer dich" : "Punkt fuer CPU";
+  return `Runde ${round.round}: ${round.situation}. ${round.player.name} ${round.player.total} vs ${round.cpu.name} ${round.cpu.total}. ${result}.`;
 }
 
 function openPack() {
@@ -3705,13 +4200,14 @@ function openPack() {
 }
 
 function createOpponent() {
-  const classIndex = clamp(state.teamClassIndex + rand(-1, 1), 0, teamClasses.length - 1);
+  const difficulty = CPU_DIFFICULTIES[normalizeCpuDifficulty(state.cpuDifficulty)];
+  const classIndex = clamp(state.teamClassIndex + difficulty.classOffset + rand(-1, 1), 0, teamClasses.length - 1);
   const leagueIndex = clamp(state.leagueIndex + rand(-1, 1), 0, leagues.length - 1);
   return {
     name: opponents[rand(0, opponents.length - 1)],
     classIndex,
     leagueIndex,
-    power: 54 + classIndex * 4 + rand(-4, 8),
+    power: 54 + classIndex * 4 + difficulty.deckBonus + rand(-4, 8),
   };
 }
 
@@ -4316,5 +4812,6 @@ function migrateSelectedIds(selectedIds, deck) {
     .map((card) => card.id);
 
   const fallback = deck.slice(0, MATCH_CARD_COUNT).map((card) => card.id);
-  return [...new Set(result.length ? result : fallback)].slice(0, MATCH_CARD_COUNT);
+  const selected = result.length ? result : fallback;
+  return [...new Set([...selected, ...fallback])].slice(0, MATCH_CARD_COUNT);
 }
