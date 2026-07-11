@@ -5447,3 +5447,93 @@ tr.player-row {
     animation: none;
   }
 }
+
+.league-week-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.league-week-hero {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.league-rank-badge {
+  min-width: 118px;
+  padding: 12px;
+  border: 1px solid rgba(126, 255, 35, 0.45);
+  background: linear-gradient(145deg, rgba(45, 255, 25, 0.18), rgba(0, 200, 255, 0.08));
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.league-rank-badge strong {
+  display: block;
+  color: var(--green);
+  font-size: 2rem;
+}
+
+.league-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.phase8-league-table th,
+.phase8-league-table td {
+  white-space: nowrap;
+}
+
+.phase8-league-table tr.promotion td:first-child {
+  color: var(--green);
+}
+
+.phase8-league-table tr.relegation td:first-child {
+  color: #ff574f;
+}
+
+.mission-list {
+  display: grid;
+  gap: 10px;
+}
+
+.mission-row.claimable {
+  border-color: rgba(126, 255, 35, 0.55);
+  box-shadow: inset 0 0 18px rgba(78, 255, 32, 0.08);
+}
+
+.mission-row.claimed {
+  opacity: 0.72;
+}
+
+.mission-progress {
+  height: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.mission-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), #00c8ff);
+  box-shadow: 0 0 14px rgba(126, 255, 35, 0.5);
+}
+
+@media (max-width: 700px) {
+  .league-week-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .phase8-league-table th:nth-child(4),
+  .phase8-league-table td:nth-child(4),
+  .phase8-league-table th:nth-child(5),
+  .phase8-league-table td:nth-child(5),
+  .phase8-league-table th:nth-child(8),
+  .phase8-league-table td:nth-child(8) {
+    display: none;
+  }
+}

@@ -418,6 +418,30 @@ const CPU_DIFFICULTIES = {
   hard: { label: "Schwer", classOffset: 1, decisionSkill: 1, deckBonus: 6 },
 };
 
+const LEAGUE_PHASE_CONFIG = [
+  { id: "league-1", name: "1. Liga", level: 1, participantCount: 18, promotionPlaces: 0, relegationPlaces: 3, order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
+  { id: "league-2", name: "2. Liga", level: 2, participantCount: 18, promotionPlaces: 3, relegationPlaces: 3, order: 2, active: true, rewards: { promotion: 1100, stay: 700, relegation: 420 } },
+  { id: "league-3", name: "3. Liga", level: 3, participantCount: 20, promotionPlaces: 3, relegationPlaces: 4, order: 3, active: true, rewards: { promotion: 850, stay: 520, relegation: 320 } },
+  { id: "league-bottom", name: "Unterste Liga", level: 4, participantCount: 25, promotionPlaces: 4, relegationPlaces: 0, order: 4, active: true, rewards: { promotion: 650, stay: 380, relegation: 220 } },
+];
+
+const LEAGUE_POINTS = { win: 3, draw: 1, loss: 0 };
+const LEAGUE_WEEK_STATUS = ["upcoming", "active", "closing", "completed", "archived"];
+const LEAGUE_PLAYER_MATCHES_PER_WEEK = 10;
+const PHASE8_SIMULATION_VERSION = "phase8-cpu-sim-v1";
+
+const DAILY_MISSION_CONFIG = [
+  { id: "daily-play-2", type: "daily", title: "Anpfiff", description: "Spiele 2 Matches.", targetType: "matches_played", targetValue: 2, reward: { type: "coins", amount: 120 }, order: 1 },
+  { id: "daily-rounds-5", type: "daily", title: "Rundendruck", description: "Gewinne 5 Runden.", targetType: "rounds_won", targetValue: 5, reward: { type: "coins", amount: 160 }, order: 2 },
+  { id: "daily-booster-1", type: "daily", title: "Packmoment", description: "Oeffne 1 Booster.", targetType: "booster_opened", targetValue: 1, reward: { type: "freePack", amount: 1, packId: "pack-bronze" }, order: 3 },
+];
+
+const WEEKLY_MISSION_CONFIG = [
+  { id: "weekly-league-5", type: "weekly", title: "Ligawoche", description: "Spiele 5 Ligamatches.", targetType: "league_matches_played", targetValue: 5, reward: { type: "coins", amount: 450 }, order: 1 },
+  { id: "weekly-wins-3", type: "weekly", title: "Seriensieger", description: "Gewinne 3 Matches.", targetType: "matches_won", targetValue: 3, reward: { type: "coins", amount: 600 }, order: 2 },
+  { id: "weekly-board-2", type: "weekly", title: "Belohnungsjaeger", description: "Bereite 2 Belohnungsboards vor.", targetType: "reward_board_completed", targetValue: 2, reward: { type: "gems", amount: 25 }, order: 3 },
+];
+
 const state = loadState();
 const processingBoosterActions = new Set();
 
@@ -1094,41 +1118,77 @@ function renderCollectionFeature() {
 }
 
 function renderLeagueFeature() {
-  const winsNeeded = Math.max(0, 3 - state.record.win);
-  const lpNeeded = Math.max(0, 350 - state.lp);
+  ensurePhase8Systems();
+  const league = currentLeagueConfig();
+  const week = state.leagueSystem.currentWeek;
+  const table = leagueTableRows();
+  const playerRow = table.find((row) => row.player);
+  const nextMatch = nextLeagueMatch();
+  const daily = missionRows("daily");
+  const weekly = missionRows("weekly");
   setFeature(
     "Liga & Missionen",
-    leagues[state.leagueIndex],
+    `${league.name} | Woche ${week.weekId}`,
     `
-      <div class="feature-grid two">
-        <section class="feature-card">
-          <h3>Wochenwertung</h3>
-          <p>Deine aktuelle Liga: ${leagues[state.leagueIndex]}. Die Top 3 steigen auf, die letzten 3 steigen ab.</p>
-          <button type="button" data-feature-action="show-game-league">Tabelle ansehen</button>
+      <div class="league-week-shell">
+        <section class="feature-card league-week-hero">
+          <div>
+            <span class="eyebrow">Aktive Ligawoche</span>
+            <h3>${escapeHtml(league.name)}</h3>
+            <p>${formatDateShort(week.startDate)} bis ${formatDateShort(week.endDate)} | Status ${escapeHtml(week.status)}</p>
+          </div>
+          <div class="league-rank-badge">
+            <strong>#${playerRow?.rank || "-"}</strong>
+            <span>${playerRow?.points || 0} Punkte</span>
+          </div>
         </section>
-        <section class="feature-card">
-          <h3>Bilanz</h3>
-          <div class="pill-row"><span>${state.record.win} Siege</span><span>${state.record.draw} Remis</span><span>${state.record.loss} Niederlagen</span><span>${state.lp} LP</span></div>
-          <button type="button" data-feature-action="play-now">Match spielen</button>
+
+        <section class="feature-grid two">
+          <article class="feature-card">
+            <h3>Naechster Gegner</h3>
+            ${nextMatch ? `<p>${escapeHtml(participantName(nextMatch.awayId))} | Spiel ${week.playedPlayerMatches + 1}/${week.maxPlayerMatches}</p>` : `<p>Alle Ligaspiele dieser Woche sind gespielt.</p>`}
+            <div class="pill-row"><span>${playerRow?.played || 0} Spiele</span><span>${playerRow?.wins || 0} Siege</span><span>${playerRow?.losses || 0} Niederlagen</span><span>${formatRoundDiff(playerRow?.roundDiff || 0)}</span></div>
+            <button type="button" data-feature-action="play-now" ${nextMatch ? "" : "disabled"}>Ligamatch starten</button>
+          </article>
+          <article class="feature-card">
+            <h3>Wochenabschluss</h3>
+            <p>${league.promotionPlaces ? `Top ${league.promotionPlaces} steigen auf.` : "In dieser Liga gibt es keinen Aufstieg."} ${league.relegationPlaces ? `Die letzten ${league.relegationPlaces} steigen ab.` : "Kein Abstieg in dieser Liga."}</p>
+            <div class="pill-row"><span>${week.playedPlayerMatches}/${week.maxPlayerMatches} Spieltage</span><span>${week.reward?.claimed ? "Belohnung erhalten" : "Belohnung offen"}</span></div>
+            <button type="button" data-feature-action="settle-league-week" ${week.status === "completed" ? "disabled" : ""}>Woche abschliessen</button>
+          </article>
         </section>
-      </div>
-      <div class="feature-list">
-        ${missionTile("daily-win", "Tagessieg", `Gewinne 3 Matches. Noch ${winsNeeded}.`, 150, state.record.win >= 3)}
-        ${missionTile("lp-350", "LP-Jagd", `Erreiche 350 Liga-Punkte. Noch ${lpNeeded}.`, 250, state.lp >= 350)}
-        ${missionTile("collector-8", "Sammler", `Besitze 8 Karten. Aktuell ${state.deck.length}.`, 200, state.deck.length >= 8)}
+
+        <section class="feature-card league-table-card">
+          <h3>Ligatabelle</h3>
+          <div class="league-table-wrap">${renderPhase8LeagueTable(table, league)}</div>
+        </section>
+
+        <section class="feature-grid two">
+          <article class="feature-card">
+            <h3>Taegliche Missionen</h3>
+            <div class="mission-list">${daily.map(missionTile).join("")}</div>
+          </article>
+          <article class="feature-card">
+            <h3>Woechentliche Missionen</h3>
+            <div class="mission-list">${weekly.map(missionTile).join("")}</div>
+          </article>
+        </section>
       </div>
     `
   );
 }
 
-function missionTile(id, title, text, reward, ready) {
-  const claimed = state.claimedMissions.includes(id);
+function missionTile(mission) {
+  const progress = missionProgressLabel(mission);
+  const reward = rewardLabel(mission.reward);
+  const disabled = mission.status !== "claimable";
   return `
-    <article class="mission-row">
-      <h3>${title}</h3>
-      <p>${text}</p>
-      <strong>Belohnung: ${reward} Coins</strong>
-      <button type="button" data-feature-action="claim-mission" data-mission="${id}" data-reward="${reward}" ${!ready || claimed ? "disabled" : ""}>${claimed ? "Abgeholt" : "Belohnung holen"}</button>
+    <article class="mission-row ${mission.status}">
+      <h3>${escapeHtml(mission.title)}</h3>
+      <p>${escapeHtml(mission.description)}</p>
+      <div class="mission-progress"><span style="width:${missionProgressPercent(mission)}%"></span></div>
+      <strong>${progress} | Belohnung: ${escapeHtml(reward)}</strong>
+      <button type="button" data-feature-action="claim-mission" data-mission="${escapeAttr(mission.id)}" ${disabled ? "disabled" : ""}>${mission.status === "claimed" ? "Abgeholt" : mission.status === "completed" || mission.status === "claimable" ? "Belohnung holen" : "Aktiv"}</button>
     </article>
   `;
 }
@@ -1971,6 +2031,10 @@ function handleFeatureClick(event) {
     runCareerMatch("challenge", target);
   } else if (action === "claim-mission") {
     claimMission(target);
+  } else if (action === "settle-league-week") {
+    settleLeagueWeek();
+    render();
+    renderLeagueFeature();
   } else if (action === "toggle-card") {
     toggleSelected(target.dataset.card);
     renderDeckFeature();
@@ -1991,6 +2055,7 @@ function handleFeatureClick(event) {
     resetActiveDeck();
   } else if (action === "deck-save") {
     saveActiveDeckFromEditor();
+    recordGameEvent("deck_saved", { id: `deck-${Date.now()}` });
   } else if (action === "toggle-favorite") {
     toggleFavoriteCard(target.dataset.card);
     renderCollectionFeature();
@@ -1998,10 +2063,12 @@ function handleFeatureClick(event) {
     showCardDetails(target.dataset.card);
   } else if (action === "level-card") {
     levelCard(target.dataset.card);
+    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
     render();
     refreshCardManagementFeature();
   } else if (action === "level-card-small") {
     levelCard(target.dataset.card, 1);
+    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
     render();
     refreshCardManagementFeature();
   } else if (action === "pro-card") {
@@ -2011,6 +2078,7 @@ function handleFeatureClick(event) {
   } else if (action === "buy-scout-ticket") {
     spendCoins(75);
     addGeneratedCard(state.teamClassIndex, state.teamClassIndex + 1);
+    recordGameEvent("credits_earned", { id: `shop-spend-${Date.now()}`, amount: 0 });
     render();
     renderShopFeature();
   } else if (action === "buy-coins") {
@@ -2030,6 +2098,7 @@ function handleFeatureClick(event) {
     state.coins += 180;
     state.lp += 12;
     state.log = ["Event: Weekend Cup gespielt. +180 Coins, +12 LP.", ...state.log].slice(0, 8);
+    recordGameEvent("credits_earned", { id: `event-cup-${Date.now()}`, amount: 180 });
     render();
     animateCoinChange(fromCoins, state.coins, target);
     renderEventsFeature();
@@ -2485,6 +2554,8 @@ function openBoosterInventoryItem(item) {
   const transaction = state.boosterTransactions.find((entry) => entry.id === inventoryItem.transactionId);
   if (transaction) transaction.openingId = openingId;
   state.boosterOpenings.push(opening);
+  recordGameEvent("booster_opened", { id: openingId });
+  recordGameEvent("card_received", { id: `cards-${openingId}`, count: cards.length });
   const best = bestPulledCard(cards);
   state.log = [`${pack.name} geoeffnet: ${cards.length} Karten, beste Karte ${best.name} (${teamClasses[best.cls]}).`, ...state.log].slice(0, 8);
   saveState();
@@ -2534,6 +2605,7 @@ function previewPackTap(target) {
 function addGeneratedCard(minClass, maxClass, pool = "mixed", dropRates = null, positions = []) {
   const card = drawGameCard(minClass, maxClass, pool, dropRates, positions);
   state.deck.push(card);
+  recordGameEvent("card_received", { id: `card-${card.id}`, count: 1 });
   state.log = [`Neue Karte: ${card.name} (${teamClasses[card.cls]}).`, ...state.log].slice(0, 8);
   return card;
 }
@@ -2541,6 +2613,7 @@ function addGeneratedCard(minClass, maxClass, pool = "mixed", dropRates = null, 
 function addGeneratedCards(minClass, maxClass, pool = "mixed", count = 1, dropRates = null, positions = []) {
   const cards = Array.from({ length: normalizePackCardCount(count) }, () => drawGameCard(minClass, maxClass, pool, dropRates, positions));
   state.deck.push(...cards);
+  recordGameEvent("card_received", { id: `cards-${Date.now()}-${cards.length}`, count: cards.length });
   const best = bestPulledCard(cards);
   state.log = [`Pack geoeffnet: ${cards.length} ${cards.length === 1 ? "Karte" : "Karten"}, beste Karte ${best.name} (${teamClasses[best.cls]}).`, ...state.log].slice(0, 8);
   return cards;
@@ -2572,11 +2645,21 @@ function consumeFreePack(packId) {
 }
 
 function claimMission(target) {
-  const id = target.dataset.mission;
-  if (state.claimedMissions.includes(id)) return;
-  state.claimedMissions.push(id);
+  ensurePhase8Systems();
+  const mission = [...state.missionSystem.daily, ...state.missionSystem.weekly].find((item) => item.id === target.dataset.mission);
+  if (!mission || mission.claimed || mission.status !== "claimable") {
+    showToast("Mission ist noch nicht abholbereit oder wurde bereits abgeholt.", "warning");
+    return;
+  }
   const fromCoins = state.coins;
-  state.coins += Number(target.dataset.reward);
+  grantMissionReward(mission.reward);
+  mission.claimed = true;
+  mission.claimable = false;
+  mission.status = "claimed";
+  const transaction = { id: `mission-${mission.id}`, missionId: mission.id, reward: mission.reward, createdAt: new Date().toISOString(), status: "success" };
+  if (!state.missionSystem.transactions.some((item) => item.id === transaction.id)) state.missionSystem.transactions.push(transaction);
+  state.claimedMissions = [...new Set([...(state.claimedMissions || []), mission.id])];
+  saveState();
   render();
   animateCoinChange(fromCoins, state.coins, target);
   renderLeagueFeature();
@@ -3919,6 +4002,8 @@ function createInitialState() {
     adminUsers: defaultAdminUsers(),
     activeUserId: "user-owner-goernaldo",
     career: defaultCareerState(),
+    leagueSystem: createDefaultLeagueSystem(1),
+    missionSystem: createDefaultMissionSystem(),
   };
 }
 
@@ -3971,7 +4056,683 @@ function normalizeState(saved) {
     savedDecks: [migratedActiveDeck],
     selected: deckIds(migratedActiveDeck).length ? deckIds(migratedActiveDeck) : migratedSelected,
     leagueRows: Array.isArray(saved.leagueRows) && saved.leagueRows.length ? saved.leagueRows : fresh.leagueRows,
+    leagueSystem: normalizeLeagueSystem(saved.leagueSystem, saved.leagueIndex ?? fresh.leagueIndex),
+    missionSystem: normalizeMissionSystem(saved.missionSystem),
   };
+}
+
+function createDefaultLeagueSystem(leagueIndex = 1) {
+  const league = leagueConfigByIndex(leagueIndex);
+  const week = createLeagueWeek(league.id);
+  return {
+    currentLeagueId: league.id,
+    history: [],
+    currentWeek: week,
+    lastError: "",
+  };
+}
+
+function normalizeLeagueSystem(system, legacyLeagueIndex = 1) {
+  const fresh = createDefaultLeagueSystem(legacyLeagueIndex);
+  const currentLeagueId = LEAGUE_PHASE_CONFIG.some((league) => league.id === system?.currentLeagueId) ? system.currentLeagueId : fresh.currentLeagueId;
+  const normalized = {
+    ...fresh,
+    ...(system || {}),
+    currentLeagueId,
+    history: Array.isArray(system?.history) ? system.history.slice(0, 12) : [],
+    lastError: String(system?.lastError || ""),
+  };
+  normalized.currentWeek = normalizeLeagueWeek(system?.currentWeek, currentLeagueId);
+  return normalized;
+}
+
+function createLeagueWeek(leagueId, now = new Date()) {
+  const league = leagueConfigById(leagueId);
+  const range = leagueWeekRange(now);
+  const participants = createLeagueParticipants(league);
+  const weekId = `${league.id}-${range.startDate}`;
+  const schedule = createLeagueSchedule(league, participants, weekId);
+  const week = {
+    weekId,
+    leagueId: league.id,
+    startDate: range.startDate,
+    endDate: range.endDate,
+    status: "active",
+    participants,
+    schedule,
+    matches: [],
+    cpuSimulations: [],
+    maxPlayerMatches: LEAGUE_PLAYER_MATCHES_PER_WEEK,
+    playedPlayerMatches: 0,
+    promotionPlaces: league.promotionPlaces,
+    relegationPlaces: league.relegationPlaces,
+    reward: { prepared: false, claimed: false, amount: 0, outcome: "", transactionId: "" },
+    closure: null,
+    archived: false,
+  };
+  simulateCpuLeagueMatches(week);
+  updateLeagueTable(week);
+  return week;
+}
+
+function normalizeLeagueWeek(week, leagueId) {
+  if (!week || typeof week !== "object" || !week.weekId) return createLeagueWeek(leagueId);
+  const league = leagueConfigById(week.leagueId || leagueId);
+  const fresh = createLeagueWeek(league.id);
+  const participants = Array.isArray(week.participants) && week.participants.length === league.participantCount
+    ? week.participants.map((participant, index) => normalizeLeagueParticipant(participant, league, index))
+    : fresh.participants;
+  const normalized = {
+    ...fresh,
+    ...week,
+    leagueId: league.id,
+    status: LEAGUE_WEEK_STATUS.includes(week.status) ? week.status : "active",
+    participants,
+    schedule: Array.isArray(week.schedule) ? week.schedule.map(normalizeLeagueScheduleMatch) : fresh.schedule,
+    matches: Array.isArray(week.matches) ? week.matches.map(normalizeLeagueMatchRecord) : [],
+    cpuSimulations: Array.isArray(week.cpuSimulations) ? week.cpuSimulations.map(normalizeLeagueMatchRecord) : [],
+    maxPlayerMatches: Math.max(1, Number(week.maxPlayerMatches) || LEAGUE_PLAYER_MATCHES_PER_WEEK),
+    playedPlayerMatches: Math.max(0, Number(week.playedPlayerMatches) || 0),
+    promotionPlaces: Math.max(0, Number(week.promotionPlaces) || league.promotionPlaces),
+    relegationPlaces: Math.max(0, Number(week.relegationPlaces) || league.relegationPlaces),
+    reward: normalizeLeagueWeekReward(week.reward),
+    closure: week.closure || null,
+    archived: Boolean(week.archived),
+  };
+  simulateCpuLeagueMatches(normalized);
+  updateLeagueTable(normalized);
+  return normalized;
+}
+
+function normalizeLeagueParticipant(participant, league, index) {
+  const id = participant?.id || `cpu-${league.id}-${index}`;
+  return {
+    id,
+    playerId: participant?.playerId || id,
+    displayName: participant?.displayName || participant?.name || `CPU ${index + 1}`,
+    avatar: participant?.avatar || "",
+    logo: participant?.logo || "",
+    leagueId: league.id,
+    weekId: participant?.weekId || "",
+    played: Math.max(0, Number(participant?.played) || 0),
+    wins: Math.max(0, Number(participant?.wins) || 0),
+    losses: Math.max(0, Number(participant?.losses) || 0),
+    roundWins: Math.max(0, Number(participant?.roundWins) || 0),
+    roundLosses: Math.max(0, Number(participant?.roundLosses) || 0),
+    points: Math.max(0, Number(participant?.points) || 0),
+    roundDiff: Number(participant?.roundDiff) || 0,
+    rank: Math.max(1, Number(participant?.rank) || index + 1),
+    lastRank: Math.max(1, Number(participant?.lastRank) || index + 1),
+    form: Array.isArray(participant?.form) ? participant.form.slice(-5) : [],
+    deckStrength: Math.max(0, Number(participant?.deckStrength) || 420 + index * 8),
+    difficulty: normalizeCpuDifficulty(participant?.difficulty || "normal"),
+    formation: normalizeFormationKey(participant?.formation || DEFAULT_FORMATION),
+    status: participant?.status || "active",
+    player: Boolean(participant?.player),
+  };
+}
+
+function normalizeLeagueScheduleMatch(match) {
+  return {
+    id: String(match?.id || `league-match-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    homeId: String(match?.homeId || "player"),
+    awayId: String(match?.awayId || ""),
+    matchNumber: Math.max(1, Number(match?.matchNumber) || 1),
+    tableRelevant: match?.tableRelevant !== false,
+    completed: Boolean(match?.completed),
+    linkedMatchId: match?.linkedMatchId || "",
+  };
+}
+
+function normalizeLeagueMatchRecord(record) {
+  return {
+    id: String(record?.id || ""),
+    scheduleId: String(record?.scheduleId || ""),
+    matchId: String(record?.matchId || record?.id || ""),
+    homeId: String(record?.homeId || ""),
+    awayId: String(record?.awayId || ""),
+    score: { home: Math.max(0, Number(record?.score?.home) || 0), away: Math.max(0, Number(record?.score?.away) || 0) },
+    result: record?.result || "",
+    roundWins: Math.max(0, Number(record?.roundWins) || 0),
+    roundLosses: Math.max(0, Number(record?.roundLosses) || 0),
+    points: Math.max(0, Number(record?.points) || 0),
+    simulated: Boolean(record?.simulated),
+    simulationVersion: record?.simulationVersion || "",
+    counted: record?.counted !== false,
+    completedAt: record?.completedAt || new Date().toISOString(),
+  };
+}
+
+function normalizeLeagueWeekReward(reward) {
+  return {
+    prepared: Boolean(reward?.prepared),
+    claimed: Boolean(reward?.claimed),
+    amount: Math.max(0, Number(reward?.amount) || 0),
+    outcome: reward?.outcome || "",
+    transactionId: reward?.transactionId || "",
+  };
+}
+
+function createLeagueParticipants(league) {
+  const player = normalizeLeagueParticipant({
+    id: "player",
+    playerId: "local-player",
+    displayName: "GoernaldoBerlin",
+    deckStrength: 520,
+    difficulty: "normal",
+    formation: DEFAULT_FORMATION,
+    player: true,
+  }, league, 0);
+  const cpuNames = [...opponents, ...names.map((name) => `${name} SC`), ...careerOpponents];
+  const cpus = [];
+  for (let index = 1; index < league.participantCount; index += 1) {
+    const seed = stableHash(`${league.id}-${index}`);
+    cpus.push(normalizeLeagueParticipant({
+      id: `cpu-${league.id}-${index}`,
+      displayName: cpuNames[(index + seed) % cpuNames.length],
+      deckStrength: 390 + (league.level * 35) + (seed % 160),
+      difficulty: index % 5 === 0 ? "hard" : index % 2 === 0 ? "normal" : "easy",
+      formation: Object.keys(FORMATIONS)[index % Object.keys(FORMATIONS).length],
+      form: [],
+    }, league, index));
+  }
+  return [player, ...cpus];
+}
+
+function createLeagueSchedule(league, participants, weekId) {
+  const cpus = participants.filter((participant) => !participant.player);
+  const playerMatches = cpus.slice(0, LEAGUE_PLAYER_MATCHES_PER_WEEK).map((opponent, index) => ({
+    id: `${weekId}-player-${index + 1}`,
+    homeId: "player",
+    awayId: opponent.id,
+    matchNumber: index + 1,
+    tableRelevant: true,
+    completed: false,
+    linkedMatchId: "",
+  }));
+  const cpuMatches = [];
+  for (let index = 0; index < cpus.length; index += 2) {
+    const home = cpus[index];
+    const away = cpus[(index + 1) % cpus.length];
+    if (home && away && home.id !== away.id) {
+      cpuMatches.push({
+        id: `${weekId}-cpu-${index + 1}`,
+        homeId: home.id,
+        awayId: away.id,
+        matchNumber: index + 1,
+        tableRelevant: true,
+        completed: false,
+        linkedMatchId: "",
+      });
+    }
+  }
+  return [...playerMatches, ...cpuMatches];
+}
+
+function createDefaultMissionSystem() {
+  const dailyKey = missionDayKey();
+  const weeklyKey = leagueWeekRange(new Date()).startDate;
+  return {
+    dailyKey,
+    weeklyKey,
+    daily: createMissionSet(DAILY_MISSION_CONFIG, dailyKey),
+    weekly: createMissionSet(WEEKLY_MISSION_CONFIG, weeklyKey),
+    processedEvents: [],
+    transactions: [],
+    lastResetAt: new Date().toISOString(),
+    lastError: "",
+  };
+}
+
+function normalizeMissionSystem(system) {
+  const fresh = createDefaultMissionSystem();
+  const normalized = {
+    ...fresh,
+    ...(system || {}),
+    daily: Array.isArray(system?.daily) ? system.daily.map((mission) => normalizeMission(mission, "daily")) : fresh.daily,
+    weekly: Array.isArray(system?.weekly) ? system.weekly.map((mission) => normalizeMission(mission, "weekly")) : fresh.weekly,
+    processedEvents: Array.isArray(system?.processedEvents) ? system.processedEvents.slice(-500) : [],
+    transactions: Array.isArray(system?.transactions) ? system.transactions.slice(-100) : [],
+    lastResetAt: system?.lastResetAt || fresh.lastResetAt,
+    lastError: String(system?.lastError || ""),
+  };
+  resetMissionsIfNeeded(normalized);
+  return normalized;
+}
+
+function createMissionSet(configs, resetKey) {
+  const now = new Date();
+  return configs.map((config) => normalizeMission({
+    ...config,
+    id: `${config.id}-${resetKey}`,
+    baseId: config.id,
+    resetKey,
+    currentProgress: 0,
+    status: "active",
+    claimable: false,
+    claimed: false,
+    repeatable: false,
+    active: true,
+    startTime: now.toISOString(),
+    endTime: config.type === "daily" ? endOfDay(now).toISOString() : new Date(`${leagueWeekRange(now).endDate}T23:59:59`).toISOString(),
+  }, config.type));
+}
+
+function normalizeMission(mission, typeFallback = "daily") {
+  const config = [...DAILY_MISSION_CONFIG, ...WEEKLY_MISSION_CONFIG].find((item) => item.id === mission?.baseId || item.id === mission?.id);
+  const targetValue = Math.max(1, Number(mission?.targetValue ?? config?.targetValue) || 1);
+  const currentProgress = clamp(Number(mission?.currentProgress) || 0, 0, targetValue);
+  const claimed = Boolean(mission?.claimed);
+  const status = claimed ? "claimed" : currentProgress >= targetValue ? "claimable" : ["locked", "active", "completed", "claimable", "claimed", "expired"].includes(mission?.status) ? mission.status : "active";
+  return {
+    id: String(mission?.id || `${config?.id || "mission"}-${missionDayKey()}`),
+    baseId: mission?.baseId || config?.id || mission?.id || "mission",
+    type: mission?.type || config?.type || typeFallback,
+    title: mission?.title || config?.title || "Mission",
+    description: mission?.description || config?.description || "",
+    targetType: mission?.targetType || config?.targetType || "matches_played",
+    targetValue,
+    currentProgress,
+    reward: normalizeMissionReward(mission?.reward || config?.reward),
+    startTime: mission?.startTime || new Date().toISOString(),
+    endTime: mission?.endTime || endOfDay(new Date()).toISOString(),
+    status,
+    claimable: status === "claimable",
+    claimed,
+    repeatable: Boolean(mission?.repeatable),
+    active: mission?.active !== false,
+    order: Number(mission?.order ?? config?.order) || 0,
+    resetKey: mission?.resetKey || "",
+  };
+}
+
+function normalizeMissionReward(reward) {
+  return {
+    type: ["coins", "gems", "freePack", "card", "material"].includes(reward?.type) ? reward.type : "coins",
+    amount: Math.max(1, Number(reward?.amount) || 1),
+    packId: reward?.packId || "pack-bronze",
+    classIndex: normalizeClassIndex(reward?.classIndex || 0),
+    material: reward?.material || "training",
+  };
+}
+
+function ensurePhase8Systems() {
+  state.leagueSystem = normalizeLeagueSystem(state.leagueSystem, state.leagueIndex);
+  state.missionSystem = normalizeMissionSystem(state.missionSystem);
+  const player = state.leagueSystem.currentWeek.participants.find((participant) => participant.player);
+  if (player) {
+    player.playerId = state.activeUserId;
+    player.displayName = activeUser()?.name || "GoernaldoBerlin";
+    player.deckStrength = deckStrengthValue();
+    player.formation = normalizeFormationKey(state.formation);
+  }
+  updateLeagueTable(state.leagueSystem.currentWeek);
+}
+
+function leagueConfigById(id) {
+  return LEAGUE_PHASE_CONFIG.find((league) => league.id === id) || LEAGUE_PHASE_CONFIG[LEAGUE_PHASE_CONFIG.length - 1];
+}
+
+function leagueConfigByIndex(index) {
+  const mapped = ["league-1", "league-2", "league-3", "league-bottom", "league-bottom"][clamp(Number(index) || 0, 0, 4)];
+  return leagueConfigById(mapped || "league-bottom");
+}
+
+function currentLeagueConfig() {
+  return leagueConfigById(state.leagueSystem?.currentLeagueId);
+}
+
+function leagueWeekRange(date) {
+  const local = new Date(date);
+  local.setHours(12, 0, 0, 0);
+  const day = local.getDay();
+  const daysSinceWednesday = (day + 4) % 7;
+  const start = new Date(local);
+  start.setDate(local.getDate() - daysSinceWednesday);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  return { startDate: isoDate(start), endDate: isoDate(end) };
+}
+
+function isoDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function endOfDay(date) {
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+function missionDayKey(date = new Date()) {
+  return isoDate(date);
+}
+
+function stableHash(value) {
+  return String(value).split("").reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) >>> 0, 2166136261);
+}
+
+function seededNumber(seed, min, max) {
+  return min + (stableHash(seed) % (max - min + 1));
+}
+
+function deckStrengthValue() {
+  return activeDeckMatchCards().reduce((sum, card) => sum + rating(card), 0);
+}
+
+function simulateCpuLeagueMatches(week) {
+  const simulatedIds = new Set((week.cpuSimulations || []).map((match) => match.scheduleId || match.id));
+  const cpuSchedule = (week.schedule || []).filter((match) => match.homeId !== "player" && match.awayId !== "player");
+  cpuSchedule.forEach((match) => {
+    if (simulatedIds.has(match.id)) return;
+    const home = week.participants.find((participant) => participant.id === match.homeId);
+    const away = week.participants.find((participant) => participant.id === match.awayId);
+    if (!home || !away) return;
+    const record = simulateCpuLeagueMatch(match, home, away, week.weekId);
+    week.cpuSimulations.push(record);
+    match.completed = true;
+    match.linkedMatchId = record.id;
+  });
+}
+
+function simulateCpuLeagueMatch(match, home, away, weekId) {
+  const homeEdge = home.deckStrength - away.deckStrength + (home.form.filter((item) => item === "W").length - away.form.filter((item) => item === "W").length) * 8;
+  const swing = seededNumber(`${weekId}-${match.id}`, -35, 35);
+  const homeWins = clamp(3 + Math.round((homeEdge + swing) / 55), 0, 5);
+  const awayWins = 5 - homeWins;
+  const homeWon = homeWins > awayWins;
+  return {
+    id: `${match.id}-sim`,
+    scheduleId: match.id,
+    matchId: `${match.id}-sim`,
+    homeId: home.id,
+    awayId: away.id,
+    score: { home: homeWins, away: awayWins },
+    result: homeWon ? "home" : "away",
+    roundWins: homeWins,
+    roundLosses: awayWins,
+    points: homeWon ? LEAGUE_POINTS.win : LEAGUE_POINTS.loss,
+    simulated: true,
+    simulationVersion: PHASE8_SIMULATION_VERSION,
+    counted: true,
+    completedAt: new Date().toISOString(),
+  };
+}
+
+function updateLeagueTable(week) {
+  week.participants.forEach((participant) => {
+    participant.lastRank = participant.rank || participant.lastRank || 1;
+    participant.played = 0;
+    participant.wins = 0;
+    participant.losses = 0;
+    participant.roundWins = 0;
+    participant.roundLosses = 0;
+    participant.points = 0;
+    participant.roundDiff = 0;
+    participant.form = [];
+  });
+  [...(week.cpuSimulations || []), ...(week.matches || [])].filter((match) => match.counted !== false).forEach((match) => applyMatchRecordToParticipants(week, match));
+  const sorted = [...week.participants].sort(compareLeagueParticipants);
+  sorted.forEach((participant, index) => {
+    participant.rank = index + 1;
+  });
+  return sorted;
+}
+
+function applyMatchRecordToParticipants(week, match) {
+  const home = week.participants.find((participant) => participant.id === match.homeId);
+  const away = week.participants.find((participant) => participant.id === match.awayId);
+  if (!home || !away) return;
+  const homeRounds = Number(match.score?.home) || 0;
+  const awayRounds = Number(match.score?.away) || 0;
+  home.played += 1;
+  away.played += 1;
+  home.roundWins += homeRounds;
+  home.roundLosses += awayRounds;
+  away.roundWins += awayRounds;
+  away.roundLosses += homeRounds;
+  home.roundDiff = home.roundWins - home.roundLosses;
+  away.roundDiff = away.roundWins - away.roundLosses;
+  if (homeRounds > awayRounds) {
+    home.wins += 1;
+    away.losses += 1;
+    home.points += LEAGUE_POINTS.win;
+    home.form.push("W");
+    away.form.push("L");
+  } else {
+    away.wins += 1;
+    home.losses += 1;
+    away.points += LEAGUE_POINTS.win;
+    away.form.push("W");
+    home.form.push("L");
+  }
+  home.form = home.form.slice(-5);
+  away.form = away.form.slice(-5);
+}
+
+function compareLeagueParticipants(a, b) {
+  return b.points - a.points || b.roundDiff - a.roundDiff || b.roundWins - a.roundWins || String(a.id).localeCompare(String(b.id));
+}
+
+function leagueTableRows() {
+  ensurePhase8Systems();
+  return updateLeagueTable(state.leagueSystem.currentWeek).map((participant) => ({ ...participant }));
+}
+
+function nextLeagueMatch() {
+  const week = state.leagueSystem.currentWeek;
+  return (week.schedule || []).find((match) => match.homeId === "player" && !match.completed) || null;
+}
+
+function participantName(id) {
+  return state.leagueSystem.currentWeek.participants.find((participant) => participant.id === id)?.displayName || id;
+}
+
+function completeLeagueMatch(match) {
+  ensurePhase8Systems();
+  const week = state.leagueSystem.currentWeek;
+  if ((week.matches || []).some((record) => record.matchId === match.id)) return;
+  const scheduled = nextLeagueMatch();
+  const awayId = scheduled?.awayId || week.participants.find((participant) => !participant.player)?.id || "";
+  const playerWon = match.result === "win";
+  const record = normalizeLeagueMatchRecord({
+    id: `league-${match.id}`,
+    scheduleId: scheduled?.id || `manual-${match.id}`,
+    matchId: match.id,
+    homeId: "player",
+    awayId,
+    score: { home: match.score.player, away: match.score.cpu },
+    result: playerWon ? "home" : "away",
+    roundWins: match.score.player,
+    roundLosses: match.score.cpu,
+    points: playerWon ? LEAGUE_POINTS.win : LEAGUE_POINTS.loss,
+    simulated: false,
+    counted: true,
+    completedAt: match.endedAt || new Date().toISOString(),
+  });
+  week.matches.push(record);
+  if (scheduled) {
+    scheduled.completed = true;
+    scheduled.linkedMatchId = match.id;
+  }
+  week.playedPlayerMatches = week.matches.filter((item) => item.homeId === "player").length;
+  updateLeagueTable(week);
+  const player = week.participants.find((participant) => participant.player);
+  state.lp = player ? player.points * 25 + player.roundWins * 2 : state.lp;
+  recordGameEvent("league_match_completed", { id: `league-${match.id}` });
+  if (playerWon) recordGameEvent("league_match_won", { id: `league-win-${match.id}` });
+}
+
+function settleLeagueWeek() {
+  ensurePhase8Systems();
+  const system = state.leagueSystem;
+  const week = system.currentWeek;
+  if (week.status === "completed" || week.reward.claimed) {
+    system.lastError = "Diese Ligawoche wurde bereits abgeschlossen.";
+    showToast(system.lastError, "warning");
+    return;
+  }
+  simulateCpuLeagueMatches(week);
+  const table = updateLeagueTable(week);
+  const playerRank = table.find((participant) => participant.player)?.rank || table.length;
+  const outcome = leagueOutcome(playerRank, currentLeagueConfig());
+  const rewardAmount = weeklyLeagueReward(currentLeagueConfig(), outcome, playerRank);
+  const previousLeagueId = system.currentLeagueId;
+  const nextLeagueId = nextLeagueAfterOutcome(previousLeagueId, outcome);
+  const fromCoins = state.coins;
+  state.coins += rewardAmount;
+  week.reward = { prepared: true, claimed: true, amount: rewardAmount, outcome, transactionId: `league-week-${week.weekId}` };
+  week.status = "completed";
+  week.closure = { playerRank, outcome, rewardAmount, completedAt: new Date().toISOString(), previousLeagueId, nextLeagueId };
+  system.history = [week, ...(system.history || [])].slice(0, 12);
+  system.currentLeagueId = nextLeagueId;
+  state.leagueIndex = leagueIndexFromPhaseId(nextLeagueId);
+  system.currentWeek = createLeagueWeek(nextLeagueId);
+  state.log = [`Ligawoche abgeschlossen: Platz ${playerRank}, ${leagueOutcomeLabel(outcome)}, +${rewardAmount} Coins.`, ...state.log].slice(0, 8);
+  recordGameEvent("credits_earned", { id: week.reward.transactionId, amount: rewardAmount });
+  saveState();
+  animateCoinChange(fromCoins, state.coins, els.playMatch);
+}
+
+function leagueOutcome(rank, league) {
+  if (league.promotionPlaces && rank <= league.promotionPlaces) return "promotion";
+  if (league.relegationPlaces && rank > league.participantCount - league.relegationPlaces) return "relegation";
+  return "stay";
+}
+
+function weeklyLeagueReward(league, outcome, rank) {
+  const base = league.rewards[outcome] || league.rewards.stay || 300;
+  return Math.max(100, base + Math.max(0, league.participantCount - rank) * 12);
+}
+
+function nextLeagueAfterOutcome(leagueId, outcome) {
+  const index = LEAGUE_PHASE_CONFIG.findIndex((league) => league.id === leagueId);
+  if (outcome === "promotion") return LEAGUE_PHASE_CONFIG[Math.max(0, index - 1)]?.id || leagueId;
+  if (outcome === "relegation") return LEAGUE_PHASE_CONFIG[Math.min(LEAGUE_PHASE_CONFIG.length - 1, index + 1)]?.id || leagueId;
+  return leagueId;
+}
+
+function leagueIndexFromPhaseId(leagueId) {
+  return { "league-1": 0, "league-2": 1, "league-3": 2, "league-bottom": 4 }[leagueId] ?? 1;
+}
+
+function leagueOutcomeLabel(outcome) {
+  return outcome === "promotion" ? "Aufstieg" : outcome === "relegation" ? "Abstieg" : "Klassenerhalt";
+}
+
+function renderPhase8LeagueTable(rows, league) {
+  return `
+    <table class="mini-table phase8-league-table">
+      <thead><tr><th>#</th><th>Teilnehmer</th><th>Sp</th><th>S</th><th>N</th><th>RD</th><th>Pkt</th><th>Form</th></tr></thead>
+      <tbody>${rows.map((row) => {
+        const zone = row.rank <= league.promotionPlaces ? "promotion" : league.relegationPlaces && row.rank > league.participantCount - league.relegationPlaces ? "relegation" : "stay";
+        return `<tr class="${row.player ? "player-row" : ""} ${zone}"><td>${row.rank}</td><td>${escapeHtml(row.displayName)}</td><td>${row.played}</td><td>${row.wins}</td><td>${row.losses}</td><td>${formatRoundDiff(row.roundDiff)}</td><td>${row.points}</td><td>${row.form.join(" ") || "-"}</td></tr>`;
+      }).join("")}</tbody>
+    </table>
+  `;
+}
+
+function missionRows(type) {
+  ensurePhase8Systems();
+  const list = type === "weekly" ? state.missionSystem.weekly : state.missionSystem.daily;
+  return [...list].sort((a, b) => a.order - b.order);
+}
+
+function resetMissionsIfNeeded(system = state.missionSystem) {
+  const dayKey = missionDayKey();
+  const weekKey = leagueWeekRange(new Date()).startDate;
+  if (system.dailyKey !== dayKey) {
+    system.dailyKey = dayKey;
+    system.daily = createMissionSet(DAILY_MISSION_CONFIG, dayKey);
+  }
+  if (system.weeklyKey !== weekKey) {
+    system.weeklyKey = weekKey;
+    system.weekly = createMissionSet(WEEKLY_MISSION_CONFIG, weekKey);
+  }
+}
+
+function recordGameEvent(type, payload = {}) {
+  if (!state.missionSystem) return;
+  resetMissionsIfNeeded(state.missionSystem);
+  const eventId = payload.id || `${type}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const uniqueKey = `${type}:${eventId}`;
+  if (state.missionSystem.processedEvents.includes(uniqueKey)) return;
+  state.missionSystem.processedEvents.push(uniqueKey);
+  state.missionSystem.processedEvents = state.missionSystem.processedEvents.slice(-500);
+  [...state.missionSystem.daily, ...state.missionSystem.weekly].forEach((mission) => {
+    if (!mission.active || mission.claimed || mission.status === "expired") return;
+    const increment = missionIncrement(mission.targetType, type, payload);
+    if (!increment) return;
+    mission.currentProgress = clamp(mission.currentProgress + increment, 0, mission.targetValue);
+    if (mission.currentProgress >= mission.targetValue) {
+      mission.status = "claimable";
+      mission.claimable = true;
+    }
+  });
+}
+
+function missionIncrement(targetType, eventType, payload) {
+  const map = {
+    matches_played: ["match_completed"],
+    matches_won: ["match_won"],
+    rounds_won: ["round_won"],
+    booster_opened: ["booster_opened"],
+    cards_received: ["card_received"],
+    credits_earned: ["credits_earned"],
+    deck_saved: ["deck_saved"],
+    league_matches_played: ["league_match_completed"],
+    league_matches_won: ["league_match_won"],
+    reward_board_completed: ["reward_board_completed"],
+    cards_owned: ["card_received"],
+    card_leveled: ["card_leveled"],
+  };
+  if (!map[targetType]?.includes(eventType)) return 0;
+  if (targetType === "rounds_won") return Math.max(1, Number(payload.count) || 1);
+  if (targetType === "cards_received") return Math.max(1, Number(payload.count) || 1);
+  return 1;
+}
+
+function grantMissionReward(reward) {
+  if (reward.type === "coins") {
+    state.coins += reward.amount;
+    recordGameEvent("credits_earned", { id: `mission-credit-${Date.now()}`, amount: reward.amount });
+  } else if (reward.type === "gems") {
+    state.gems += reward.amount;
+  } else if (reward.type === "freePack") {
+    grantFreePack(reward.packId, reward.amount);
+  } else if (reward.type === "card") {
+    const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    state.deck.push(card);
+    recordGameEvent("card_received", { id: `mission-card-${card.id}`, count: 1 });
+  } else {
+    state.log = [`Material erhalten: ${reward.amount} ${reward.material}.`, ...state.log].slice(0, 8);
+  }
+}
+
+function missionProgressPercent(mission) {
+  return clamp(Math.round((mission.currentProgress / Math.max(1, mission.targetValue)) * 100), 0, 100);
+}
+
+function missionProgressLabel(mission) {
+  return `${mission.currentProgress}/${mission.targetValue}`;
+}
+
+function rewardLabel(reward) {
+  if (reward.type === "coins") return `${reward.amount} Coins`;
+  if (reward.type === "gems") return `${reward.amount} Diamanten`;
+  if (reward.type === "freePack") return `${reward.amount} Gratis-Pack`;
+  if (reward.type === "card") return `${classLabel(reward.classIndex)} Karte`;
+  return `${reward.amount} Material`;
+}
+
+function formatRoundDiff(value) {
+  return `${value > 0 ? "+" : ""}${value}`;
+}
+
+function formatDateShort(value) {
+  if (!value) return "-";
+  const [year, month, day] = value.split("-");
+  return `${day}.${month}.${year}`;
 }
 
 function defaultCareerState() {
@@ -4994,17 +5755,19 @@ function benchChip(card) {
 }
 
 function renderLeague() {
-  const rows = [{ name: "Du", lp: state.lp, player: true }, ...state.leagueRows].sort((a, b) => b.lp - a.lp);
+  ensurePhase8Systems();
+  const league = currentLeagueConfig();
+  const rows = leagueTableRows();
   els.leagueBody.innerHTML = "";
-  rows.slice(0, 18).forEach((row, index) => {
-    const status = index < 3 ? "Aufstieg" : index > 14 ? "Abstieg" : "Bleibt";
-    const statusClass = index < 3 ? "status-up" : index > 14 ? "status-down" : "status-stay";
+  rows.slice(0, league.participantCount).forEach((row) => {
+    const status = row.rank <= league.promotionPlaces ? "Aufstieg" : league.relegationPlaces && row.rank > league.participantCount - league.relegationPlaces ? "Abstieg" : "Bleibt";
+    const statusClass = status === "Aufstieg" ? "status-up" : status === "Abstieg" ? "status-down" : "status-stay";
     const tr = document.createElement("tr");
     if (row.player) tr.classList.add("player-row");
     tr.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${row.name}</td>
-      <td>${row.lp}</td>
+      <td>${row.rank}</td>
+      <td>${escapeHtml(row.displayName)}</td>
+      <td>${row.points}</td>
       <td class="${statusClass}">${status}</td>
     `;
     els.leagueBody.appendChild(tr);
@@ -5118,9 +5881,13 @@ function applyFinishedMatch(match, rewards = {}) {
   state.activeMatch = match;
   state.matchHistory = [match, ...state.matchHistory].slice(0, 20);
   state.pendingRewardBoard = prepareRewardBoard(match);
+  recordGameEvent("match_completed", { id: match.id });
+  if (match.result === "win") recordGameEvent("match_won", { id: `match-win-${match.id}` });
+  recordGameEvent("round_won", { id: `rounds-${match.id}`, count: match.score.player });
+  recordGameEvent("reward_board_completed", { id: `reward-board-${match.id}` });
+  if (rewards.lp) completeLeagueMatch(match);
   state.log = [`${match.score.player}:${match.score.cpu} gegen ${match.cpu.name}. ${rewardBoardText(match)} vorbereitet.`, ...match.rounds.map(roundLogLine), ...state.log].slice(0, 8);
   currentOpponent = createOpponent();
-  if (rewards.lp) maybePromoteLeague();
   render();
   animateCoinChange(fromCoins, state.coins, els.playMatch);
 }
@@ -5874,21 +6641,7 @@ function maybePromoteLeague() {
 }
 
 function settleWeek() {
-  const rows = [{ name: "Du", lp: state.lp, player: true }, ...state.leagueRows].sort((a, b) => b.lp - a.lp);
-  const rank = rows.findIndex((row) => row.player) + 1;
-
-  if (rank <= 3 && state.leagueIndex > 0) {
-    state.leagueIndex -= 1;
-    state.log = [`Wochenabrechnung: Platz ${rank}. Aufstieg in ${leagues[state.leagueIndex]}.`, ...state.log].slice(0, 8);
-  } else if (rank >= 16 && state.leagueIndex < leagues.length - 1) {
-    state.leagueIndex += 1;
-    state.log = [`Wochenabrechnung: Platz ${rank}. Abstieg in ${leagues[state.leagueIndex]}.`, ...state.log].slice(0, 8);
-  } else {
-    state.log = [`Wochenabrechnung: Platz ${rank}. Liga gehalten.`, ...state.log].slice(0, 8);
-  }
-
-  state.lp = Math.max(120, Math.round(state.lp * 0.45));
-  resetLeagueRows();
+  settleLeagueWeek();
 }
 
 function resetLeagueRows() {
@@ -5896,6 +6649,11 @@ function resetLeagueRows() {
     name,
     lp: Math.max(120, state.lp - rand(20, 120) - index * 3),
   }));
+  if (state.leagueSystem) {
+    const league = leagueConfigByIndex(state.leagueIndex);
+    state.leagueSystem.currentLeagueId = league.id;
+    state.leagueSystem.currentWeek = createLeagueWeek(league.id);
+  }
 }
 
 function rating(card) {
