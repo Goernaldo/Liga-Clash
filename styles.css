@@ -659,7 +659,7 @@ button {
 }
 
 .booster {
-  --tile-art: url("assets/tiles/tile-booster.png");
+  --tile-art: url("assets/tiles/tile-fusion.png");
   --tile-edge: rgba(109, 255, 49, 0.82);
   --tile-glow: rgba(102, 255, 44, 0.7);
   --tile-glow-soft: rgba(102, 255, 44, 0.28);
