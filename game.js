@@ -1585,116 +1585,32 @@ function refreshCardManagementFeature() {
 }
 
 function miniCard(card, selectable, context = "") {
-  const model = cardViewModel(card);
   const selected = state.selected.includes(card.id);
-  const tier = normalizeClassIndex(model.cls);
+  const tier = normalizeClassIndex(card.cls);
   const club = getClub(card.club);
-  const level = model.level;
-  const proReady = model.owned ? fusionPartnerFor(card) : false;
-  const cardId = escapeAttr(card.id);
-  const sourceId = escapeAttr(sourceCardId(card));
+  const level = cardLevel(card);
+  const proReady = fusionPartnerFor(card);
   return `
-    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""}" ${selectable && model.owned ? `data-feature-action="toggle-card" data-card="${cardId}"` : ""}>
+    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""}" ${selectable ? `data-feature-action="toggle-card" data-card="${card.id}"` : ""}>
       <div class="card-top">
-        <div class="rating">${model.overall}</div>
-        <span class="card-position">${escapeHtml(model.position)}</span>
+        <div class="rating">${rating(card)}</div>
+        <span class="card-position">${card.pos}</span>
         <img class="card-crest" src="${club.crest}" alt="${club.name} Wappen" />
       </div>
       ${proBadge(card)}
-      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(model.rarity)} | ${escapeHtml(cardSeriesLabel(card.series))}</span>
+      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(cardSeriesLabel(card.series))}</span>
       ${renderCardPhoto(card)}
-      <div class="card-name">${escapeHtml(card.name)}</div>
-      <div class="card-meta-row"><span>${escapeHtml(model.flag)}</span><span>${escapeHtml(model.nation)}</span><span>${escapeHtml(model.category)}</span></div>
-      <div class="card-progress"><span>${model.starsText} | Level ${level}/${model.maxLevel} | XP ${model.xp}</span><i style="--level-progress:${Math.min(100, Math.round(level / model.maxLevel * 100))}%"></i></div>
-      ${model.owned ? renderCardStats(card) : `<div class="missing-card-lock">Nicht erhalten</div>`}
-      <div class="card-ownership"><span>${model.owned ? "Besitz" : "Katalog"}</span><span>Duplikate ${model.duplicateCount}</span></div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-progress"><span>${proStars(card) ? `Evolution Level ${level}/${PRO_MAX_LEVEL}` : `Level ${level}/${CARD_MAX_LEVEL}`}</span><i style="--level-progress:${level}%"></i></div>
+      ${renderCardStats(card)}
       ${context === "collection" ? `
         <div class="card-actions">
-          <button type="button" data-feature-action="card-details" data-card="${sourceId}">Details</button>
-          <button type="button" data-feature-action="toggle-favorite" data-card="${sourceId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
-          <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
-          <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${proReady ? "" : "disabled"}>Evolution</button>
+          <button type="button" data-feature-action="level-card" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
+          <button type="button" data-feature-action="level-card-small" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>+1</button>
+          <button type="button" data-feature-action="pro-card" data-card="${card.id}" ${proReady ? "" : "disabled"}>Evolution</button>
         </div>
       ` : ""}
     </article>
-  `;
-}
-
-function cardViewModel(card) {
-  const sourceId = sourceCardId(card);
-  const ownedMatches = state.deck.filter((owned) => sourceCardId(owned) === sourceId);
-  const owned = ownedMatches.length > 0 || Boolean(card.owned);
-  const reference = ownedMatches[0] || card;
-  const model = CARD_SYSTEM?.normalizeCardRecord
-    ? CARD_SYSTEM.normalizeCardRecord({ ...card, ...reference, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1) }, { rating })
-    : { ...card, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1), overall: rating(reference), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: "Deutschland", flag: "DE", level: cardLevel(reference), stars: 1, maxLevel: CARD_MAX_LEVEL, xp: 0 };
-  const stars = Math.max(1, Math.min(5, Number(model.stars) || 1));
-  return {
-    ...model,
-    favorite: Boolean(reference.favorite),
-    starsText: "S".repeat(stars).replace(/S/g, "*"),
-  };
-}
-
-function cardCategory(card) {
-  return CARD_SYSTEM?.positionDefinition ? CARD_SYSTEM.positionDefinition(card.pos).category : isGoalkeeper(card) ? "Torwart" : ["IV", "CB", "LV", "RV"].includes(String(card.pos).toUpperCase()) ? "Verteidigung" : ["ST", "MS", "LA", "RA"].includes(String(card.pos).toUpperCase()) ? "Angriff" : "Mittelfeld";
-}
-
-function toggleFavoriteCard(cardId) {
-  const target = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
-  if (!target) {
-    showToast("Favoriten sind nur fuer Besitzkarten verfuegbar.", "error");
-    return;
-  }
-  target.favorite = !target.favorite;
-  saveState();
-  showToast(target.favorite ? "Karte als Favorit markiert." : "Favorit entfernt.", "success");
-}
-
-function showCardDetails(cardId) {
-  const catalog = GAME_CARDS.find((card) => sourceCardId(card) === cardId || card.id === cardId);
-  const owned = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
-  const card = owned || catalog;
-  if (!card) {
-    showToast("Karte nicht gefunden.", "error");
-    return;
-  }
-  const model = cardViewModel(card);
-  const club = getClub(card.club);
-  openDialog(
-    `${card.name} | ${model.position}`,
-    "",
-  );
-  els.appDialogMessage.innerHTML = `
-    <div class="card-detail-layout">
-      <div class="card-detail-preview">
-        ${miniCard(card, false, "")}
-      </div>
-      <div class="card-detail-data">
-        <div class="pill-row">
-          <span>${escapeHtml(model.rarity)}</span>
-          <span>${escapeHtml(model.category)}</span>
-          <span>${escapeHtml(model.nation)} ${escapeHtml(model.flag)}</span>
-          <span>${model.owned ? "Besitz" : "Nicht erhalten"}</span>
-        </div>
-        <dl class="card-detail-list">
-          <dt>Karten-ID</dt><dd>${escapeHtml(model.cardId)}</dd>
-          <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
-          <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
-          <dt>Overall</dt><dd>${model.overall}</dd>
-          <dt>Level</dt><dd>${model.level}/${model.maxLevel}</dd>
-          <dt>Sterne</dt><dd>${model.starsText}</dd>
-          <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || "MAX"}</dd>
-          <dt>Duplikate</dt><dd>${model.duplicateCount}</dd>
-          <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
-        </dl>
-        ${model.owned ? renderCardStats(card) : `<p class="muted">Diese Karte ist noch nicht in deiner Sammlung. Werte und Rahmen werden im Katalog angezeigt.</p>`}
-        <div class="future-development">
-          <strong>Zukuenftige Entwicklung</strong>
-          <p>Naechste Ausbaustufe: ${model.level >= model.maxLevel ? "Max-Level dieser Sternstufe erreicht" : `Level ${model.level + 1}`}. Sterne erweitern das Max-Level bis 100.</p>
-        </div>
-      </div>
-    </div>
   `;
 }
 
@@ -4622,8 +4538,7 @@ function generateCard(cls) {
 function cardDef(id, name, pos, club, cls, atk, mid, def, photo = "", series = "standard") {
   const normalizedClass = normalizeClassIndex(cls);
   const performance = SEASON_PERFORMANCE_DATA[id] || generatedSeasonPerformance(pos, atk, mid, def);
-  const base = withClub({ id, cardId: id, playerId: id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo, nation: "Deutschland", flag: "DE", level: 1, stars: 1, xp: 0, status: "active" });
-  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating: (card) => rating({ ...base, ...card }) }) : base;
+  return withClub({ id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo });
 }
 
 function cloneCardForCollection(card, prefix = "owned") {
@@ -5029,12 +4944,8 @@ function normalizeCard(card) {
   const normalized = withClub({ ...card, club: mappedClubName, cls: normalizeClassIndex(card.cls), series: normalizeCardSeries(card.series) });
   normalized.performance = normalized.performance || SEASON_PERFORMANCE_DATA[sourceCardId(normalized)] || generatedSeasonPerformance(normalized.pos, normalized.atk, normalized.mid, normalized.def);
   normalized.stats = buildCardStats(normalized.pos, normalized.atk, normalized.mid, normalized.def, normalized.cls, normalized.performance);
-  const base = {
+  return {
     ...normalized,
-    cardId: normalized.cardId || sourceCardId(normalized),
-    playerId: normalized.playerId || sourceCardId(normalized),
-    nation: normalized.nation || "Deutschland",
-    flag: normalized.flag || "DE",
     photo: normalized.photo || "",
     externalIds: normalized.externalIds || {},
     manualImagePath: normalized.manualImagePath || "",
@@ -5052,17 +4963,9 @@ function normalizeCard(card) {
     sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
     series: normalizeCardSeries(normalized.series),
     level: normalizeCardLevel(card.level),
-    stars: Math.max(1, Number(card.stars) || CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) || 1),
-    xp: Math.max(0, Number(card.xp) || 0),
-    status: normalized.status || "active",
-    owned: true,
-    ownedCount: Math.max(1, Number(normalized.ownedCount) || 1),
-    duplicateCount: Math.max(0, Number(normalized.duplicateCount) || 0),
-    frame: normalized.frame || CARD_SYSTEM?.rarityByIndex?.(normalized.cls)?.id || "common",
     proStars: normalizeProStars(card.proStars),
     proQuality: normalizeProStars(card.proStars) ? normalizeProQuality(card.proQuality) : "",
   };
-  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating }) : base;
 }
 
 function normalizeClassIndex(value) {
