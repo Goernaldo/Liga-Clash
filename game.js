@@ -33,6 +33,8 @@ const PRO_MAX_LEVEL = 100;
 const PRO_MAX_STARS = 5;
 const PLAYER_IMAGE_PLACEHOLDER = "assets/players/placeholder.svg";
 const CARD_SYSTEM = globalThis.LigaClashCardSystem || null;
+const DECK_SYSTEM = globalThis.LigaClashDeckSystem || null;
+const BOOSTER_SYSTEM = globalThis.LigaClashBoosterSystem || null;
 
 const CARD_SERIES = [
   { value: "standard", label: "Standard", bonus: 0 },
@@ -367,27 +369,27 @@ const names = ["Thomas", "Max", "Anna", "Chris", "Kevin", "Tim", "Marco", "Leyla
 const opponents = ["FC Rheinpark", "Union Hafenstadt", "SV Allee 04", "VfB Nordkurve", "SC Bergtal", "Rot-Weiss Zentrum"];
 const careerOpponents = ["SV Gruenwald", "FC Nord", "Berlin SC", "Rot-Weiss Zentrum", "Union Hafenstadt", "Energie Cottbus", "Werder Bremen", "Borussia Dortmund", "FC Bayern Muenchen", "Champions XI"];
 const matchSituations = [
-  { id: "striker-vs-centerback", label: "Stuermer gegen Innenverteidiger", call: "Abschluss + Physis gegen Defensive", category: "Abschluss", stats: [{ key: "finish", weight: 0.62 }, { key: "physical", weight: 0.38 }], playerGroups: ["attack"], cpuGroups: ["defense"], tactic: "konter", goalBias: 1 },
-  { id: "wing-vs-fullback", label: "Fluegelduell", call: "Tempo + Dribbling entscheiden", category: "Tempo-Duell", stats: [{ key: "pace", weight: 0.52 }, { key: "dribble", weight: 0.48 }], playerGroups: ["attack", "mid"], cpuGroups: ["defense"], tactic: "konter", goalBias: 0 },
-  { id: "midfield-control", label: "Mittelfeldduell", call: "Passspiel + Spielintelligenz entscheiden", category: "Passspiel", stats: [{ key: "passing", weight: 0.62 }, { key: "iq", weight: 0.38 }], playerGroups: ["mid"], cpuGroups: ["mid"], tactic: "balance", goalBias: 0 },
-  { id: "keeper-reaction", label: "Angreifer gegen Torwart", call: "Abschluss gegen Torwartreaktion", category: "Torwartreaktion", stats: [{ key: "finish", weight: 0.58 }, { key: "iq", weight: 0.42 }], playerGroups: ["attack"], cpuGroups: ["keeper"], tactic: "konter", goalBias: 1 },
-  { id: "build-up", label: "Spielaufbau", call: "Passspiel + Teamgeist entscheiden", category: "Spielaufbau", stats: [{ key: "passing", weight: 0.65 }, { key: "teamgeist", weight: 0.35 }], playerGroups: ["mid", "defense"], cpuGroups: ["mid", "attack"], tactic: "balance", goalBias: 0 },
-  { id: "pressing-duel", label: "Zweikampf", call: "Defensive + Physis entscheiden", category: "Zweikampf", stats: [{ key: "defense", weight: 0.58 }, { key: "physical", weight: 0.42 }], playerGroups: ["defense", "mid"], cpuGroups: ["attack", "mid"], tactic: "pressing", goalBias: -1 },
-  { id: "last-block", label: "Letzte Abwehraktion", call: "Defensive + Spielintelligenz entscheiden", category: "Verteidigung", stats: [{ key: "defense", weight: 0.68 }, { key: "iq", weight: 0.32 }], playerGroups: ["keeper", "defense"], cpuGroups: ["attack"], tactic: "pressing", goalBias: -1 },
-  { id: "long-shot", label: "Fernschuss", call: "Abschluss + Technik entscheiden", category: "Abschluss", stats: [{ key: "finish", weight: 0.58 }, { key: "dribble", weight: 0.42 }], playerGroups: ["attack", "mid"], cpuGroups: ["keeper", "defense"], tactic: "konter", goalBias: 1 },
+  { id: "striker-vs-centerback", label: "Stuermer gegen Verteidiger", description: "Der Angreifer sucht den Abschluss gegen die Innenverteidigung.", call: "Abschluss + Physis gegen Defensive", attackerCategory: "attack", defenderCategory: "defense", primaryStat: "finish", secondaryStat: "physical", primaryWeight: 0.7, secondaryWeight: 0.3, category: "Abschluss", stats: [{ key: "finish", weight: 0.7 }, { key: "physical", weight: 0.3 }], playerGroups: ["attack"], cpuGroups: ["defense"], tactic: "konter", goalBias: 1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "wing-vs-fullback", label: "Fluegelduell", description: "Tempo und Dribbling entscheiden das Duell auf dem Fluegel.", call: "Tempo + Dribbling entscheiden", attackerCategory: "attack", defenderCategory: "defense", primaryStat: "pace", secondaryStat: "dribble", primaryWeight: 0.58, secondaryWeight: 0.42, category: "Tempoduell", stats: [{ key: "pace", weight: 0.58 }, { key: "dribble", weight: 0.42 }], playerGroups: ["attack", "mid"], cpuGroups: ["defense"], tactic: "konter", goalBias: 0, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "midfield-control", label: "Mittelfeldduell", description: "Die Teams kaempfen um Kontrolle im Zentrum.", call: "Passspiel + Spielintelligenz entscheiden", attackerCategory: "midfield", defenderCategory: "midfield", primaryStat: "passing", secondaryStat: "iq", primaryWeight: 0.68, secondaryWeight: 0.32, category: "Passspiel", stats: [{ key: "passing", weight: 0.68 }, { key: "iq", weight: 0.32 }], playerGroups: ["mid"], cpuGroups: ["mid"], tactic: "balance", goalBias: 0, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "finish-vs-keeper", label: "Abschluss gegen Torwart", description: "Ein Abschluss trifft auf die Reaktion des Torwarts.", call: "Abschluss + Spielintelligenz gegen Torwartreaktion", attackerCategory: "attack", defenderCategory: "goalkeeper", primaryStat: "finish", secondaryStat: "iq", primaryWeight: 0.65, secondaryWeight: 0.35, category: "Torwartreaktion", stats: [{ key: "finish", weight: 0.65 }, { key: "iq", weight: 0.35 }], playerGroups: ["attack"], cpuGroups: ["keeper"], tactic: "konter", goalBias: 1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "duel", label: "Zweikampf", description: "Koerperlichkeit und Defensivarbeit entscheiden den Ballgewinn.", call: "Defensive + Physis entscheiden", attackerCategory: "defense", defenderCategory: "attack", primaryStat: "defense", secondaryStat: "physical", primaryWeight: 0.6, secondaryWeight: 0.4, category: "Zweikampf", stats: [{ key: "defense", weight: 0.6 }, { key: "physical", weight: 0.4 }], playerGroups: ["defense", "mid"], cpuGroups: ["attack", "mid"], tactic: "pressing", goalBias: -1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "passing-lane", label: "Passspiel", description: "Eine Passfolge muss unter Druck sauber bleiben.", call: "Passspiel + Teamgeist entscheiden", attackerCategory: "midfield", defenderCategory: "midfield", primaryStat: "passing", secondaryStat: "teamgeist", primaryWeight: 0.7, secondaryWeight: 0.3, category: "Passspiel", stats: [{ key: "passing", weight: 0.7 }, { key: "teamgeist", weight: 0.3 }], playerGroups: ["mid", "defense"], cpuGroups: ["mid", "attack"], tactic: "balance", goalBias: 0, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "technique-duel", label: "Technikduell", description: "Enge Ballfuehrung und Technik brechen die Ordnung.", call: "Dribbling + Spielintelligenz entscheiden", attackerCategory: "midfield", defenderCategory: "defense", primaryStat: "dribble", secondaryStat: "iq", primaryWeight: 0.64, secondaryWeight: 0.36, category: "Technik", stats: [{ key: "dribble", weight: 0.64 }, { key: "iq", weight: 0.36 }], playerGroups: ["mid", "attack"], cpuGroups: ["defense", "mid"], tactic: "balance", goalBias: 0, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "pace-duel", label: "Tempoduell", description: "Ein offener Laufweg wird ueber Geschwindigkeit entschieden.", call: "Tempo + Physis entscheiden", attackerCategory: "attack", defenderCategory: "defense", primaryStat: "pace", secondaryStat: "physical", primaryWeight: 0.72, secondaryWeight: 0.28, category: "Tempo", stats: [{ key: "pace", weight: 0.72 }, { key: "physical", weight: 0.28 }], playerGroups: ["attack", "mid"], cpuGroups: ["defense", "mid"], tactic: "konter", goalBias: 1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "header-duel", label: "Kopfballduell", description: "Ein hoher Ball wird mit Physis und Abschluss verwertet.", call: "Physis + Abschluss entscheiden", attackerCategory: "attack", defenderCategory: "defense", primaryStat: "physical", secondaryStat: "finish", primaryWeight: 0.62, secondaryWeight: 0.38, category: "Kopfball", stats: [{ key: "physical", weight: 0.62 }, { key: "finish", weight: 0.38 }], playerGroups: ["attack", "defense"], cpuGroups: ["defense", "keeper"], tactic: "pressing", goalBias: 1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "keeper-reaction", label: "Torwartreaktion", description: "Der Torwart muss blitzschnell auf einen Abschluss reagieren.", call: "Reflexe/Reaktion + Organisation entscheiden", attackerCategory: "goalkeeper", defenderCategory: "attack", primaryStat: "reflexes", secondaryStat: "reaction", primaryWeight: 0.7, secondaryWeight: 0.3, category: "Torwart", stats: [{ key: "reflexes", weight: 0.7 }, { key: "reaction", weight: 0.3 }], playerGroups: ["keeper"], cpuGroups: ["attack"], tactic: "pressing", goalBias: -1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "build-up", label: "Spielaufbau", description: "Der Aufbau von hinten entscheidet den naechsten Angriff.", call: "Passspiel + Teamgeist entscheiden", attackerCategory: "defense", defenderCategory: "midfield", primaryStat: "passing", secondaryStat: "teamgeist", primaryWeight: 0.65, secondaryWeight: 0.35, category: "Spielaufbau", stats: [{ key: "passing", weight: 0.65 }, { key: "teamgeist", weight: 0.35 }], playerGroups: ["defense", "mid"], cpuGroups: ["mid", "attack"], tactic: "balance", goalBias: 0, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
+  { id: "pressing", label: "Pressing", description: "Aggressives Pressing erzwingt einen schnellen Ballgewinn.", call: "Defensive + Tempo entscheiden", attackerCategory: "midfield", defenderCategory: "defense", primaryStat: "defense", secondaryStat: "pace", primaryWeight: 0.66, secondaryWeight: 0.34, category: "Pressing", stats: [{ key: "defense", weight: 0.66 }, { key: "pace", weight: 0.34 }], playerGroups: ["mid", "defense"], cpuGroups: ["mid", "attack"], tactic: "pressing", goalBias: -1, active: true, allowedRounds: [1, 2, 3, 4, 5], specialRules: [] },
 ];
 
-const FORMATIONS = {
-  "1-2-1-1": { keeper: 1, defense: 2, mid: 2, attack: 1, label: "1-2-1-1" },
-  "1-1-2-1": { keeper: 1, defense: 2, mid: 1, attack: 2, label: "1-1-2-1" },
-  "1-1-1-2": { keeper: 1, defense: 1, mid: 2, attack: 2, label: "1-1-1-2" },
-  "2-2-1": { keeper: 1, defense: 2, mid: 2, attack: 1, label: "1-2-2-1", legacy: true },
-  "2-1-2": { keeper: 1, defense: 2, mid: 1, attack: 2, label: "1-2-1-2", legacy: true },
-  "1-2-2": { keeper: 1, defense: 1, mid: 2, attack: 2, label: "1-1-2-2", legacy: true },
-  "3-1-1": { keeper: 1, defense: 3, mid: 1, attack: 1, label: "1-3-1-1", legacy: true },
-};
+const FORMATIONS = Object.fromEntries((DECK_SYSTEM?.FORMATIONS || [
+  { id: "1-2-1-2", name: "1-2-1-2", keeper: 1, defense: 2, mid: 1, attack: 2, slots: [] },
+  { id: "1-1-2-2", name: "1-1-2-2", keeper: 1, defense: 1, mid: 2, attack: 2, slots: [] },
+  { id: "1-2-2-1", name: "1-2-2-1", keeper: 1, defense: 2, mid: 2, attack: 1, slots: [] },
+]).map((formation) => [formation.id, { ...formation, label: formation.name }]));
 
-const DEFAULT_FORMATION = "1-2-1-1";
+const DEFAULT_FORMATION = "1-2-1-2";
 const MATCH_ACTIVE_COUNT = 6;
 const MATCH_FIELD_COUNT = 5;
 const MATCH_SUBSTITUTE_COUNT = 3;
@@ -417,6 +419,7 @@ const CPU_DIFFICULTIES = {
 };
 
 const state = loadState();
+const processingBoosterActions = new Set();
 
 const els = {
   homeOverlay: document.querySelector("#homeOverlay"),
@@ -515,6 +518,7 @@ const els = {
 let selectedTactic = "pressing";
 let selectedFormation = normalizeFormationKey(state.formation);
 let currentOpponent = createOpponent();
+let pendingDeckCardId = "";
 
 document.body.classList.add("menu-open");
 
@@ -532,6 +536,11 @@ document.querySelectorAll(".formation-button").forEach((button) => {
     button.classList.add("active");
     selectedFormation = normalizeFormationKey(button.dataset.formation);
     state.formation = selectedFormation;
+    if (state.activeDeck) {
+      state.activeDeck = reflowDeckForFormation(state.activeDeck, selectedFormation).deck;
+      syncActiveDeckSelection();
+      saveState();
+    }
     render();
   });
 });
@@ -561,6 +570,9 @@ els.appDialog?.addEventListener("click", (event) => {
 els.featureContent.addEventListener("click", handleFeatureClick);
 els.featureContent.addEventListener("change", handleFeatureChange);
 els.featureContent.addEventListener("input", handleFeatureChange);
+els.featureContent.addEventListener("dragstart", handleDeckDragStart);
+els.featureContent.addEventListener("dragover", handleDeckDragOver);
+els.featureContent.addEventListener("drop", handleDeckDrop);
 document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
   button.addEventListener("click", () => handleAdminNav(button));
 });
@@ -863,7 +875,8 @@ function setFeature(title, eyebrow, html) {
 }
 
 function renderBoosterFeature() {
-  const activePacks = state.boosterPacks.filter((pack) => pack.active);
+  const activePacks = state.boosterPacks.filter((pack) => pack.active).sort((a, b) => (a.order || 999) - (b.order || 999));
+  const unopened = unopenedBoosterInventory();
   setFeature(
     "Booster",
     "Packs oeffnen",
@@ -874,10 +887,19 @@ function renderBoosterFeature() {
           : `<article class="feature-card"><h3>Keine Booster aktiv</h3><p>Im Admin Center koennen neue Booster angelegt und aktiviert werden.</p></article>`}
         <article class="feature-card">
           <h3>Pack-Info</h3>
-          <p>Gratis-Packs werden zuerst verbraucht. Solange Gratis-Packs vorhanden sind, verschwindet der Preis beim passenden Booster.</p>
-          <div class="pill-row"><span>${formatNumber(state.coins)} Coins</span><span>${formatNumber(state.gems)} Diamanten</span><span>${totalFreePacks()} Gratis-Packs</span></div>
+          <p>Gratis-Packs werden zuerst verbraucht. Gekaufte Packs landen erst im Inventar und koennen dort geoeffnet werden.</p>
+          <div class="pill-row"><span>${formatNumber(state.coins)} Coins</span><span>${formatNumber(state.gems)} Diamanten</span><span>${totalFreePacks()} Gratis-Packs</span><span>${unopened.length} ungeoeffnet</span></div>
         </article>
       </div>
+      <section class="feature-card booster-inventory">
+        <div class="feature-section-head">
+          <div>
+            <h3>Ungeoeffnete Booster</h3>
+            <p>Jede Pack-Instanz wird gespeichert. Ein Reload erzeugt keine neuen Karten.</p>
+          </div>
+        </div>
+        ${unopened.length ? `<div class="booster-inventory-list">${unopened.map(boosterInventoryTile).join("")}</div>` : `<p class="muted">Noch keine ungeoeffneten Booster vorhanden.</p>`}
+      </section>
     `
   );
 }
@@ -917,11 +939,15 @@ function renderFusionFeature() {
 }
 
 function packTile(pack) {
-  const { id, name, cost, minClass, maxClass, description, currency = "coins", image = "", tier = "bronze", pool = "mixed", cardCount = 1, positions = [] } = pack;
+  const normalized = normalizeBoosterPack(pack);
+  const { id, name, cost, description, currency = "coins", image = "", tier = "bronze", pool = "mixed", cardCount = 1, positions = [] } = normalized;
   const freeCount = freePackCount(id);
   const hasFreePack = freeCount > 0;
   const amount = currency === "coins" ? state.coins : state.gems;
   const label = currency === "coins" ? "Coins" : "Diamanten";
+  const dropValidation = validateBoosterForOpening(normalized);
+  const availability = boosterAvailability(normalized);
+  const disabled = !hasFreePack && (amount < cost || !dropValidation.ok || !availability.ok);
   const packArt = image
     ? `<img class="pack-shot" src="${image}" alt="${name}" />`
     : `<div class="pack-shot pack-shot-placeholder ${tier}"><span>${name}</span></div>`;
@@ -932,8 +958,13 @@ function packTile(pack) {
       <p>${description}</p>
       <span class="pack-pool">${packPoolLabel(pool)} | ${packPositionLabel(positions)}</span>
       <span class="pack-count">${cardCount} ${cardCount === 1 ? "Karte" : "Karten"}</span>
+      ${normalized.guaranteedClass != null ? `<span class="pack-guarantee">Garantie: ${teamClasses[normalized.guaranteedClass]}</span>` : ""}
       ${hasFreePack ? `<strong class="pack-free">Gratis verfuegbar x${freeCount}</strong>` : `<strong>${cost} ${label}</strong>`}
-      <button type="button" data-feature-action="buy-pack" ${packActionAttributes(pack)} ${!hasFreePack && amount < cost ? "disabled" : ""}>${hasFreePack ? "Gratis oeffnen" : "Pack oeffnen"}</button>
+      <div class="pack-actions">
+        <button type="button" data-feature-action="buy-pack" ${packActionAttributes(normalized)} ${disabled ? "disabled" : ""}>${hasFreePack ? "Gratis sichern" : "Kaufen"}</button>
+        <button type="button" data-feature-action="booster-info" data-pack-id="${escapeAttr(id)}">Drop-Rates</button>
+      </div>
+      ${!dropValidation.ok || !availability.ok ? `<small class="pack-error">${escapeHtml([...availability.errors, ...dropValidation.errors][0] || "Booster nicht verfuegbar")}</small>` : ""}
     </article>
   `;
 }
@@ -941,6 +972,28 @@ function packTile(pack) {
 function packActionAttributes(pack) {
   const normalized = normalizeBoosterPack(pack);
   return `data-pack-id="${escapeAttr(normalized.id)}" data-cost="${normalized.cost}" data-currency="${escapeAttr(normalized.currency)}" data-min="${normalized.minClass}" data-max="${normalized.maxClass}" data-pool="${escapeAttr(normalized.pool)}" data-positions="${escapeAttr(normalized.positions.join(","))}" data-count="${normalized.cardCount}"`;
+}
+
+function unopenedBoosterInventory() {
+  state.boosterInventory = normalizeBoosterInventory(state.boosterInventory);
+  return state.boosterInventory.filter((item) => item.status !== "opened");
+}
+
+function boosterInventoryTile(item) {
+  const pack = normalizeBoosterPack(state.boosterPacks.find((entry) => entry.id === item.boosterId) || defaultBoosterPacks().find((entry) => entry.id === item.boosterId) || {});
+  const packArt = pack.image
+    ? `<img src="${pack.image}" alt="${escapeAttr(pack.name)}" />`
+    : `<span>${escapeHtml(pack.name)}</span>`;
+  return `
+    <article class="booster-inventory-item pack-${escapeAttr(pack.tier)}">
+      <div class="booster-inventory-art">${packArt}</div>
+      <div>
+        <strong>${escapeHtml(pack.name)}</strong>
+        <span>${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | ${item.source === "free" ? "Gratis" : "Gekauft"}</span>
+      </div>
+      <button type="button" data-feature-action="open-owned-booster" data-inventory-id="${escapeAttr(item.id)}">Oeffnen</button>
+    </article>
+  `;
 }
 
 function renderCareerFeature() {
@@ -1081,23 +1134,209 @@ function missionTile(id, title, text, reward, ready) {
 }
 
 function renderDeckFeature() {
-  const cards = filteredOwnedCards("deck");
+  syncActiveDeckSelection();
+  const deck = state.activeDeck;
+  const validation = validateActiveDeck();
+  const cards = deckEditorCards();
   const visibleCards = virtualCardWindow(cards);
+  const strongest = state.deck.find((card) => card.id === validation.strength.strongestCardId);
+  const weakest = state.deck.find((card) => card.id === validation.strength.weakestCardId);
   setFeature(
     "Deck",
-    `${state.selected.length}/${MATCH_CARD_COUNT} aktive Karten`,
+    `${deckIds(deck).length}/${MATCH_CARD_COUNT} Karten | ${validation.isValid ? "Spielbereit" : "Ungueltig"}`,
     `
-      <p class="muted">Waehle bis zu 6 Karten: 1 Torwart und 5 Feldspieler. Die Formation bestimmt, wie viele Karten in Abwehr, Mittelfeld und Angriff eingesetzt werden.</p>
-      <div class="feature-toolbar">
-        ${ownedCardFilters("deck")}
-      </div>
-      ${ownedCardFilterSummary(cards)}
-      <div class="mini-deck">
-        ${visibleCards.length ? visibleCards.map((card) => miniCard(card, true, "deck")).join("") : emptyOwnedFilterMessage("deck")}
-      </div>
-      <button class="feature-action" type="button" data-feature-action="play-now">Mit diesem Deck spielen</button>
+      <section class="deck-editor">
+        <div class="deck-editor-head">
+          <label class="owned-filter">
+            Formation
+            <select data-deck-control="formation">
+              ${Object.values(FORMATIONS).filter((formation) => formation.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0)).map((formation) => `<option value="${escapeAttr(formation.id)}" ${formation.id === deck.formationId ? "selected" : ""}>${escapeHtml(formation.label || formation.name || formation.id)}</option>`).join("")}
+            </select>
+          </label>
+          <div class="deck-strength">
+            <strong>${validation.strength.total}</strong>
+            <span>Gesamtstaerke</span>
+          </div>
+          <div class="deck-strength">
+            <strong>${validation.strength.average}</strong>
+            <span>Durchschnitt</span>
+          </div>
+          <div class="deck-status ${validation.isValid ? "is-valid" : "is-invalid"}">
+            <strong>${validation.isValid ? "Gueltig" : "Ungueltig"}</strong>
+            <span>${escapeHtml(deck.name || "Hauptdeck")}</span>
+          </div>
+        </div>
+        <div class="deck-summary">
+          <span>Staerkste Karte: <b>${escapeHtml(strongest?.name || "-")}</b></span>
+          <span>Schwaechste aktive Karte: <b>${escapeHtml(weakest?.name || "-")}</b></span>
+          <span>Formation: <b>${escapeHtml(FORMATIONS[deck.formationId]?.label || deck.formationId)}</b></span>
+        </div>
+        ${deckValidationMessages(validation)}
+        <div class="deck-editor-layout">
+          <div class="formation-board">
+            ${renderFormationSlots(deck)}
+            <div class="bench-board">
+              <h3>Ersatzbank</h3>
+              <div class="bench-slots">${renderBenchSlots(deck)}</div>
+            </div>
+          </div>
+          <aside class="deck-card-picker">
+            <div class="deck-picker-head">
+              <h3>Kartenauswahl</h3>
+              <p>${pendingDeckCardId ? `Ausgewaehlt: ${escapeHtml(cardNameById(pendingDeckCardId))}` : "Karte antippen oder ziehen, dann Slot waehlen."}</p>
+            </div>
+            <div class="feature-toolbar">
+              ${ownedCardFilters("deck")}
+              <label class="owned-filter">
+                Verfuegbarkeit
+                <select data-deck-control="availability">
+                  <option value="all" ${deckFilterValue("availability", "all") === "all" ? "selected" : ""}>Alle Besitzkarten</option>
+                  <option value="available" ${deckFilterValue("availability", "all") === "available" ? "selected" : ""}>Nur verfuegbar</option>
+                  <option value="matching" ${deckFilterValue("availability", "all") === "matching" ? "selected" : ""}>Passend zum Slot</option>
+                </select>
+              </label>
+            </div>
+            ${ownedCardFilterSummary(cards)}
+            <div class="deck-card-pool">
+              ${visibleCards.length ? visibleCards.map((card) => deckPickerCard(card)).join("") : emptyOwnedFilterMessage("deck")}
+            </div>
+          </aside>
+        </div>
+        <div class="deck-actions-row">
+          <button class="feature-action" type="button" data-feature-action="deck-save">Deck speichern</button>
+          <button class="feature-action ghost" type="button" data-feature-action="deck-autofill">Auto-vervollstaendigen</button>
+          <button class="feature-action ghost" type="button" data-feature-action="deck-reset">Deck zuruecksetzen</button>
+          <button class="feature-action" type="button" data-feature-action="play-now" ${validation.isValid ? "" : "disabled"}>Mit diesem Deck spielen</button>
+        </div>
+      </section>
     `
   );
+}
+
+function validateActiveDeck() {
+  return DECK_SYSTEM?.validateDeck
+    ? DECK_SYSTEM.validateDeck(state.activeDeck, state.deck, deckSystemHelpers())
+    : { isValid: state.selected.length >= MATCH_CARD_COUNT, errors: [], warnings: [], strength: { total: teamPower(), average: teamPower(), strongestCardId: "", weakestCardId: "" } };
+}
+
+function deckValidationMessages(validation) {
+  const messages = [...(validation.errors || []), ...(validation.warnings || [])];
+  if (!messages.length) return `<div class="deck-messages is-valid">Deck ist vollstaendig und spielbereit.</div>`;
+  return `<div class="deck-messages">${messages.map((message) => `<span>${escapeHtml(message)}</span>`).join("")}</div>`;
+}
+
+function renderFormationSlots(deck) {
+  const formation = FORMATIONS[normalizeFormationKey(deck.formationId)] || FORMATIONS[DEFAULT_FORMATION];
+  const slotCounters = {};
+  return `
+    <div class="formation-slots" data-formation="${escapeAttr(formation.id)}">
+      ${(formation.slots || []).map((slot) => {
+        slotCounters[slot.category] = (slotCounters[slot.category] || 0) + 1;
+        return renderDeckSlot(deck, slot, deckSlotGridArea(slot, slotCounters[slot.category]));
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderDeckSlot(deck, slot, gridArea) {
+  const cardId = deck.activeSlots?.[slot.id] || "";
+  const card = state.deck.find((item) => item.id === cardId);
+  const valid = card ? deckCardCategory(card) === slot.category : false;
+  return `
+    <article class="deck-slot ${card ? "is-filled" : "is-empty"} ${card && !valid ? "is-invalid" : ""}" style="grid-area:${escapeAttr(gridArea)}" data-deck-slot="${escapeAttr(slot.id)}" data-slot-category="${escapeAttr(slot.category)}" data-drop-target="active">
+      <header><span>${escapeHtml(slot.label)}</span><b>${escapeHtml(deckCategoryLabel(slot.category))}</b></header>
+      ${card ? miniCard(card, false, "") : `<div class="empty-deck-slot">Karte waehlen<br><small>${escapeHtml(deckCategoryLabel(slot.category))}</small></div>`}
+      <div class="slot-actions">
+        <button type="button" data-feature-action="deck-assign-slot" data-slot="${escapeAttr(slot.id)}">${card ? "Ersetzen" : "Setzen"}</button>
+        <button type="button" data-feature-action="deck-clear-slot" data-slot="${escapeAttr(slot.id)}" ${card ? "" : "disabled"}>Entfernen</button>
+      </div>
+    </article>
+  `;
+}
+
+function deckSlotGridArea(slot, categoryIndex = 1) {
+  if (slot.category === "goalkeeper") return "gk";
+  if (slot.category === "defense") return categoryIndex > 1 ? "def2" : "def1";
+  if (slot.category === "midfield") return categoryIndex > 1 ? "mid2" : "mid1";
+  if (slot.category === "attack") return categoryIndex > 1 ? "att2" : "att1";
+  return "auto";
+}
+
+function renderBenchSlots(deck) {
+  return Array.from({ length: MATCH_SUBSTITUTE_COUNT }, (_, index) => {
+    const cardId = deck.bench?.[index] || "";
+    const card = state.deck.find((item) => item.id === cardId);
+    return `
+      <article class="deck-slot bench-slot ${card ? "is-filled" : "is-empty"}" data-bench-slot="${index}" data-drop-target="bench">
+        <header><span>Bank ${index + 1}</span><b>Flexibel</b></header>
+        ${card ? miniCard(card, false, "") : `<div class="empty-deck-slot">Ersatzkarte<br><small>beliebige Kategorie</small></div>`}
+        <div class="slot-actions">
+          <button type="button" data-feature-action="deck-assign-bench" data-bench="${index}">${card ? "Ersetzen" : "Setzen"}</button>
+          <button type="button" data-feature-action="deck-clear-bench" data-bench="${index}" ${card ? "" : "disabled"}>Entfernen</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function deckPickerCard(card) {
+  const used = deckUsedIds();
+  const selected = pendingDeckCardId === card.id;
+  const unavailable = used.has(card.id);
+  return `
+    <article class="deck-picker-card ${selected ? "is-selected" : ""} ${unavailable ? "is-used" : ""}" draggable="${unavailable ? "false" : "true"}" data-drag-card="${escapeAttr(card.id)}">
+      ${miniCard(card, false, "")}
+      <button type="button" data-feature-action="deck-pick-card" data-card="${escapeAttr(card.id)}" ${unavailable ? "disabled" : ""}>${unavailable ? "Im Deck" : "Waehlen"}</button>
+    </article>
+  `;
+}
+
+function deckEditorCards() {
+  const filters = ownedFilterState("deck");
+  const used = deckUsedIds();
+  const targetCategory = pendingDeckTargetCategory();
+  let cards = filteredOwnedCards("deck");
+  const availability = deckFilterValue("availability", "all");
+  if (availability === "available" || availability === "matching") {
+    cards = cards.filter((card) => !used.has(card.id));
+  }
+  if (availability === "matching" && targetCategory) {
+    cards = cards.filter((card) => deckCardCategory(card) === targetCategory);
+  }
+  if (filters.category !== "Alle Kategorien") {
+    cards = cards.filter((card) => cardCategory(card) === filters.category);
+  }
+  return cards;
+}
+
+function pendingDeckTargetCategory() {
+  const emptySlot = (FORMATIONS[state.activeDeck.formationId]?.slots || []).find((slot) => !state.activeDeck.activeSlots?.[slot.id]);
+  return emptySlot?.category || "";
+}
+
+function deckFilterValue(key, fallback) {
+  state.cardFilters.deck = { ...state.cardFilters.deck };
+  return state.cardFilters.deck[key] || fallback;
+}
+
+function setDeckFilterValue(key, value) {
+  state.cardFilters.deck = { ...state.cardFilters.deck, [key]: value };
+}
+
+function deckUsedIds() {
+  return new Set(deckIds(state.activeDeck));
+}
+
+function deckCardCategory(card) {
+  return DECK_SYSTEM?.cardCategory ? DECK_SYSTEM.cardCategory(card, deckSystemHelpers()) : cardCategory(card);
+}
+
+function deckCategoryLabel(category) {
+  return DECK_SYSTEM?.CATEGORY_LABELS?.[category] || category;
+}
+
+function cardNameById(cardId) {
+  return state.deck.find((card) => card.id === cardId)?.name || "Karte";
 }
 
 function ownedCardFilters(scope) {
@@ -1585,32 +1824,116 @@ function refreshCardManagementFeature() {
 }
 
 function miniCard(card, selectable, context = "") {
+  const model = cardViewModel(card);
   const selected = state.selected.includes(card.id);
-  const tier = normalizeClassIndex(card.cls);
+  const tier = normalizeClassIndex(model.cls);
   const club = getClub(card.club);
-  const level = cardLevel(card);
-  const proReady = fusionPartnerFor(card);
+  const level = model.level;
+  const proReady = model.owned ? fusionPartnerFor(card) : false;
+  const cardId = escapeAttr(card.id);
+  const sourceId = escapeAttr(sourceCardId(card));
   return `
-    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""}" ${selectable ? `data-feature-action="toggle-card" data-card="${card.id}"` : ""}>
+    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""}" ${selectable && model.owned ? `data-feature-action="toggle-card" data-card="${cardId}"` : ""}>
       <div class="card-top">
-        <div class="rating">${rating(card)}</div>
-        <span class="card-position">${card.pos}</span>
+        <div class="rating">${model.overall}</div>
+        <span class="card-position">${escapeHtml(model.position)}</span>
         <img class="card-crest" src="${club.crest}" alt="${club.name} Wappen" />
       </div>
       ${proBadge(card)}
-      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(cardSeriesLabel(card.series))}</span>
+      <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(model.rarity)} | ${escapeHtml(cardSeriesLabel(card.series))}</span>
       ${renderCardPhoto(card)}
-      <div class="card-name">${card.name}</div>
-      <div class="card-progress"><span>${proStars(card) ? `Evolution Level ${level}/${PRO_MAX_LEVEL}` : `Level ${level}/${CARD_MAX_LEVEL}`}</span><i style="--level-progress:${level}%"></i></div>
-      ${renderCardStats(card)}
+      <div class="card-name">${escapeHtml(card.name)}</div>
+      <div class="card-meta-row"><span>${escapeHtml(model.flag)}</span><span>${escapeHtml(model.nation)}</span><span>${escapeHtml(model.category)}</span></div>
+      <div class="card-progress"><span>${model.starsText} | Level ${level}/${model.maxLevel} | XP ${model.xp}</span><i style="--level-progress:${Math.min(100, Math.round(level / model.maxLevel * 100))}%"></i></div>
+      ${model.owned ? renderCardStats(card) : `<div class="missing-card-lock">Nicht erhalten</div>`}
+      <div class="card-ownership"><span>${model.owned ? "Besitz" : "Katalog"}</span><span>Duplikate ${model.duplicateCount}</span></div>
       ${context === "collection" ? `
         <div class="card-actions">
-          <button type="button" data-feature-action="level-card" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
-          <button type="button" data-feature-action="level-card-small" data-card="${card.id}" ${level >= CARD_MAX_LEVEL ? "disabled" : ""}>+1</button>
-          <button type="button" data-feature-action="pro-card" data-card="${card.id}" ${proReady ? "" : "disabled"}>Evolution</button>
+          <button type="button" data-feature-action="card-details" data-card="${sourceId}">Details</button>
+          <button type="button" data-feature-action="toggle-favorite" data-card="${sourceId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
+          <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
+          <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${proReady ? "" : "disabled"}>Evolution</button>
         </div>
       ` : ""}
     </article>
+  `;
+}
+
+function cardViewModel(card) {
+  const sourceId = sourceCardId(card);
+  const ownedMatches = state.deck.filter((owned) => sourceCardId(owned) === sourceId);
+  const owned = ownedMatches.length > 0 || Boolean(card.owned);
+  const reference = ownedMatches[0] || card;
+  const model = CARD_SYSTEM?.normalizeCardRecord
+    ? CARD_SYSTEM.normalizeCardRecord({ ...card, ...reference, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1) }, { rating })
+    : { ...card, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1), overall: rating(reference), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: "Deutschland", flag: "DE", level: cardLevel(reference), stars: 1, maxLevel: CARD_MAX_LEVEL, xp: 0 };
+  const stars = Math.max(1, Math.min(5, Number(model.stars) || 1));
+  return {
+    ...model,
+    favorite: Boolean(reference.favorite),
+    starsText: "S".repeat(stars).replace(/S/g, "*"),
+  };
+}
+
+function cardCategory(card) {
+  return CARD_SYSTEM?.positionDefinition ? CARD_SYSTEM.positionDefinition(card.pos).category : isGoalkeeper(card) ? "Torwart" : ["IV", "CB", "LV", "RV"].includes(String(card.pos).toUpperCase()) ? "Verteidigung" : ["ST", "MS", "LA", "RA"].includes(String(card.pos).toUpperCase()) ? "Angriff" : "Mittelfeld";
+}
+
+function toggleFavoriteCard(cardId) {
+  const target = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  if (!target) {
+    showToast("Favoriten sind nur fuer Besitzkarten verfuegbar.", "error");
+    return;
+  }
+  target.favorite = !target.favorite;
+  saveState();
+  showToast(target.favorite ? "Karte als Favorit markiert." : "Favorit entfernt.", "success");
+}
+
+function showCardDetails(cardId) {
+  const catalog = GAME_CARDS.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  const owned = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  const card = owned || catalog;
+  if (!card) {
+    showToast("Karte nicht gefunden.", "error");
+    return;
+  }
+  const model = cardViewModel(card);
+  const club = getClub(card.club);
+  openDialog(
+    `${card.name} | ${model.position}`,
+    "",
+  );
+  els.appDialogMessage.innerHTML = `
+    <div class="card-detail-layout">
+      <div class="card-detail-preview">
+        ${miniCard(card, false, "")}
+      </div>
+      <div class="card-detail-data">
+        <div class="pill-row">
+          <span>${escapeHtml(model.rarity)}</span>
+          <span>${escapeHtml(model.category)}</span>
+          <span>${escapeHtml(model.nation)} ${escapeHtml(model.flag)}</span>
+          <span>${model.owned ? "Besitz" : "Nicht erhalten"}</span>
+        </div>
+        <dl class="card-detail-list">
+          <dt>Karten-ID</dt><dd>${escapeHtml(model.cardId)}</dd>
+          <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
+          <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
+          <dt>Overall</dt><dd>${model.overall}</dd>
+          <dt>Level</dt><dd>${model.level}/${model.maxLevel}</dd>
+          <dt>Sterne</dt><dd>${model.starsText}</dd>
+          <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || "MAX"}</dd>
+          <dt>Duplikate</dt><dd>${model.duplicateCount}</dd>
+          <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
+        </dl>
+        ${model.owned ? renderCardStats(card) : `<p class="muted">Diese Karte ist noch nicht in deiner Sammlung. Werte und Rahmen werden im Katalog angezeigt.</p>`}
+        <div class="future-development">
+          <strong>Zukuenftige Entwicklung</strong>
+          <p>Naechste Ausbaustufe: ${model.level >= model.maxLevel ? "Max-Level dieser Sternstufe erreicht" : `Level ${model.level + 1}`}. Sterne erweitern das Max-Level bis 100.</p>
+        </div>
+      </div>
+    </div>
   `;
 }
 
@@ -1621,6 +1944,10 @@ function handleFeatureClick(event) {
 
   if (action === "buy-pack") {
     buyPack(target);
+  } else if (action === "open-owned-booster") {
+    openOwnedBooster(target);
+  } else if (action === "booster-info") {
+    showBoosterInfo(target.dataset.packId);
   } else if (action === "pack-tap") {
     previewPackTap(target);
   } else if (action === "sort-rating") {
@@ -1647,6 +1974,23 @@ function handleFeatureClick(event) {
   } else if (action === "toggle-card") {
     toggleSelected(target.dataset.card);
     renderDeckFeature();
+  } else if (action === "deck-pick-card") {
+    pendingDeckCardId = target.dataset.card || "";
+    renderDeckFeature();
+  } else if (action === "deck-assign-slot") {
+    assignPendingCardToSlot(target.dataset.slot);
+  } else if (action === "deck-clear-slot") {
+    clearDeckSlot(target.dataset.slot);
+  } else if (action === "deck-assign-bench") {
+    assignPendingCardToBench(Number(target.dataset.bench));
+  } else if (action === "deck-clear-bench") {
+    clearDeckBench(Number(target.dataset.bench));
+  } else if (action === "deck-autofill") {
+    autoFillActiveDeck();
+  } else if (action === "deck-reset") {
+    resetActiveDeck();
+  } else if (action === "deck-save") {
+    saveActiveDeckFromEditor();
   } else if (action === "toggle-favorite") {
     toggleFavoriteCard(target.dataset.card);
     renderCollectionFeature();
@@ -1721,6 +2065,11 @@ function handleFeatureClick(event) {
 }
 
 function handleFeatureChange(event) {
+  const deckControl = event.target.closest("[data-deck-control]");
+  if (deckControl) {
+    handleDeckControlChange(deckControl);
+    return;
+  }
   const field = event.target.closest("[data-feature-filter]");
   if (!field) return;
   const scope = field.dataset.featureFilter;
@@ -1745,42 +2094,432 @@ function handleFeatureChange(event) {
   }
 }
 
+function handleDeckControlChange(control) {
+  if (control.dataset.deckControl === "formation") {
+    changeActiveDeckFormation(control.value);
+  } else if (control.dataset.deckControl === "availability") {
+    setDeckFilterValue("availability", control.value);
+    renderDeckFeature();
+  }
+}
+
+function handleDeckDragStart(event) {
+  const card = event.target.closest("[data-drag-card]");
+  if (!card) return;
+  event.dataTransfer?.setData("text/plain", card.dataset.dragCard);
+  pendingDeckCardId = card.dataset.dragCard || "";
+}
+
+function handleDeckDragOver(event) {
+  if (event.target.closest("[data-drop-target]")) {
+    event.preventDefault();
+  }
+}
+
+function handleDeckDrop(event) {
+  const target = event.target.closest("[data-drop-target]");
+  if (!target) return;
+  event.preventDefault();
+  const cardId = event.dataTransfer?.getData("text/plain") || pendingDeckCardId;
+  if (target.dataset.dropTarget === "active") {
+    assignPendingCardToSlot(target.dataset.deckSlot, cardId);
+  } else if (target.dataset.dropTarget === "bench") {
+    assignPendingCardToBench(Number(target.dataset.benchSlot), cardId);
+  }
+}
+
+function assignPendingCardToSlot(slotId, cardId = pendingDeckCardId) {
+  const card = state.deck.find((item) => item.id === cardId);
+  const slot = (FORMATIONS[state.activeDeck.formationId]?.slots || []).find((item) => item.id === slotId);
+  if (!card || !slot) {
+    showToast("Bitte zuerst eine gueltige Karte und einen Slot waehlen.", "error");
+    return;
+  }
+  if (deckUsedIds().has(card.id) && state.activeDeck.activeSlots?.[slotId] !== card.id) {
+    showToast("Diese Karteninstanz ist bereits im Deck.", "error");
+    return;
+  }
+  if (deckCardCategory(card) !== slot.category) {
+    showToast(`${card.name} passt nicht auf ${deckCategoryLabel(slot.category)}.`, "error");
+    return;
+  }
+  state.activeDeck.activeSlots[slotId] = card.id;
+  pendingDeckCardId = "";
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  renderDeckFeature();
+}
+
+function assignPendingCardToBench(index, cardId = pendingDeckCardId) {
+  const card = state.deck.find((item) => item.id === cardId);
+  if (!card || index < 0 || index >= MATCH_SUBSTITUTE_COUNT) {
+    showToast("Bitte zuerst eine gueltige Ersatzkarte waehlen.", "error");
+    return;
+  }
+  if (deckUsedIds().has(card.id) && state.activeDeck.bench?.[index] !== card.id) {
+    showToast("Diese Karteninstanz ist bereits im Deck.", "error");
+    return;
+  }
+  state.activeDeck.bench[index] = card.id;
+  pendingDeckCardId = "";
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  renderDeckFeature();
+}
+
+function clearDeckSlot(slotId) {
+  if (state.activeDeck.activeSlots?.[slotId]) {
+    state.activeDeck.activeSlots[slotId] = "";
+    syncActiveDeckSelection();
+    saveState();
+  }
+  render();
+  renderDeckFeature();
+}
+
+function clearDeckBench(index) {
+  if (Array.isArray(state.activeDeck.bench) && index >= 0 && index < MATCH_SUBSTITUTE_COUNT) {
+    state.activeDeck.bench[index] = "";
+    syncActiveDeckSelection();
+    saveState();
+  }
+  render();
+  renderDeckFeature();
+}
+
+function autoFillActiveDeck() {
+  const filled = DECK_SYSTEM?.autoCompleteDeck?.(state.deck, state.activeDeck.formationId, deckSystemHelpers());
+  if (!filled) return;
+  state.activeDeck = filled;
+  pendingDeckCardId = "";
+  syncActiveDeckSelection();
+  saveState();
+  showToast(filled.validation.isValid ? "Deck automatisch vervollstaendigt." : "Auto-Fill konnte kein gueltiges Deck erstellen.", filled.validation.isValid ? "success" : "error");
+  render();
+  renderDeckFeature();
+}
+
+function resetActiveDeck() {
+  state.activeDeck = DECK_SYSTEM?.createEmptyDeck ? DECK_SYSTEM.createEmptyDeck("Hauptdeck", state.activeDeck.formationId) : createStarterActiveDeck([]);
+  pendingDeckCardId = "";
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  renderDeckFeature();
+}
+
+function saveActiveDeckFromEditor() {
+  syncActiveDeckSelection();
+  const validation = validateActiveDeck();
+  state.activeDeck.validation = validation;
+  state.activeDeck.strength = validation.strength.total;
+  state.activeDeck.updatedAt = new Date().toISOString();
+  state.savedDecks = [state.activeDeck];
+  saveState();
+  showToast(validation.isValid ? "Deck gespeichert und spielbereit." : "Deck gespeichert, aber noch nicht spielbereit.", validation.isValid ? "success" : "error");
+  render();
+  renderDeckFeature();
+}
+
+function changeActiveDeckFormation(nextFormationId) {
+  const normalized = normalizeFormationKey(nextFormationId);
+  if (normalized === state.activeDeck.formationId) return;
+  const preview = reflowDeckForFormation(state.activeDeck, normalized);
+  const removedCount = preview.removed.length;
+  const message = removedCount
+    ? `Durch den Formationswechsel werden ${removedCount} Karten aus der Startaufstellung entfernt. Fortfahren?`
+    : "Formation wechseln und passende Karten uebernehmen?";
+  if (typeof window !== "undefined" && !window.confirm(message)) {
+    renderDeckFeature();
+    return;
+  }
+  state.activeDeck = preview.deck;
+  state.formation = normalized;
+  pendingDeckCardId = "";
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  renderDeckFeature();
+}
+
+function reflowDeckForFormation(deck, formationId) {
+  const formation = FORMATIONS[formationId] || FORMATIONS[DEFAULT_FORMATION];
+  const next = DECK_SYSTEM?.createEmptyDeck ? DECK_SYSTEM.createEmptyDeck(deck.name || "Hauptdeck", formationId) : createStarterActiveDeck([]);
+  const previousIds = deckIds(deck);
+  const used = new Set();
+  const removed = [];
+  (formation.slots || []).forEach((slot) => {
+    const cardId = previousIds.find((id) => {
+      const card = state.deck.find((item) => item.id === id);
+      return card && !used.has(id) && deckCardCategory(card) === slot.category;
+    });
+    if (cardId) {
+      next.activeSlots[slot.id] = cardId;
+      used.add(cardId);
+    }
+  });
+  const leftovers = previousIds.filter((id) => !used.has(id));
+  next.bench = Array.from({ length: MATCH_SUBSTITUTE_COUNT }, (_, index) => {
+    const cardId = leftovers[index] || "";
+    if (cardId) used.add(cardId);
+    return cardId;
+  });
+  removed.push(...leftovers.slice(MATCH_SUBSTITUTE_COUNT));
+  return { deck: DECK_SYSTEM?.normalizeDeck ? DECK_SYSTEM.normalizeDeck(next, state.deck, deckSystemHelpers()) : next, removed };
+}
+
 function buyPack(target) {
-  const cost = Number(target.dataset.cost);
-  const currency = target.dataset.currency;
-  const minClass = Number(target.dataset.min);
-  const maxClass = Number(target.dataset.max);
-  const pool = target.dataset.pool || "mixed";
-  const positions = parsePackPositions(target.dataset.positions);
-  const cardCount = normalizePackCardCount(target.dataset.count);
-  const pack = state.boosterPacks.find((item) => item.id === target.dataset.packId);
-  const dropRates = pack?.dropRates || defaultDropRates(minClass, maxClass, target.dataset.packId);
-  const cardNode = target.closest(".pack-card");
   const packId = target.dataset.packId;
+  if (processingBoosterActions.has(`buy:${packId}`)) return;
+  processingBoosterActions.add(`buy:${packId}`);
+
+  const pack = normalizeBoosterPack(state.boosterPacks.find((item) => item.id === packId) || {});
+  const cardNode = target.closest(".pack-card");
   const isFree = freePackCount(packId) > 0;
+  const validation = validateBoosterForOpening(pack);
+  const availability = boosterAvailability(pack);
+  const currency = pack.currency;
+  const cost = isFree ? 0 : pack.cost;
+  const balanceBefore = currency === "coins" ? state.coins : state.gems;
+  let balanceAfter = balanceBefore;
+
+  if (!pack.id || !validation.ok || !availability.ok) {
+    const message = [...availability.errors, ...validation.errors][0] || "Booster kann nicht gekauft werden.";
+    recordBoosterTransaction(pack, cost, currency, balanceBefore, balanceAfter, "failed", message);
+    showToast(message, "error");
+    processingBoosterActions.delete(`buy:${packId}`);
+    return;
+  }
+
+  if (!isFree && balanceBefore < cost) {
+    const message = currency === "coins" ? "Nicht genug Coins fuer diesen Booster." : "Nicht genug Diamanten fuer diesen Booster.";
+    recordBoosterTransaction(pack, cost, currency, balanceBefore, balanceAfter, "failed", message);
+    showToast(message, "error");
+    processingBoosterActions.delete(`buy:${packId}`);
+    return;
+  }
 
   if (isFree) {
     consumeFreePack(packId);
   } else if (currency === "coins") {
-    if (!spendCoins(cost)) return;
+    state.coins -= cost;
   } else {
-    if (state.gems < cost) return;
     state.gems -= cost;
   }
+  balanceAfter = currency === "coins" ? state.coins : state.gems;
+
+  const transaction = recordBoosterTransaction(pack, cost, currency, balanceBefore, balanceAfter, "success", "");
+  const inventoryItem = createBoosterInventoryItem(pack.id, isFree ? "free" : "purchase", transaction.id);
+  state.boosterInventory.push(inventoryItem);
+  state.log = [`Booster gesichert: ${pack.name}.`, ...state.log].slice(0, 8);
+  saveState();
 
   target.disabled = true;
+  cardNode?.classList.add("is-previewing");
+  playUiSound("pack");
+  setTimeout(() => {
+    processingBoosterActions.delete(`buy:${packId}`);
+    render();
+    renderBoosterFeature();
+    showToast(isFree ? "Gratis-Booster liegt im Inventar." : "Booster gekauft und gespeichert.", "success");
+  }, 420);
+}
+
+function openOwnedBooster(target) {
+  const inventoryId = target.dataset.inventoryId;
+  if (!inventoryId || processingBoosterActions.has(`open:${inventoryId}`)) return;
+  processingBoosterActions.add(`open:${inventoryId}`);
+  const item = state.boosterInventory.find((entry) => entry.id === inventoryId);
+  if (!item) {
+    showToast("Booster wurde nicht gefunden.", "error");
+    processingBoosterActions.delete(`open:${inventoryId}`);
+    return;
+  }
+  const cardNode = target.closest(".booster-inventory-item");
   cardNode?.classList.add("is-opening");
+  target.disabled = true;
   playUiSound("pack");
   vibrate([18, 28, 22, 36, 42]);
 
   setTimeout(() => {
-    const cards = addGeneratedCards(minClass, maxClass, pool, cardCount, dropRates, positions);
-    if (isFree) state.log = [`Gratis-Pack geoeffnet: ${pack?.name || "Booster Pack"}.`, ...state.log].slice(0, 8);
+    const result = openBoosterInventoryItem(item);
+    processingBoosterActions.delete(`open:${inventoryId}`);
+    cardNode?.classList.remove("is-opening");
+    if (!result.ok) {
+      showToast(result.error || "Booster konnte nicht geoeffnet werden.", "error");
+      target.disabled = false;
+      return;
+    }
     render();
     renderBoosterFeature();
-    openFeature("booster");
-    showPackReveal(cards);
-  }, 780);
+    showPackReveal(result.cards, result.pack, result.opening);
+  }, 760);
+}
+
+function validateBoosterForOpening(pack) {
+  const normalized = normalizeBoosterPack(pack);
+  const dropValidation = BOOSTER_SYSTEM?.validateDropRates
+    ? BOOSTER_SYSTEM.validateDropRates(normalized, teamClasses)
+    : validateLocalDropRates(normalized);
+  const classes = boosterOpeningClasses(normalized);
+  const hasPool = classes.every((classIndex) => boosterPoolForClass(normalized, classIndex).length > 0);
+  const errors = [...(dropValidation.errors || [])];
+  if (!hasPool) errors.push("Fuer mindestens eine moegliche Klasse fehlen Karten im Pool.");
+  return { ok: dropValidation.ok && hasPool, errors };
+}
+
+function validateLocalDropRates(pack) {
+  const entries = Object.entries(pack.dropRates || {}).map(([key, value]) => [Number(key), Number(value)]);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+  const errors = [];
+  if (Math.abs(total - 100) > 0.001) errors.push(`Dropchancen ergeben ${total} statt 100 Prozent.`);
+  if (!entries.some(([, value]) => value > 0)) errors.push("Alle Dropchancen sind 0.");
+  entries.forEach(([classIndex, value]) => {
+    if (!pack.allowedClasses.includes(classIndex)) errors.push(`${teamClasses[classIndex] || classIndex} ist nicht im Pool erlaubt.`);
+    if (!Number.isFinite(value) || value < 0) errors.push(`${teamClasses[classIndex] || classIndex} hat eine ungueltige Dropchance.`);
+  });
+  return { ok: errors.length === 0, errors, total };
+}
+
+function boosterAvailability(pack) {
+  const normalized = normalizeBoosterPack(pack);
+  return BOOSTER_SYSTEM?.validateAvailability
+    ? BOOSTER_SYSTEM.validateAvailability(normalized, { transactions: state.boosterTransactions, classCount: teamClasses.length })
+    : { ok: normalized.active !== false, errors: normalized.active === false ? ["Booster ist deaktiviert."] : [] };
+}
+
+function boosterOpeningClasses(pack) {
+  const normalized = normalizeBoosterPack(pack);
+  const classes = Object.entries(normalized.dropRates || {})
+    .filter(([, value]) => Number(value) > 0)
+    .map(([key]) => Number(key));
+  if (normalized.guaranteedClass != null && !classes.includes(normalized.guaranteedClass)) classes.push(normalized.guaranteedClass);
+  return classes;
+}
+
+function boosterPoolForClass(pack, classIndex) {
+  const normalized = normalizeBoosterPack(pack);
+  const exact = GAME_CARDS.filter((card) => normalizeClassIndex(card.cls) === classIndex && cardMatchesPackPool(card, normalized.pool) && cardMatchesPackPositions(card, normalized.positions));
+  if (exact.length) return exact;
+  if (normalized.pool === "icon" && classIndex >= teamClasses.length - 1) {
+    const iconSources = GAME_CARDS.filter((card) => cardMatchesPackPool(card, "icon") && cardMatchesPackPositions(card, normalized.positions));
+    if (iconSources.length) return iconSources;
+  }
+  return GAME_CARDS.filter((card) => normalizeClassIndex(card.cls) >= normalized.minClass && normalizeClassIndex(card.cls) <= normalized.maxClass && cardMatchesPackPool(card, normalized.pool) && cardMatchesPackPositions(card, normalized.positions));
+}
+
+function createBoosterInventoryItem(boosterId, source, transactionId) {
+  return BOOSTER_SYSTEM?.createInventoryItem
+    ? BOOSTER_SYSTEM.createInventoryItem(boosterId, source, transactionId)
+    : {
+      id: `inventory-${boosterId}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      boosterId,
+      source,
+      transactionId,
+      status: "unopened",
+      createdAt: new Date().toISOString(),
+      openedAt: "",
+      openingId: "",
+    };
+}
+
+function recordBoosterTransaction(pack, price, currency, balanceBefore, balanceAfter, status, error = "") {
+  state.boosterTransactions = normalizeBoosterTransactions(state.boosterTransactions);
+  const transaction = {
+    id: `txn-${pack.id || "pack"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: "booster-purchase",
+    boosterId: pack.id || "",
+    quantity: 1,
+    price,
+    currency,
+    balanceBefore,
+    balanceAfter,
+    date: new Date().toISOString(),
+    status,
+    error,
+    openingId: "",
+  };
+  state.boosterTransactions.push(transaction);
+  saveState();
+  return transaction;
+}
+
+function openBoosterInventoryItem(item) {
+  state.boosterInventory = normalizeBoosterInventory(state.boosterInventory);
+  state.boosterOpenings = normalizeBoosterOpenings(state.boosterOpenings);
+  const inventoryItem = state.boosterInventory.find((entry) => entry.id === item.id);
+  const pack = normalizeBoosterPack(state.boosterPacks.find((entry) => entry.id === item.boosterId) || {});
+  if (!inventoryItem) return { ok: false, error: "Booster-Instanz fehlt." };
+  if (inventoryItem.openingId) {
+    const existing = state.boosterOpenings.find((opening) => opening.id === inventoryItem.openingId);
+    const cards = existing ? existing.cardIds.map((id) => state.deck.find((card) => card.id === id)).filter(Boolean) : [];
+    return cards.length ? { ok: true, pack, opening: existing, cards } : { ok: false, error: "Gespeicherte Oeffnung ist unvollstaendig." };
+  }
+  if (inventoryItem.status === "opened") return { ok: false, error: "Booster wurde bereits geoeffnet." };
+  const validation = validateBoosterForOpening(pack);
+  if (!validation.ok) return { ok: false, error: validation.errors[0] };
+
+  const classPlan = BOOSTER_SYSTEM?.makeOpeningPlan ? BOOSTER_SYSTEM.makeOpeningPlan(pack) : localBoosterOpeningPlan(pack);
+  const openingId = `opening-${pack.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const cards = classPlan.map((classIndex) => drawBoosterSourceCard(pack, classIndex)).map((sourceCard) => {
+    const duplicate = state.deck.some((owned) => sourceCardId(owned) === sourceCardId(sourceCard));
+    return { ...cloneCardForCollection(sourceCard, openingId), duplicate };
+  });
+  state.deck.push(...cards);
+
+  const opening = {
+    id: openingId,
+    boosterId: pack.id,
+    inventoryItemId: inventoryItem.id,
+    createdAt: new Date().toISOString(),
+    cardIds: cards.map((card) => card.id),
+    sourceCardIds: cards.map((card) => sourceCardId(card)),
+    guaranteedClass: pack.guaranteedClass,
+    status: "opened",
+  };
+  inventoryItem.status = "opened";
+  inventoryItem.openedAt = opening.createdAt;
+  inventoryItem.openingId = openingId;
+  const transaction = state.boosterTransactions.find((entry) => entry.id === inventoryItem.transactionId);
+  if (transaction) transaction.openingId = openingId;
+  state.boosterOpenings.push(opening);
+  const best = bestPulledCard(cards);
+  state.log = [`${pack.name} geoeffnet: ${cards.length} Karten, beste Karte ${best.name} (${teamClasses[best.cls]}).`, ...state.log].slice(0, 8);
+  saveState();
+  return { ok: true, pack, opening, cards };
+}
+
+function localBoosterOpeningPlan(pack) {
+  const normalized = normalizeBoosterPack(pack);
+  const classes = [];
+  if (normalized.guaranteedClass != null) classes.push(normalized.guaranteedClass);
+  while (classes.length < normalized.cardCount) {
+    classes.push(pickClassFromDropRates(normalized.dropRates, normalized.minClass, normalized.maxClass));
+  }
+  return classes.slice(0, normalized.cardCount);
+}
+
+function drawBoosterSourceCard(pack, classIndex) {
+  const pool = boosterPoolForClass(pack, classIndex);
+  if (!pool.length) throw new Error("Booster-Pool ist leer.");
+  const exact = pool.filter((card) => normalizeClassIndex(card.cls) === classIndex);
+  const selected = pick(exact.length ? exact : pool);
+  if (!exact.length && normalizeBoosterPack(pack).pool === "icon" && classIndex >= teamClasses.length - 1) {
+    return { ...selected, cls: classIndex, series: "icon" };
+  }
+  return selected;
+}
+
+function showBoosterInfo(packId) {
+  const pack = normalizeBoosterPack(state.boosterPacks.find((item) => item.id === packId) || {});
+  const rates = Object.entries(pack.dropRates || {})
+    .filter(([, value]) => Number(value) > 0)
+    .map(([classIndex, value]) => `${teamClasses[Number(classIndex)]}: ${value}%`)
+    .join("\n");
+  const guarantee = pack.guaranteedClass != null ? `\nGarantie: mindestens 1x ${teamClasses[pack.guaranteedClass]}` : "";
+  openDialog(`${pack.name} Drop-Rates`, `${rates || "Keine Drop-Rates hinterlegt."}${guarantee}\nKarten pro Pack: ${pack.cardCount}`);
 }
 
 function previewPackTap(target) {
@@ -2059,17 +2798,18 @@ function flyCoins(origin, target) {
   }
 }
 
-function showPackReveal(cards) {
+function showPackReveal(cards, pack = null, opening = null) {
   const pulledCards = Array.isArray(cards) ? cards : [cards].filter(Boolean);
   if (!pulledCards.length) return;
   const best = bestPulledCard(pulledCards);
+  const packName = pack?.name || "Booster Pack";
   const reveal = document.createElement("div");
   reveal.className = "pack-reveal";
   reveal.innerHTML = `
     <div class="pack-reveal-panel" role="dialog" aria-modal="true" aria-label="Gezogene Karten">
       <div class="pack-reveal-head">
-        <span>${pulledCards.length} ${pulledCards.length === 1 ? "neue Karte" : "neue Karten"}</span>
-        <strong>Beste Karte: ${rating(best)} ${escapeHtml(best.name)}</strong>
+        <span>${escapeHtml(packName)} | ${pulledCards.length} ${pulledCards.length === 1 ? "Karte" : "Karten"}</span>
+        <strong>Beste Karte: ${rating(best)} ${escapeHtml(best.name)}${opening?.id ? ` | ${escapeHtml(opening.id.slice(0, 18))}` : ""}</strong>
         <button type="button" class="pack-reveal-close" aria-label="Pack-Reveal schliessen">Schliessen</button>
       </div>
       <div class="pack-reveal-grid">
@@ -2103,7 +2843,7 @@ function renderPackRevealCard(card) {
       <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(cardSeriesLabel(card.series))}</span>
       ${renderCardPhoto(card, "pack-reveal-photo")}
       <b>${escapeHtml(card.name)}</b>
-      <i>${teamClasses[tier]} | ${escapeHtml(cardSeriesLabel(card.series))}</i>
+      <i>${teamClasses[tier]} | ${escapeHtml(cardSeriesLabel(card.series))}${card.duplicate ? " | Duplikat" : ""}</i>
     </article>
   `;
 }
@@ -3157,7 +3897,9 @@ function createInitialState() {
     awayScore: 0,
     log: ["Waehle eine Taktik und starte dein erstes Ligamatch."],
     deck: baseCards,
-    selected: baseCards.slice(0, MATCH_CARD_COUNT).map((card) => card.id),
+    activeDeck: createStarterActiveDeck(baseCards),
+    savedDecks: [],
+    selected: deckIds(createStarterActiveDeck(baseCards)),
     formation: DEFAULT_FORMATION,
     cpuDifficulty: "normal",
     activeMatch: null,
@@ -3169,6 +3911,9 @@ function createInitialState() {
     events: [],
     selectedAdminEventId: null,
     boosterPacks: defaultBoosterPacks(),
+    boosterInventory: [],
+    boosterTransactions: [],
+    boosterOpenings: [],
     freePacks: {},
     rewardPools: defaultRewardPools(),
     adminUsers: defaultAdminUsers(),
@@ -3181,6 +3926,7 @@ function normalizeState(saved) {
   const fresh = createInitialState();
   const migratedDeck = ensureStarterDeckSize(Array.isArray(saved.deck) && saved.deck.length ? saved.deck.map(normalizeCard) : fresh.deck);
   const migratedSelected = Array.isArray(saved.selected) && saved.selected.length ? migrateSelectedIds(saved.selected, migratedDeck) : fresh.selected;
+  const migratedActiveDeck = normalizeActiveDeckState(saved.activeDeck, migratedDeck, migratedSelected, saved.formation || fresh.formation);
   const migratedEvents = Array.isArray(saved.events)
     ? removeLegacyDemoEvents(saved.events.map(normalizeEvent))
     : fresh.events;
@@ -3197,7 +3943,7 @@ function normalizeState(saved) {
     ...fresh,
     ...saved,
     teamClassIndex: normalizeClassIndex(saved.teamClassIndex ?? fresh.teamClassIndex),
-    formation: normalizeFormationKey(saved.formation || fresh.formation),
+    formation: migratedActiveDeck.formationId,
     cpuDifficulty: normalizeCpuDifficulty(saved.cpuDifficulty),
     activeMatch: normalizeStoredMatch(saved.activeMatch),
     matchHistory: normalizeMatchHistory(saved.matchHistory),
@@ -3211,6 +3957,9 @@ function normalizeState(saved) {
     events: migratedEvents,
     selectedAdminEventId: migratedEvents.some((event) => event.id === saved.selectedAdminEventId) ? saved.selectedAdminEventId : migratedEvents[0]?.id || null,
     boosterPacks: mergeDefaultBoosterPacks(saved.boosterPacks && saved.boosterPacks.length ? saved.boosterPacks : fresh.boosterPacks),
+    boosterInventory: normalizeBoosterInventory(saved.boosterInventory),
+    boosterTransactions: normalizeBoosterTransactions(saved.boosterTransactions),
+    boosterOpenings: normalizeBoosterOpenings(saved.boosterOpenings),
     freePacks: normalizeFreePacks(saved.freePacks),
     rewardPools: normalizeRewardPools(saved.rewardPools),
     adminUsers: migratedUsers,
@@ -3218,7 +3967,9 @@ function normalizeState(saved) {
     career: normalizeCareerState(saved.career),
     cardFilters: normalizeCardFilters(saved.cardFilters),
     deck: migratedDeck,
-    selected: migratedSelected,
+    activeDeck: migratedActiveDeck,
+    savedDecks: [migratedActiveDeck],
+    selected: deckIds(migratedActiveDeck).length ? deckIds(migratedActiveDeck) : migratedSelected,
     leagueRows: Array.isArray(saved.leagueRows) && saved.leagueRows.length ? saved.leagueRows : fresh.leagueRows,
   };
 }
@@ -3254,14 +4005,82 @@ function normalizeCareerState(career) {
   };
 }
 
-function normalizeFormationKey(key) {
-  const legacyMap = {
-    "2-2-1": "1-2-1-1",
-    "2-1-2": "1-1-2-1",
-    "1-2-2": "1-1-1-2",
-    "3-1-1": "1-2-1-1",
+function deckSystemHelpers() {
+  return {
+    rating,
+    cardCategory: (card) => cardCategory(card),
+    normalizePosition: (position) => CARD_SYSTEM?.normalizePosition ? CARD_SYSTEM.normalizePosition(position) : normalizeCardPosition(position),
   };
-  const normalized = legacyMap[key] || key;
+}
+
+function createStarterActiveDeck(cards) {
+  return DECK_SYSTEM?.autoCompleteDeck
+    ? DECK_SYSTEM.autoCompleteDeck(cards, DEFAULT_FORMATION, deckSystemHelpers())
+    : {
+      id: "main-deck",
+      name: "Hauptdeck",
+      formationId: DEFAULT_FORMATION,
+      activeSlots: {},
+      bench: cards.slice(MATCH_ACTIVE_COUNT, MATCH_CARD_COUNT).map((card) => card.id),
+      strength: 0,
+      validation: { isValid: false, errors: [] },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isActive: true,
+    };
+}
+
+function normalizeActiveDeckState(savedDeck, ownedCards, selectedIds, formationKey) {
+  const fromSelected = selectedIdsToDeck(selectedIds, ownedCards, formationKey);
+  const source = savedDeck && typeof savedDeck === "object" ? savedDeck : fromSelected;
+  return DECK_SYSTEM?.normalizeDeck
+    ? DECK_SYSTEM.normalizeDeck(source, ownedCards, deckSystemHelpers())
+    : fromSelected;
+}
+
+function selectedIdsToDeck(selectedIds, ownedCards, formationKey = DEFAULT_FORMATION) {
+  const formationId = normalizeFormationKey(formationKey);
+  const deck = DECK_SYSTEM?.createEmptyDeck ? DECK_SYSTEM.createEmptyDeck("Hauptdeck", formationId) : createStarterActiveDeck(ownedCards);
+  const formation = FORMATIONS[formationId] || FORMATIONS[DEFAULT_FORMATION];
+  const ids = (Array.isArray(selectedIds) ? selectedIds : []).filter((id) => ownedCards.some((card) => card.id === id));
+  const used = new Set();
+  (formation.slots || []).forEach((slot, index) => {
+    const id = ids[index] || "";
+    if (id && !used.has(id)) {
+      deck.activeSlots[slot.id] = id;
+      used.add(id);
+    }
+  });
+  deck.bench = Array.from({ length: MATCH_SUBSTITUTE_COUNT }, (_, index) => {
+    const id = ids[MATCH_ACTIVE_COUNT + index] || "";
+    if (id && !used.has(id)) {
+      used.add(id);
+      return id;
+    }
+    return "";
+  });
+  return deck;
+}
+
+function deckIds(deck) {
+  if (!deck || typeof deck !== "object") return [];
+  const formation = FORMATIONS[normalizeFormationKey(deck.formationId || deck.formation)] || FORMATIONS[DEFAULT_FORMATION];
+  const active = (formation.slots || []).map((slot) => deck.activeSlots?.[slot.id]).filter(Boolean);
+  const bench = Array.isArray(deck.bench) ? deck.bench.filter(Boolean) : [];
+  return [...active, ...bench];
+}
+
+function syncActiveDeckSelection() {
+  state.activeDeck = DECK_SYSTEM?.normalizeDeck
+    ? DECK_SYSTEM.normalizeDeck(state.activeDeck, state.deck, deckSystemHelpers())
+    : state.activeDeck;
+  state.formation = normalizeFormationKey(state.activeDeck.formationId);
+  state.selected = deckIds(state.activeDeck);
+  state.savedDecks = [state.activeDeck];
+}
+
+function normalizeFormationKey(key) {
+  const normalized = DECK_SYSTEM?.normalizeFormationId ? DECK_SYSTEM.normalizeFormationId(key) : key;
   return FORMATIONS[normalized] ? normalized : DEFAULT_FORMATION;
 }
 
@@ -3283,15 +4102,22 @@ function ensureStarterDeckSize(deck) {
 
 function normalizeStoredMatch(match) {
   if (!match || typeof match !== "object" || !match.id) return null;
-  const storedStatus = ["active", "completed", "aborted"].includes(match.status) ? match.status : "aborted";
-  const status = storedStatus === "active" ? "aborted" : storedStatus;
+  const activeStatuses = ["preparing", "active", "resolving_round", "round_complete"];
+  const completedStatuses = ["completed", "match_complete"];
+  const storedStatus = [...activeStatuses, ...completedStatuses, "aborted", "failed"].includes(match.status) ? match.status : "aborted";
+  const status = activeStatuses.includes(storedStatus) ? "aborted" : completedStatuses.includes(storedStatus) ? "match_complete" : storedStatus;
   return {
     id: String(match.id),
     date: match.date || new Date().toISOString(),
+    playerId: match.playerId || "local-player",
+    startedAt: match.startedAt || match.date || new Date().toISOString(),
+    endedAt: match.endedAt || "",
     status,
     mode: match.mode || "cpu",
     playerDeck: Array.isArray(match.playerDeck) ? match.playerDeck.slice(0, MATCH_CARD_COUNT) : [],
     cpuDeck: Array.isArray(match.cpuDeck) ? match.cpuDeck.slice(0, MATCH_CARD_COUNT) : [],
+    playerSubstitutes: Array.isArray(match.playerSubstitutes) ? match.playerSubstitutes.slice(0, MATCH_SUBSTITUTE_COUNT) : [],
+    cpuSubstitutes: Array.isArray(match.cpuSubstitutes) ? match.cpuSubstitutes.slice(0, MATCH_SUBSTITUTE_COUNT) : [],
     cpu: {
       name: match.cpu?.name || "CPU",
       power: Math.max(1, Number(match.cpu?.power) || 1),
@@ -3300,11 +4126,22 @@ function normalizeStoredMatch(match) {
     },
     difficulty: normalizeCpuDifficulty(match.difficulty),
     formation: normalizeFormationKey(match.formation),
+    playerFormation: normalizeFormationKey(match.playerFormation || match.formation),
+    cpuFormation: normalizeFormationKey(match.cpuFormation || match.formation),
+    currentRound: clamp(Number(match.currentRound) || (Array.isArray(match.rounds) ? match.rounds.length : 0), 0, MATCH_ROUNDS),
+    maxRounds: MATCH_ROUNDS,
     rounds: Array.isArray(match.rounds) ? match.rounds.slice(0, MATCH_ROUNDS) : [],
     score: normalizeMatchScore(match.score),
     result: status === "aborted" ? "pending" : ["win", "loss", "draw", "pending"].includes(match.result) ? match.result : "pending",
     usedCards: Array.isArray(match.usedCards) ? match.usedCards : [],
+    usedPlayerCards: Array.isArray(match.usedPlayerCards) ? match.usedPlayerCards : [],
+    usedCpuCards: Array.isArray(match.usedCpuCards) ? match.usedCpuCards : [],
+    aborted: status === "aborted",
+    completed: status === "match_complete",
+    rewarded: Boolean(match.rewarded || match.rewards?.claimed),
     rewards: normalizeMatchRewards(match.rewards),
+    rewardHandoff: match.rewardHandoff || null,
+    summary: match.summary || null,
   };
 }
 
@@ -3320,6 +4157,7 @@ function normalizeMatchRewards(rewards) {
     selectionCount: Math.max(0, Number(rewards?.selectionCount) || 0),
     prepared: Boolean(rewards?.prepared),
     claimed: Boolean(rewards?.claimed),
+    tier: rewards?.tier || "",
   };
 }
 
@@ -3333,6 +4171,8 @@ function normalizePendingRewardBoard(board) {
     matchId: String(board.matchId),
     result: ["win", "loss", "draw"].includes(board.result) ? board.result : "loss",
     selectionCount: Math.max(0, Number(board.selectionCount) || 0),
+    rewardTier: board.rewardTier || (board.result === "win" ? "winner" : "consolation"),
+    rewarded: Boolean(board.rewarded),
     status: board.status === "ready" ? "ready" : "prepared",
   };
 }
@@ -3344,6 +4184,29 @@ function normalizeFreePacks(freePacks) {
       .map(([packId, count]) => [packId, Math.max(0, Math.floor(Number(count) || 0))])
       .filter(([, count]) => count > 0)
   );
+}
+
+function normalizeBoosterInventory(items) {
+  return BOOSTER_SYSTEM?.normalizeInventory
+    ? BOOSTER_SYSTEM.normalizeInventory(items)
+    : (Array.isArray(items) ? items : []).map((item) => ({
+      id: item.id || `inventory-${item.boosterId || "pack"}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      boosterId: item.boosterId || item.packId || "pack-bronze",
+      source: item.source || "purchase",
+      transactionId: item.transactionId || "",
+      status: item.status === "opened" ? "opened" : "unopened",
+      createdAt: item.createdAt || new Date().toISOString(),
+      openedAt: item.openedAt || "",
+      openingId: item.openingId || "",
+    }));
+}
+
+function normalizeBoosterTransactions(items) {
+  return BOOSTER_SYSTEM?.normalizeTransactions ? BOOSTER_SYSTEM.normalizeTransactions(items) : (Array.isArray(items) ? items : []);
+}
+
+function normalizeBoosterOpenings(items) {
+  return BOOSTER_SYSTEM?.normalizeOpenings ? BOOSTER_SYSTEM.normalizeOpenings(items) : (Array.isArray(items) ? items : []);
 }
 
 function defaultRewardPools() {
@@ -3488,17 +4351,19 @@ function removeLegacyDemoEvents(events) {
 }
 
 function defaultBoosterPacks() {
+  const phaseFiveDefaults = BOOSTER_SYSTEM?.defaultBoosterConfigs ? BOOSTER_SYSTEM.defaultBoosterConfigs() : [];
+  const requiredById = new Map(phaseFiveDefaults.map((pack) => [pack.id, pack]));
   return [
-    { id: "pack-bronze", name: "Bronze Pack", cost: 100, currency: "coins", minClass: 0, maxClass: 5, cardCount: 1, description: "Guenstiges Pack mit Chance auf Bronze-Karten.", image: "assets/packs/bronze.png", tier: "bronze", pool: "mixed", active: true },
-    { id: "pack-silver", name: "Silber Pack", cost: 250, currency: "coins", minClass: 1, maxClass: 6, cardCount: 2, description: "Bessere Chance auf Silber und seltene Karten.", image: "assets/packs/silver.png", tier: "silver", pool: "mixed", active: true },
-    { id: "pack-gold", name: "Gold Pack", cost: 600, currency: "coins", minClass: 3, maxClass: 8, cardCount: 3, description: "Starker Fortschritt mit Chance auf Gold und Episch.", image: "assets/packs/gold.png", tier: "gold", pool: "mixed", active: true },
-    { id: "pack-elite", name: "Elite Pack", cost: 1200, currency: "coins", minClass: 7, maxClass: 10, cardCount: 4, description: "High-End Karten bis zur Elite-Klasse.", image: "assets/packs/elite.png", tier: "elite", pool: "mixed", active: true },
+    requiredById.get("pack-bronze") || { id: "pack-bronze", name: "Bronze Pack", cost: 100, currency: "coins", minClass: 0, maxClass: 5, cardCount: 5, guaranteedClass: 5, description: "Guenstiges Pack mit Chance auf Bronze-Karten.", image: "assets/packs/bronze.png", tier: "bronze", pool: "mixed", active: true },
+    requiredById.get("pack-silver") || { id: "pack-silver", name: "Silber Pack", cost: 250, currency: "coins", minClass: 1, maxClass: 6, cardCount: 5, guaranteedClass: 6, description: "Bessere Chance auf Silber und seltene Karten.", image: "assets/packs/silver.png", tier: "silver", pool: "mixed", active: true },
+    requiredById.get("pack-gold") || { id: "pack-gold", name: "Gold Pack", cost: 600, currency: "coins", minClass: 3, maxClass: 8, cardCount: 5, guaranteedClass: 7, description: "Starker Fortschritt mit Chance auf Gold und Episch.", image: "assets/packs/gold.png", tier: "gold", pool: "mixed", active: true },
+    requiredById.get("pack-elite") || { id: "pack-elite", name: "Elite Pack", cost: 40, currency: "gems", minClass: 7, maxClass: 10, cardCount: 5, guaranteedClass: 10, description: "High-End Karten bis zur Elite-Klasse.", image: "assets/packs/elite.png", tier: "elite", pool: "mixed", active: true },
     { id: "pack-bundesliga", name: "Bundesliga Pack", cost: 350, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Zieht Spieler aus der 1. Bundesliga der Maenner.", image: "assets/packs/gold.png", tier: "bundesliga", pool: "men-bundesliga", active: true },
     { id: "pack-frauen-bundesliga", name: "Frauen-Bundesliga Pack", cost: 350, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Zieht Karten aus der Google Pixel Frauen-Bundesliga.", image: "assets/packs/elite.png", tier: "women", pool: "women-bundesliga", active: true },
     { id: "pack-mixed", name: "Mixed Pack", cost: 500, currency: "coins", minClass: 3, maxClass: 8, cardCount: 3, description: "Maenner- und Frauenkarten gemeinsam in einem Pack.", image: "assets/packs/silver.png", tier: "mixed", pool: "mixed", active: true },
     { id: "pack-dfb-pokal", name: "DFB-Pokal Pack", cost: 650, currency: "coins", minClass: 3, maxClass: 9, cardCount: 3, description: "Cup-Feeling mit Karten aus allen deutschen Ligen.", image: "assets/packs/bronze.png", tier: "dfb", pool: "dfb-pokal", active: true },
     { id: "pack-totw", name: "Team of the Week Pack", cost: 25, currency: "gems", minClass: 8, maxClass: 10, cardCount: 3, description: "Formstarke Karten ab Episch mit Elite-Chance.", image: "assets/packs/gold.png", tier: "totw", pool: "totw", active: true },
-    { id: "pack-icon", name: "Icon Pack", cost: 40, currency: "gems", minClass: 10, maxClass: 10, cardCount: 1, description: "Nur Elite-Karten und die staerksten Namen im Spiel.", image: "assets/packs/elite.png", tier: "icon", pool: "icon", active: true },
+    requiredById.get("pack-icon") || { id: "pack-icon", name: "Icon Pack", cost: 120, currency: "gems", minClass: 11, maxClass: 11, cardCount: 1, guaranteedClass: 11, description: "Nur Icon-Karten und die staerksten Namen im Spiel.", image: "assets/packs/elite.png", tier: "icon", pool: "icon", active: true, purchaseLimit: 1 },
     { id: "pack-angriff", name: "Angriff Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer Stuermer und Fluegelspieler.", image: "assets/packs/gold.png", tier: "gold", pool: "mixed", positions: ["ST", "MS", "LA", "RA"], active: true },
     { id: "pack-mittelfeld", name: "Mittelfeld Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer zentrale und offensive Mittelfeldspieler.", image: "assets/packs/silver.png", tier: "silver", pool: "mixed", positions: ["ZM", "DM", "OM", "CAM", "LM", "RM"], active: true },
     { id: "pack-abwehr", name: "Abwehr Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer Innenverteidiger, Aussenverteidiger und Wingbacks.", image: "assets/packs/bronze.png", tier: "bronze", pool: "mixed", positions: ["IV", "CB", "LV", "RV", "LWB", "RWB"], active: true },
@@ -3516,30 +4381,48 @@ function mergeDefaultBoosterPacks(savedPacks) {
 }
 
 function normalizeBoosterPack(pack) {
+  pack = pack || {};
+  const phaseFiveDefault = BOOSTER_SYSTEM?.defaultBoosterConfigs ? BOOSTER_SYSTEM.defaultBoosterConfigs().find((item) => item.id === pack.id) : null;
   const legacyIconPack = pack.name === "Icon Jagd" || (pack.id === "pack-icon" && !pack.pool && pack.name !== "Icon Pack");
   const defaultBounds = defaultClassBoundsForPack(pack.id);
   const legacyBounds = legacyClassBoundsForPack(pack.id);
   const legacyDefaultBounds = defaultBounds && legacyBounds && Number(pack.minClass) === legacyBounds.min && Number(pack.maxClass) === legacyBounds.max;
-  const minClass = legacyIconPack ? teamClasses.length - 1 : legacyDefaultBounds ? defaultBounds.min : normalizeClassIndex(pack.minClass);
-  const maxClass = legacyIconPack ? teamClasses.length - 1 : legacyDefaultBounds ? defaultBounds.max : clamp(normalizeClassIndex(pack.maxClass ?? minClass), minClass, teamClasses.length - 1);
-  const image = pack.image || (pack.id === "pack-elite" || pack.name === "Elite Pack" || legacyIconPack ? "assets/packs/elite.png" : "");
-  const migratedName = legacyIconPack ? "Icon Pack" : pack.name;
-  return {
+  const oldIconEliteBounds = pack.id === "pack-icon" && Number(pack.minClass) === 10 && Number(pack.maxClass) === 10;
+  const usePhaseFiveBounds = phaseFiveDefault && (legacyDefaultBounds || oldIconEliteBounds);
+  const minClass = legacyIconPack ? teamClasses.length - 1 : usePhaseFiveBounds ? phaseFiveDefault.minClass : legacyDefaultBounds ? defaultBounds.min : normalizeClassIndex(pack.minClass ?? phaseFiveDefault?.minClass);
+  const maxClass = legacyIconPack ? teamClasses.length - 1 : usePhaseFiveBounds ? phaseFiveDefault.maxClass : legacyDefaultBounds ? defaultBounds.max : clamp(normalizeClassIndex(pack.maxClass ?? phaseFiveDefault?.maxClass ?? minClass), minClass, teamClasses.length - 1);
+  const image = pack.image || phaseFiveDefault?.image || (pack.id === "pack-elite" || pack.name === "Elite Pack" || legacyIconPack ? "assets/packs/elite.png" : "");
+  const migratedName = legacyIconPack ? "Icon Pack" : pack.name || phaseFiveDefault?.name;
+  const legacyCounts = { "pack-bronze": 1, "pack-silver": 2, "pack-gold": 3, "pack-elite": 4 };
+  const storedCount = Number(pack.cardCount);
+  const cardCount = phaseFiveDefault && (!Number.isFinite(storedCount) || storedCount === legacyCounts[pack.id])
+    ? phaseFiveDefault.cardCount
+    : normalizePackCardCount(pack.cardCount ?? defaultPackCardCount(pack.id));
+  const base = {
     id: pack.id || `pack-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: migratedName || "Neuer Booster",
-    cost: Math.max(0, Number(pack.cost) || 0),
-    currency: pack.currency === "gems" ? "gems" : "coins",
+    cost: Math.max(0, Number(pack.cost ?? phaseFiveDefault?.cost) || 0),
+    price: Math.max(0, Number(pack.price ?? pack.cost ?? phaseFiveDefault?.price ?? phaseFiveDefault?.cost) || 0),
+    currency: pack.currency ? (pack.currency === "gems" ? "gems" : "coins") : phaseFiveDefault?.currency === "gems" ? "gems" : "coins",
     minClass,
     maxClass,
-    cardCount: normalizePackCardCount(pack.cardCount ?? defaultPackCardCount(pack.id)),
+    cardCount,
     pool: normalizePackPool(pack.pool || poolFromLegacyPack(pack)),
     positions: normalizePackPositions(pack.positions),
-    dropRates: normalizeDropRates(pack.dropRates, minClass, maxClass, pack.id),
-    description: pack.description || "Boosterbeschreibung fehlt.",
+    dropRates: normalizeDropRates(pack.dropRates || phaseFiveDefault?.dropRates, minClass, maxClass, pack.id),
+    allowedClasses: Array.isArray(pack.allowedClasses) && pack.allowedClasses.length ? pack.allowedClasses.map(normalizeClassIndex) : Array.from({ length: maxClass - minClass + 1 }, (_, index) => minClass + index),
+    guaranteedClass: pack.guaranteedClass == null || pack.guaranteedClass === "" ? phaseFiveDefault?.guaranteedClass ?? null : normalizeClassIndex(pack.guaranteedClass),
+    description: pack.description || phaseFiveDefault?.description || "Boosterbeschreibung fehlt.",
     image,
-    tier: pack.tier || packTierFromImage(image),
+    tier: pack.tier || phaseFiveDefault?.tier || packTierFromImage(image),
+    startDate: pack.startDate || phaseFiveDefault?.startDate || "",
+    endDate: pack.endDate || phaseFiveDefault?.endDate || "",
+    purchaseLimit: Math.max(0, Number(pack.purchaseLimit ?? phaseFiveDefault?.purchaseLimit) || 0),
+    animation: pack.animation || phaseFiveDefault?.animation || packTierFromImage(image),
+    order: Math.max(0, Number(pack.order ?? phaseFiveDefault?.order) || 999),
     active: pack.active !== false,
   };
+  return BOOSTER_SYSTEM?.normalizeBoosterConfig ? BOOSTER_SYSTEM.normalizeBoosterConfig(base, { classCount: teamClasses.length }) : base;
 }
 
 function defaultClassBoundsForPack(id) {
@@ -3553,7 +4436,7 @@ function defaultClassBoundsForPack(id) {
     "pack-mixed": { min: 3, max: 8 },
     "pack-dfb-pokal": { min: 3, max: 9 },
     "pack-totw": { min: 8, max: 10 },
-    "pack-icon": { min: 10, max: 10 },
+    "pack-icon": { min: 11, max: 11 },
     "pack-angriff": { min: 2, max: 8 },
     "pack-mittelfeld": { min: 2, max: 8 },
     "pack-abwehr": { min: 2, max: 8 },
@@ -3572,7 +4455,7 @@ function legacyClassBoundsForPack(id) {
     "pack-mixed": { min: 3, max: 7 },
     "pack-dfb-pokal": { min: 3, max: 7 },
     "pack-totw": { min: 5, max: 7 },
-    "pack-icon": { min: 7, max: 7 },
+    "pack-icon": { min: 10, max: 10 },
     "pack-angriff": { min: 2, max: 7 },
     "pack-mittelfeld": { min: 2, max: 7 },
     "pack-abwehr": { min: 2, max: 7 },
@@ -3613,7 +4496,7 @@ function defaultDropRates(minClass = 0, maxClass = teamClasses.length - 1, packI
     "pack-mixed": { 3: 30, 4: 22, 5: 17, 6: 13, 7: 10, 8: 8 },
     "pack-dfb-pokal": { 3: 32, 4: 22, 5: 16, 6: 12, 7: 9, 8: 6, 9: 3 },
     "pack-totw": { 8: 70, 9: 24, 10: 6 },
-    "pack-icon": { 10: 100 },
+    "pack-icon": { 11: 100 },
     "pack-angriff": { 2: 30, 3: 22, 4: 16, 5: 12, 6: 9, 7: 7, 8: 4 },
     "pack-mittelfeld": { 2: 30, 3: 22, 4: 16, 5: 12, 6: 9, 7: 7, 8: 4 },
     "pack-abwehr": { 2: 30, 3: 22, 4: 16, 5: 12, 6: 9, 7: 7, 8: 4 },
@@ -3639,10 +4522,10 @@ function normalizePackCardCount(value) {
 
 function defaultPackCardCount(id) {
   const defaults = {
-    "pack-bronze": 1,
-    "pack-silver": 2,
-    "pack-gold": 3,
-    "pack-elite": 4,
+    "pack-bronze": 5,
+    "pack-silver": 5,
+    "pack-gold": 5,
+    "pack-elite": 5,
     "pack-bundesliga": 2,
     "pack-frauen-bundesliga": 2,
     "pack-mixed": 3,
@@ -3851,6 +4734,7 @@ function monthName(monthNumber) {
 }
 
 function saveState() {
+  syncActiveDeckSelection();
   syncActiveUserWallet();
   try {
     localStorage.setItem("liga-clash-state-v1", JSON.stringify(state));
@@ -3965,6 +4849,7 @@ function renderDeck() {
   state.deck.forEach((card) => {
     const node = createCard(card, false);
     node.classList.toggle("selected", state.selected.includes(card.id));
+    node.classList.toggle("used-in-match", Boolean(state.activeMatch?.usedPlayerCards?.includes(card.id)));
     node.addEventListener("click", () => toggleSelected(card.id));
     els.deckGrid.appendChild(node);
   });
@@ -4001,7 +4886,8 @@ function renderLog() {
 function matchResultLabel(match) {
   if (!match) return "Bereit";
   if (match.status === "aborted") return "Abgebrochen erkannt";
-  if (match.status !== "completed") return "Match laeuft";
+  if (match.status === "failed") return "Match fehlgeschlagen";
+  if (!["completed", "match_complete"].includes(match.status)) return "Match laeuft";
   if (match.result === "win") return "Sieg";
   if (match.result === "loss") return "Niederlage";
   if (match.result === "draw") return "Unentschieden";
@@ -4018,7 +4904,7 @@ function renderBattleBoard() {
     `;
     return;
   }
-  els.roundTag.textContent = `Runde ${match.rounds.length}/${MATCH_ROUNDS}`;
+  els.roundTag.textContent = `Runde ${match.currentRound || match.rounds.length}/${match.maxRounds || MATCH_ROUNDS}`;
   els.battleBoard.innerHTML = match.rounds.map((round) => `
     <article class="battle-round ${round.winner === "player" ? "won" : "lost"}">
       <header>
@@ -4027,6 +4913,7 @@ function renderBattleBoard() {
       </header>
       <h3>${escapeHtml(round.situation)}</h3>
       <p>${escapeHtml(round.call)}</p>
+      <p class="battle-explain">${escapeHtml(round.explanation || "")}</p>
       <div class="battle-versus">
         ${battleSide("Du", round.player, round.winner === "player")}
         <b>${round.player.total}:${round.cpu.total}</b>
@@ -4084,11 +4971,20 @@ function renderMatchSummary() {
     `;
     return;
   }
-  const resultLabel = match.result === "win" ? "Sieg" : match.result === "loss" ? "Niederlage" : "Unentschieden";
+  const resultLabel = match.status === "aborted" ? "Abgebrochen" : match.result === "win" ? "Sieg" : match.result === "loss" ? "Niederlage" : "Offen";
+  const summary = match.summary || summarizeMatch(match);
   els.matchSummary.innerHTML = `
     <div class="panel-title"><h2>Matchabschluss</h2><span>${resultLabel}</span></div>
     <div class="summary-score"><strong>${match.score.player}:${match.score.cpu}</strong><em>${escapeHtml(match.cpu.name)}</em></div>
     <p>${rewardBoardText(match)} fuer das spaetere 5x5-Belohnungsboard vorbereitet.</p>
+    <div class="summary-grid">
+      <span>Staerkste Karte: <b>${escapeHtml(summary.bestPlayerCard || "-")}</b></span>
+      <span>Staerkste CPU: <b>${escapeHtml(summary.bestCpuCard || "-")}</b></span>
+      <span>Knappste Runde: <b>${escapeHtml(summary.closestRound || "-")}</b></span>
+      <span>Deutlichste Runde: <b>${escapeHtml(summary.biggestRound || "-")}</b></span>
+      <span>Effektivwerte: <b>${summary.playerTotal}:${summary.cpuTotal}</b></span>
+      <span>Dauer: <b>${escapeHtml(summary.durationText || "-")}</b></span>
+    </div>
     <p class="muted">Match-ID: ${escapeHtml(match.id)}</p>
   `;
 }
@@ -4127,7 +5023,7 @@ function toggleSelected(id) {
 }
 
 function getLineup() {
-  return buildFormationLineup(activeMatchCards(), selectedFormation).lineup;
+  return buildFormationLineup(activeDeckMatchCards(), selectedFormation).lineup;
 }
 
 function activeMatchCards() {
@@ -4234,8 +5130,8 @@ function lineupCards(lineup) {
 }
 
 function prepareMatch(mode = "league") {
-  const playerDeck = activeMatchCards();
-  const playerCheck = validateMatchDeck(playerDeck, state.formation);
+  const playerDeck = activeDeckMatchCards();
+  const playerCheck = validateMatchDeck(playerDeck, state.formation, state.activeDeck, state.deck);
   if (!playerCheck.ok) return { ok: false, message: playerCheck.errors.join(" | ") };
   const cpuDeck = buildCpuDeck(state.cpuDifficulty, playerDeck);
   const cpuCheck = validateMatchDeck(cpuDeck, state.formation);
@@ -4247,13 +5143,23 @@ function prepareMatch(mode = "league") {
     formation: normalizeFormationKey(state.formation),
     playerDeck,
     playerLineup: playerCheck.lineup,
+    playerActiveDeck: playerCheck.deck,
+    playerSubstitutes: playerCheck.substitutes,
     cpu: currentOpponent,
     cpuDeck,
     cpuLineup: cpuCheck.lineup,
+    cpuActiveDeck: cpuCheck.deck,
+    cpuSubstitutes: cpuCheck.substitutes,
   };
 }
 
-function validateMatchDeck(cards, formationKey = DEFAULT_FORMATION) {
+function activeDeckMatchCards() {
+  const ids = deckIds(state.activeDeck);
+  const cards = ids.map((id) => state.deck.find((card) => card.id === id)).filter(Boolean);
+  return cards.length ? cards.slice(0, MATCH_CARD_COUNT) : activeMatchCards();
+}
+
+function validateMatchDeck(cards, formationKey = DEFAULT_FORMATION, deckObject = null, ownedCards = cards) {
   const uniqueIds = new Set();
   const errors = [];
   const cleanCards = cards.filter(Boolean);
@@ -4266,9 +5172,24 @@ function validateMatchDeck(cards, formationKey = DEFAULT_FORMATION) {
   if (cleanCards.length < MATCH_ACTIVE_COUNT) errors.push("Deck unvollstaendig");
   if (cleanCards.length < MATCH_CARD_COUNT) errors.push(`Deck benoetigt ${MATCH_CARD_COUNT} Karten inklusive Ersatzbank`);
   if (!cleanCards.some(isGoalkeeper)) errors.push("kein Torwart");
+  let centralDeck = null;
+  let centralValidation = null;
+  if (DECK_SYSTEM?.validateDeck) {
+    centralDeck = deckObject || DECK_SYSTEM.autoCompleteDeck(cleanCards, formationKey, deckSystemHelpers());
+    centralValidation = DECK_SYSTEM.validateDeck(centralDeck, ownedCards, deckSystemHelpers());
+    if (!centralValidation.isValid) errors.push(...centralValidation.errors);
+  }
   const built = buildFormationLineup(cleanCards, formationKey);
   errors.push(...built.errors);
-  return { ok: !errors.length, errors: [...new Set(errors)], lineup: built.lineup, active: built.active, substitutes: built.substitutes };
+  return {
+    ok: !errors.length,
+    errors: [...new Set(errors)],
+    lineup: built.lineup,
+    active: built.active,
+    substitutes: built.substitutes,
+    deck: centralDeck,
+    validation: centralValidation,
+  };
 }
 
 function buildCpuDeck(difficultyKey, playerDeck) {
@@ -4301,8 +5222,15 @@ function buildCpuDeck(difficultyKey, playerDeck) {
 
 function chooseCpuDeckCard(source, picked, role, difficulty) {
   const usedSources = new Set(picked.map((card) => sourceCardId(card)));
-  const candidates = source.filter((card) => !usedSources.has(sourceCardId(card)) && (role === "sub" || positionFit(card, role).kind !== "wrong"));
-  const sorted = [...(candidates.length ? candidates : source.filter((card) => !usedSources.has(sourceCardId(card))))].sort((a, b) => rating(b) - rating(a));
+  const roleSource = role === "sub"
+    ? source
+    : source.filter((card) => positionFit(card, role).kind !== "wrong");
+  const globalRoleSource = role === "sub"
+    ? GAME_CARDS
+    : GAME_CARDS.filter((card) => positionFit(card, role).kind !== "wrong");
+  const candidates = (roleSource.length ? roleSource : globalRoleSource).filter((card) => !usedSources.has(sourceCardId(card)));
+  const fallback = source.filter((card) => !usedSources.has(sourceCardId(card)));
+  const sorted = [...(candidates.length ? candidates : fallback)].sort((a, b) => rating(b) - rating(a));
   if (!sorted.length) return null;
   if (difficulty.decisionSkill < 0.7 && sorted.length > 2) return sorted[rand(0, Math.min(3, sorted.length - 1))];
   if (difficulty.decisionSkill < 1 && sorted.length > 1) return sorted[rand(0, Math.min(1, sorted.length - 1))];
@@ -4310,27 +5238,47 @@ function chooseCpuDeckCard(source, picked, role, difficulty) {
 }
 
 function runMatchEngine(prepared) {
+  const startedAt = new Date().toISOString();
   const match = {
     id: `match-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    date: new Date().toISOString(),
-    status: "active",
+    playerId: state.activeUserId,
+    date: startedAt,
+    startedAt,
+    endedAt: "",
+    status: "preparing",
     mode: prepared.mode,
     difficulty: prepared.difficulty,
     formation: prepared.formation,
+    playerFormation: prepared.formation,
+    cpuFormation: prepared.formation,
+    currentRound: 0,
+    maxRounds: MATCH_ROUNDS,
     playerDeck: prepared.playerDeck.map((card) => card.id),
     cpuDeck: prepared.cpuDeck.map((card) => card.id),
+    playerSubstitutes: (prepared.playerSubstitutes || []).map((card) => card.id),
+    cpuSubstitutes: (prepared.cpuSubstitutes || []).map((card) => card.id),
     cpu: { name: prepared.cpu.name, power: prepared.cpu.power, classIndex: prepared.cpu.classIndex, leagueIndex: prepared.cpu.leagueIndex },
     score: { player: 0, cpu: 0 },
     rounds: [],
     usedCards: [],
+    usedPlayerCards: [],
+    usedCpuCards: [],
     result: "pending",
+    aborted: false,
+    completed: false,
+    rewarded: false,
     rewards: { selectionCount: 0, prepared: false, claimed: false },
+    rewardHandoff: null,
+    summary: null,
   };
   state.activeMatch = match;
   saveState();
+  match.status = "active";
   const playerUsed = new Set();
   const cpuUsed = new Set();
   drawMatchSituations(MATCH_ROUNDS).forEach((situation, index) => {
+    match.status = "resolving_round";
+    match.currentRound = index + 1;
     const round = resolveMatchRound({
       round: index + 1,
       situation,
@@ -4343,15 +5291,27 @@ function runMatchEngine(prepared) {
     if (round.winner === "player") match.score.player += 1;
     if (round.winner === "cpu") match.score.cpu += 1;
     match.rounds.push(round);
+    match.usedPlayerCards.push(round.player.cardId);
+    match.usedCpuCards.push(round.cpu.cardId);
     match.usedCards.push(round.player.cardId, round.cpu.cardId);
+    match.status = "round_complete";
+    state.activeMatch = match;
+    saveState();
   });
   match.result = match.score.player > match.score.cpu ? "win" : match.score.player < match.score.cpu ? "loss" : "draw";
-  match.status = "completed";
+  match.status = "match_complete";
+  match.endedAt = new Date().toISOString();
+  match.completed = true;
+  match.summary = summarizeMatch(match);
   match.rewards = {
     selectionCount: rewardSelectionsForResult(match.result),
     prepared: true,
     claimed: false,
+    tier: match.result === "win" ? "winner" : "consolation",
   };
+  match.rewardHandoff = prepareRewardBoard(match);
+  state.activeMatch = match;
+  saveState();
   return match;
 }
 
@@ -4364,16 +5324,33 @@ function resolveMatchRound({ round, situation, playerLineup, cpuLineup, playerUs
   }
   const playerCalc = calculateRoundValue(playerCard, situation, selectedTactic, "player", difficulty);
   const cpuCalc = calculateRoundValue(cpuCard, situation, situation.tactic, "cpu", difficulty);
-  const winner = playerCalc.total >= cpuCalc.total ? "player" : "cpu";
+  const winner = determineRoundWinner(playerCalc, cpuCalc);
   return {
     round,
+    scenarioId: situation.id,
     situation: situation.label,
+    description: situation.description || situation.call,
     category: situation.category,
     call: situation.call,
     winner,
     player: { cardId: playerCard.id, name: playerCard.name, pos: playerCard.pos, ...playerCalc },
     cpu: { cardId: cpuCard.id, name: cpuCard.name, pos: cpuCard.pos, ...cpuCalc },
+    margin: Math.abs(playerCalc.total - cpuCalc.total),
+    explanation: roundExplanation(winner, playerCalc, cpuCalc),
   };
+}
+
+function determineRoundWinner(playerCalc, cpuCalc) {
+  if (playerCalc.total !== cpuCalc.total) return playerCalc.total > cpuCalc.total ? "player" : "cpu";
+  if (playerCalc.rawTotal !== cpuCalc.rawTotal) return playerCalc.rawTotal > cpuCalc.rawTotal ? "player" : "cpu";
+  if (playerCalc.base !== cpuCalc.base) return playerCalc.base > cpuCalc.base ? "player" : "cpu";
+  return playerCalc.positionModifier >= cpuCalc.positionModifier ? "player" : "cpu";
+}
+
+function roundExplanation(winner, playerCalc, cpuCalc) {
+  const label = winner === "player" ? "Du gewinnst" : "CPU gewinnt";
+  const tie = playerCalc.total === cpuCalc.total ? " Tie-Break: ungerundeter Wert, Grundwert und Positionsfit." : "";
+  return `${label} die Runde durch ${playerCalc.total}:${cpuCalc.total}. Zufall sichtbar: ${playerCalc.random >= 0 ? "+" : ""}${playerCalc.random} / ${cpuCalc.random >= 0 ? "+" : ""}${cpuCalc.random}.${tie}`;
 }
 
 function chooseBattleCard(lineup, situation, usedCards, options = {}) {
@@ -4412,6 +5389,10 @@ function calculateRoundValue(card, situation, tactic, side, difficulty) {
   const modifiedBase = Math.round(base * fit.multiplier);
   return {
     base,
+    primaryStat: situation.primaryStat || situation.stats?.[0]?.key || "",
+    secondaryStat: situation.secondaryStat || situation.stats?.[1]?.key || "",
+    primaryWeight: situation.primaryWeight || situation.stats?.[0]?.weight || 1,
+    secondaryWeight: situation.secondaryWeight || situation.stats?.[1]?.weight || 0,
     category: situation.category,
     levelBonus,
     starBonus,
@@ -4421,6 +5402,7 @@ function calculateRoundValue(card, situation, tactic, side, difficulty) {
     formationBonus,
     random,
     extraModifier: cpuBonus,
+    rawTotal: modifiedBase + levelBonus + starBonus + tacticBonus + formationBonus + random + cpuBonus,
     total: Math.max(1, modifiedBase + levelBonus + starBonus + tacticBonus + formationBonus + random + cpuBonus),
   };
 }
@@ -4456,17 +5438,43 @@ function positionFit(card, role) {
   return { kind: "wrong", multiplier: MATCH_BALANCE.positionFit.wrong, label: "falsche Position" };
 }
 
+function summarizeMatch(match) {
+  const rounds = Array.isArray(match?.rounds) ? match.rounds : [];
+  const playerTotal = rounds.reduce((sum, round) => sum + (Number(round.player?.total) || 0), 0);
+  const cpuTotal = rounds.reduce((sum, round) => sum + (Number(round.cpu?.total) || 0), 0);
+  const bestPlayer = [...rounds].sort((a, b) => (b.player?.total || 0) - (a.player?.total || 0))[0];
+  const bestCpu = [...rounds].sort((a, b) => (b.cpu?.total || 0) - (a.cpu?.total || 0))[0];
+  const closest = [...rounds].sort((a, b) => (a.margin ?? Math.abs((a.player?.total || 0) - (a.cpu?.total || 0))) - (b.margin ?? Math.abs((b.player?.total || 0) - (b.cpu?.total || 0))))[0];
+  const biggest = [...rounds].sort((a, b) => (b.margin ?? Math.abs((b.player?.total || 0) - (b.cpu?.total || 0))) - (a.margin ?? Math.abs((a.player?.total || 0) - (a.cpu?.total || 0))))[0];
+  const durationMs = match?.startedAt && match?.endedAt ? Math.max(0, new Date(match.endedAt) - new Date(match.startedAt)) : 0;
+  return {
+    bestPlayerCard: bestPlayer?.player?.name || "",
+    bestCpuCard: bestCpu?.cpu?.name || "",
+    closestRound: closest ? `R${closest.round} ${closest.player.total}:${closest.cpu.total}` : "",
+    biggestRound: biggest ? `R${biggest.round} ${biggest.player.total}:${biggest.cpu.total}` : "",
+    playerTotal,
+    cpuTotal,
+    difficulty: match?.difficulty || "normal",
+    durationMs,
+    durationText: durationMs ? `${Math.max(1, Math.round(durationMs / 1000))}s` : "<1s",
+  };
+}
+
 function rewardSelectionsForResult(result) {
   if (result === "win") return 4;
   if (result === "loss") return 2;
-  return 3;
+  return 2;
 }
 
 function prepareRewardBoard(match) {
+  const existing = state.pendingRewardBoard;
+  if (existing?.matchId === match.id) return existing;
   return {
     matchId: match.id,
     result: match.result,
     selectionCount: rewardSelectionsForResult(match.result),
+    rewardTier: match.result === "win" ? "winner" : "consolation",
+    rewarded: false,
     status: "prepared",
   };
 }
@@ -4538,7 +5546,8 @@ function generateCard(cls) {
 function cardDef(id, name, pos, club, cls, atk, mid, def, photo = "", series = "standard") {
   const normalizedClass = normalizeClassIndex(cls);
   const performance = SEASON_PERFORMANCE_DATA[id] || generatedSeasonPerformance(pos, atk, mid, def);
-  return withClub({ id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo });
+  const base = withClub({ id, cardId: id, playerId: id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo, nation: "Deutschland", flag: "DE", level: 1, stars: 1, xp: 0, status: "active" });
+  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating: (card) => rating({ ...base, ...card }) }) : base;
 }
 
 function cloneCardForCollection(card, prefix = "owned") {
@@ -4806,8 +5815,13 @@ function defensivePower(card) {
 }
 
 function drawMatchSituations(count) {
-  const shuffled = [...matchSituations].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  const picked = [];
+  for (let round = 1; round <= count; round += 1) {
+    const pool = matchSituations.filter((situation) => situation.active !== false && (!Array.isArray(situation.allowedRounds) || situation.allowedRounds.includes(round)) && !picked.some((item) => item.id === situation.id));
+    const source = pool.length ? pool : matchSituations.filter((situation) => situation.active !== false && !picked.some((item) => item.id === situation.id));
+    if (source.length) picked.push(pick(source));
+  }
+  return picked.slice(0, count);
 }
 
 function chooseCardForSituation(cards, situation) {
@@ -4944,8 +5958,12 @@ function normalizeCard(card) {
   const normalized = withClub({ ...card, club: mappedClubName, cls: normalizeClassIndex(card.cls), series: normalizeCardSeries(card.series) });
   normalized.performance = normalized.performance || SEASON_PERFORMANCE_DATA[sourceCardId(normalized)] || generatedSeasonPerformance(normalized.pos, normalized.atk, normalized.mid, normalized.def);
   normalized.stats = buildCardStats(normalized.pos, normalized.atk, normalized.mid, normalized.def, normalized.cls, normalized.performance);
-  return {
+  const base = {
     ...normalized,
+    cardId: normalized.cardId || sourceCardId(normalized),
+    playerId: normalized.playerId || sourceCardId(normalized),
+    nation: normalized.nation || "Deutschland",
+    flag: normalized.flag || "DE",
     photo: normalized.photo || "",
     externalIds: normalized.externalIds || {},
     manualImagePath: normalized.manualImagePath || "",
@@ -4963,9 +5981,17 @@ function normalizeCard(card) {
     sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
     series: normalizeCardSeries(normalized.series),
     level: normalizeCardLevel(card.level),
+    stars: Math.max(1, Number(card.stars) || CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) || 1),
+    xp: Math.max(0, Number(card.xp) || 0),
+    status: normalized.status || "active",
+    owned: true,
+    ownedCount: Math.max(1, Number(normalized.ownedCount) || 1),
+    duplicateCount: Math.max(0, Number(normalized.duplicateCount) || 0),
+    frame: normalized.frame || CARD_SYSTEM?.rarityByIndex?.(normalized.cls)?.id || "common",
     proStars: normalizeProStars(card.proStars),
     proQuality: normalizeProStars(card.proStars) ? normalizeProQuality(card.proQuality) : "",
   };
+  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating }) : base;
 }
 
 function normalizeClassIndex(value) {
