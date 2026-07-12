@@ -1,7 +1,26 @@
 # Liga Clash - League System
 
 Stand: 2026-07-11  
-Status: Phase 8 umgesetzt
+Status: Phase 8 umgesetzt und getestet
+
+## Dateien
+
+Das Liga-System liegt aktuell im monolithischen `game.js`. Es gibt noch keine getrennten Liga-Dateien.
+
+Betroffene Hauptfunktionen:
+
+- `LEAGUE_PHASE_CONFIG`
+- `createDefaultLeagueSystem`
+- `normalizeLeagueSystem`
+- `createLeagueWeek`
+- `leagueWeekRange`
+- `createLeagueParticipants`
+- `createLeagueSchedule`
+- `simulateCpuLeagueMatches`
+- `completeLeagueMatch`
+- `updateLeagueTable`
+- `compareLeagueParticipants`
+- `settleLeagueWeek`
 
 ## Ligastufen
 
@@ -16,9 +35,12 @@ Die Konfiguration liegt zentral in `LEAGUE_PHASE_CONFIG`.
 
 ## Ligawoche
 
-Eine Ligawoche laeuft von Mittwoch bis Dienstag. Die Woche besitzt:
+Eine Ligawoche laeuft von Mittwoch bis Dienstag.
+
+Felder:
 
 - `weekId`
+- `leagueId`
 - `startDate`
 - `endDate`
 - `status`
@@ -26,8 +48,17 @@ Eine Ligawoche laeuft von Mittwoch bis Dienstag. Die Woche besitzt:
 - `schedule`
 - `matches`
 - `cpuSimulations`
+- `maxPlayerMatches`
+- `playedPlayerMatches`
 - `reward`
 - `closure`
+
+## Teilnehmer und Spielplan
+
+- Der lokale Spieler ist genau einmal enthalten.
+- CPU-Gegner fuellen die Liga bis zur konfigurierten Teilnehmerzahl.
+- Pro Woche gibt es 10 Spieler-Ligaspiele.
+- CPU-vs-CPU-Spiele werden gespeichert und nicht bei jedem Laden neu berechnet.
 
 ## Tabelle
 
@@ -38,31 +69,26 @@ Sortierung:
 3. gewonnene Runden
 4. stabile Teilnehmer-ID
 
-## Spielplan
-
-Die erste Phase-8-Version erzeugt:
-
-- 10 Spieler-Ligaspiele pro Woche
-- CPU-vs-CPU-Spiele fuer gespeicherte Tabellendynamik
-- keine direkte Neuberechnung gespeicherter CPU-Ergebnisse
-
 ## Matchwertung
 
-Ligamatches verwenden das Phase-6-Matchsystem. Nach Matchabschluss wird ein Matchrecord gespeichert. Eine Match-ID wird nur einmal gewertet.
+Ligamatches verwenden die Phase-6-Matchengine. `completeLeagueMatch()` speichert ein Matchrecord je Match-ID. Eine bereits gewertete Match-ID wird nicht erneut gezaehlt.
 
 ## Wochenabschluss
 
-Beim Wochenabschluss:
+`settleLeagueWeek()` ist zentraler Abschluss-Handler.
 
-1. CPU-Spiele werden final simuliert.
-2. Tabelle wird berechnet.
-3. Platzierung wird bestimmt.
-4. Aufstieg, Abstieg oder Klassenerhalt wird berechnet.
-5. Wochenbelohnung wird einmalig vergeben.
-6. Eine neue Woche fuer die neue Liga wird vorbereitet.
+Regeln:
+
+- Abschluss nur, wenn die Woche nicht bereits abgeschlossen ist.
+- Abschluss nur, wenn die Wochenbelohnung noch nicht beansprucht ist.
+- Abschluss nur, wenn alle 10 Spieler-Ligaspiele absolviert wurden.
+- Danach werden Tabelle, Platzierung, Aufstieg/Abstieg/Klassenerhalt und Reward berechnet.
+- Die abgeschlossene Woche wandert in `history`.
+- Eine neue Woche fuer die naechste Liga wird vorbereitet.
 
 ## Einschraenkungen
 
 - Kein Backend.
-- Kein echter Multiplayer.
-- Wochenabschluss ist lokal und manuell ausloesbar.
+- Keine serverseitige Fairness-Pruefung.
+- Wochenlogik nutzt Clientzeit.
+- Wochenabschluss ist lokal und manuell ueber UI ausloesbar, sobald die Ligaspiele vollstaendig sind.

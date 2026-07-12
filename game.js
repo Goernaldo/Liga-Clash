@@ -54,6 +54,50 @@ const leagues = ["Bundesliga", "2. Bundesliga", "3. Liga", "Regionalliga", "Land
 
 const DB_LEAGUES = ["Alle Ligen", "1. Bundesliga", "2. Bundesliga", "3. Liga", "Google Pixel Frauen-Bundesliga", "2. Frauen-Bundesliga"];
 
+const ADMIN_OWNER_ID = "user-owner-goernaldo";
+const ADMIN_ROLES = ["Owner", "Admin", "Moderator", "Tester", "User"];
+const ADMIN_MODULES = [
+  "dashboard", "users", "roles", "players", "cards", "clubs", "nations", "leagues",
+  "boosters", "droprates", "missions", "news", "events", "shop", "platzpass",
+  "design", "texts", "version", "status", "import", "export", "backups", "logs", "settings",
+  "transfers", "editor",
+];
+const ADMIN_PERMISSION_MATRIX = {
+  Owner: ["admin.open", "admin.manage", "users.manage", "roles.manage", "wallet.grant", "economy.test", "data.reset", "import.write", "export.read", "backup.manage", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage"],
+  Admin: ["admin.open", "users.view", "wallet.grant", "economy.test", "export.read", "backup.create", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage"],
+  Moderator: ["admin.open", "users.view", "logs.read", "content.manage", "events.manage", "missions.view"],
+  Tester: ["admin.open", "logs.read", "export.read", "preview.use"],
+  User: [],
+};
+const ADMIN_MODULE_PERMISSIONS = {
+  dashboard: "admin.open",
+  users: "users.view",
+  roles: "roles.manage",
+  players: "game-data.manage",
+  cards: "game-data.manage",
+  clubs: "game-data.manage",
+  nations: "game-data.manage",
+  leagues: "game-data.manage",
+  boosters: "boosters.manage",
+  droprates: "droprates.manage",
+  missions: "missions.manage",
+  news: "content.manage",
+  events: "events.manage",
+  shop: "shop.manage",
+  platzpass: "project.manage",
+  design: "project.manage",
+  texts: "project.manage",
+  version: "project.manage",
+  status: "project.manage",
+  import: "import.write",
+  export: "export.read",
+  backups: "backup.create",
+  logs: "logs.read",
+  settings: "project.manage",
+  transfers: "game-data.manage",
+  editor: "game-data.manage",
+};
+
 const POSITION_PACK_GROUPS = [
   { value: "all", label: "Alle Positionen", positions: [] },
   { value: "attack", label: "Angriff: ST, MS, LA, RA", positions: ["ST", "MS", "LA", "RA"] },
@@ -419,10 +463,10 @@ const CPU_DIFFICULTIES = {
 };
 
 const LEAGUE_PHASE_CONFIG = [
-  { id: "league-1", name: "1. Liga", level: 1, participantCount: 18, promotionPlaces: 0, relegationPlaces: 3, order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
-  { id: "league-2", name: "2. Liga", level: 2, participantCount: 18, promotionPlaces: 3, relegationPlaces: 3, order: 2, active: true, rewards: { promotion: 1100, stay: 700, relegation: 420 } },
-  { id: "league-3", name: "3. Liga", level: 3, participantCount: 20, promotionPlaces: 3, relegationPlaces: 4, order: 3, active: true, rewards: { promotion: 850, stay: 520, relegation: 320 } },
-  { id: "league-bottom", name: "Unterste Liga", level: 4, participantCount: 25, promotionPlaces: 4, relegationPlaces: 0, order: 4, active: true, rewards: { promotion: 650, stay: 380, relegation: 220 } },
+  { id: "league-1", name: "1. Liga", shortName: "L1", level: 1, tier: 1, participantCount: 18, size: 18, promotionPlaces: 0, promote: 0, relegationPlaces: 3, relegate: 3, logo: "L1", description: "Hoechste Liga im lokalen Liga-Clash-System.", order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
+  { id: "league-2", name: "2. Liga", shortName: "L2", level: 2, tier: 2, participantCount: 18, size: 18, promotionPlaces: 3, promote: 3, relegationPlaces: 3, relegate: 3, logo: "L2", description: "Zweite Spielklasse mit Auf- und Abstiegszone.", order: 2, active: true, rewards: { promotion: 1100, stay: 700, relegation: 420 } },
+  { id: "league-3", name: "3. Liga", shortName: "L3", level: 3, tier: 3, participantCount: 20, size: 20, promotionPlaces: 3, promote: 3, relegationPlaces: 4, relegate: 4, logo: "L3", description: "Dritte Liga mit groesserem Teilnehmerfeld.", order: 3, active: true, rewards: { promotion: 850, stay: 520, relegation: 320 } },
+  { id: "league-bottom", name: "Rookie-Liga", shortName: "RL", level: 4, tier: 4, participantCount: 25, size: 25, promotionPlaces: 4, promote: 4, relegationPlaces: 0, relegate: 0, logo: "RL", description: "Einsteigerliga fuer neue Decks und erste Aufstiege.", order: 4, active: true, rewards: { promotion: 650, stay: 380, relegation: 220 } },
 ];
 
 const LEAGUE_POINTS = { win: 3, draw: 1, loss: 0 };
@@ -488,6 +532,7 @@ const els = {
   menuEventHint: document.querySelector("#menuEventHint"),
   menuEventList: document.querySelector("#menuEventList"),
   adminStatus: document.querySelector("#adminStatus"),
+  adminPhase9Content: document.querySelector("#adminPhase9Content"),
   adminLpInput: document.querySelector("#adminLpInput"),
   adminLeagueSelect: document.querySelector("#adminLeagueSelect"),
   adminClassSelect: document.querySelector("#adminClassSelect"),
@@ -613,27 +658,39 @@ document.querySelector("#adminAddUser").addEventListener("click", addAdminUser);
 document.querySelector("#adminGrantWallet").addEventListener("click", grantAdminWallet);
 document.querySelector("#adminCreateBooster").addEventListener("click", createAdminBooster);
 els.adminBoosterList.addEventListener("click", handleAdminBoosterAction);
+els.adminBoosterList.addEventListener("change", handleAdminBoosterImageUpload);
 document.querySelector("#saveQuickRewardPool").addEventListener("click", saveQuickRewardPool);
+els.adminPhase9Content?.addEventListener("click", handleAdminPhase9Action);
+els.adminPhase9Content?.addEventListener("change", handleAdminPhase9Change);
+els.battleBoard?.addEventListener("click", handleBattleBoardClick);
 
 document.querySelector("#adminCoins").addEventListener("click", () => {
+  if (!requireAdminPermission("economy.test", "Keine Berechtigung fuer Waehrungs-Testaktionen.")) return;
   state.coins += 10000;
+  logAdminAction("economy", "grant-test-coins", state.activeUserId, null, { coins: 10000 });
   setAdminStatus("10.000 Coins wurden gutgeschrieben.");
   render();
 });
 
 document.querySelector("#adminGems").addEventListener("click", () => {
+  if (!requireAdminPermission("economy.test", "Keine Berechtigung fuer Waehrungs-Testaktionen.")) return;
   state.gems += 500;
+  logAdminAction("economy", "grant-test-gems", state.activeUserId, null, { gems: 500 });
   setAdminStatus("500 Diamanten wurden gutgeschrieben.");
   render();
 });
 
 document.querySelector("#adminSetLp").addEventListener("click", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung fuer Fortschrittsdaten.")) return;
+  const before = state.lp;
   state.lp = clamp(Number(els.adminLpInput.value) || 0, 0, 999999);
+  logAdminAction("progress", "set-lp", state.activeUserId, before, state.lp);
   setAdminStatus(`Liga-Punkte auf ${state.lp} gesetzt.`);
   render();
 });
 
 els.adminLeagueSelect.addEventListener("change", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung fuer Liga-Aenderungen.")) return;
   state.leagueIndex = Number(els.adminLeagueSelect.value);
   resetLeagueRows();
   setAdminStatus(`Liga auf ${leagues[state.leagueIndex]} gesetzt.`);
@@ -641,12 +698,14 @@ els.adminLeagueSelect.addEventListener("change", () => {
 });
 
 els.adminClassSelect.addEventListener("change", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung fuer Teamklassen.")) return;
   state.teamClassIndex = Number(els.adminClassSelect.value);
   setAdminStatus(`Teamklasse auf ${teamClasses[state.teamClassIndex]} gesetzt.`);
   render();
 });
 
 document.querySelector("#adminAddCard").addEventListener("click", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung zum Erstellen von Karten.")) return;
   const selectedClass = Number(els.adminCardClass.value);
   const card = drawGameCard(selectedClass, selectedClass);
   state.deck.push(card);
@@ -655,6 +714,7 @@ document.querySelector("#adminAddCard").addEventListener("click", () => {
 });
 
 document.querySelector("#adminGodCard").addEventListener("click", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung zum Erstellen von Testkarten.")) return;
   const iconPool = GAME_CARDS.filter((card) => normalizeClassIndex(card.cls) >= teamClasses.length - 1);
   const card = cloneCardForCollection(pick(iconPool.length ? iconPool : GAME_CARDS), "admin-icon");
   state.deck.push(card);
@@ -664,6 +724,7 @@ document.querySelector("#adminGodCard").addEventListener("click", () => {
 });
 
 document.querySelector("#adminWin").addEventListener("click", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung fuer Matchsimulationen.")) return;
   state.homeScore = 3;
   state.awayScore = 1;
   state.lp += 25;
@@ -676,12 +737,16 @@ document.querySelector("#adminWin").addEventListener("click", () => {
 });
 
 document.querySelector("#adminWeek").addEventListener("click", () => {
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung fuer Wochenabrechnungen.")) return;
   settleWeek();
   setAdminStatus("Wochenabrechnung wurde ausgefuehrt.");
   render();
 });
 
 document.querySelector("#adminReset").addEventListener("click", () => {
+  if (!requireAdminPermission("data.reset", "Nur Owner duerfen den Spielstand zuruecksetzen.")) return;
+  if (!window.confirm("Spielstand wirklich zuruecksetzen? Ein Backup wird vorher erstellt.")) return;
+  createAdminBackup("Spielstand vor Reset", ["state"]);
   Object.assign(state, createInitialState());
   currentOpponent = createOpponent();
   localStorage.removeItem("liga-clash-state-v1");
@@ -867,6 +932,7 @@ function openFeature(action) {
     career: renderCareerFeature,
     collection: renderCollectionFeature,
     league: renderLeagueFeature,
+    draft: renderDraftBoardFeature,
     deck: renderDeckFeature,
     shop: renderShopFeature,
     news: renderNewsFeature,
@@ -1135,6 +1201,14 @@ function renderLeagueFeature() {
           <div>
             <span class="eyebrow">Aktive Ligawoche</span>
             <h3>${escapeHtml(league.name)}</h3>
+            <p>${escapeHtml(league.description || "")}</p>
+            <div class="pill-row">
+              <span>Stufe ${league.level}</span>
+              <span>${league.participantCount} Teilnehmer</span>
+              <span>Aufstieg: ${league.promotionPlaces || 0}</span>
+              <span>Abstieg: ${league.relegationPlaces || 0}</span>
+              <span>Woche ${escapeHtml(week.weekId)}</span>
+            </div>
             <p>${formatDateShort(week.startDate)} bis ${formatDateShort(week.endDate)} | Status ${escapeHtml(week.status)}</p>
           </div>
           <div class="league-rank-badge">
@@ -1154,12 +1228,12 @@ function renderLeagueFeature() {
             <h3>Wochenabschluss</h3>
             <p>${league.promotionPlaces ? `Top ${league.promotionPlaces} steigen auf.` : "In dieser Liga gibt es keinen Aufstieg."} ${league.relegationPlaces ? `Die letzten ${league.relegationPlaces} steigen ab.` : "Kein Abstieg in dieser Liga."}</p>
             <div class="pill-row"><span>${week.playedPlayerMatches}/${week.maxPlayerMatches} Spieltage</span><span>${week.reward?.claimed ? "Belohnung erhalten" : "Belohnung offen"}</span></div>
-            <button type="button" data-feature-action="settle-league-week" ${week.status === "completed" ? "disabled" : ""}>Woche abschliessen</button>
+            <button type="button" data-feature-action="settle-league-week" ${week.status === "completed" || week.playedPlayerMatches < week.maxPlayerMatches ? "disabled" : ""}>Woche abschliessen</button>
           </article>
         </section>
 
         <section class="feature-card league-table-card">
-          <h3>Ligatabelle</h3>
+          <h3>Teilnehmer & Tabelle</h3>
           <div class="league-table-wrap">${renderPhase8LeagueTable(table, league)}</div>
         </section>
 
@@ -2031,6 +2105,11 @@ function handleFeatureClick(event) {
     runCareerMatch("challenge", target);
   } else if (action === "claim-mission") {
     claimMission(target);
+  } else if (action === "draft-pick") {
+    claimDraftPick(target);
+  } else if (action === "draft-close") {
+    closeFeaturePanel();
+    showMenu();
   } else if (action === "settle-league-week") {
     settleLeagueWeek();
     render();
@@ -2886,6 +2965,10 @@ function showPackReveal(cards, pack = null, opening = null) {
   if (!pulledCards.length) return;
   const best = bestPulledCard(pulledCards);
   const packName = pack?.name || "Booster Pack";
+  let revealedCount = 0;
+  const packArt = pack?.image
+    ? `<img src="${escapeAttr(getPackImageUrl(pack))}" alt="${escapeAttr(packName)}" />`
+    : `<span>${escapeHtml(packName)}</span>`;
   const reveal = document.createElement("div");
   reveal.className = "pack-reveal";
   reveal.innerHTML = `
@@ -2893,31 +2976,58 @@ function showPackReveal(cards, pack = null, opening = null) {
       <div class="pack-reveal-head">
         <span>${escapeHtml(packName)} | ${pulledCards.length} ${pulledCards.length === 1 ? "Karte" : "Karten"}</span>
         <strong>Beste Karte: ${rating(best)} ${escapeHtml(best.name)}${opening?.id ? ` | ${escapeHtml(opening.id.slice(0, 18))}` : ""}</strong>
-        <button type="button" class="pack-reveal-close" aria-label="Pack-Reveal schliessen">Schliessen</button>
+        <button type="button" class="pack-reveal-close" aria-label="Pack-Reveal schliessen">Fertig</button>
+      </div>
+      <div class="pack-opening-stage">
+        <div class="pack-opening-aura"></div>
+        <div class="pack-opening-pack">${packArt}</div>
+        <p>Pack wird geoeffnet. Die Inhalte sind bereits gespeichert und bleiben nach Reload identisch.</p>
       </div>
       <div class="pack-reveal-grid">
-        ${pulledCards.map(renderPackRevealCard).join("")}
+        ${pulledCards.map((card, index) => renderPackRevealCard(card, index)).join("")}
+      </div>
+      <div class="pack-reveal-actions">
+        <button type="button" data-reveal-action="skip">Ueberspringen</button>
+        <button type="button" data-reveal-action="next">Naechste Karte</button>
+        <button type="button" data-reveal-action="all">Alle aufdecken</button>
+        <button type="button" class="pack-reveal-close">Fertig</button>
       </div>
     </div>
   `;
   document.body.appendChild(reveal);
   playUiSound("reveal");
   setTimeout(() => reveal.classList.add("is-visible"), 20);
+  const updateReveal = (count) => {
+    revealedCount = clamp(count, 0, pulledCards.length);
+    reveal.querySelectorAll(".pack-reveal-card").forEach((cardNode, index) => {
+      cardNode.classList.toggle("is-revealed", index < revealedCount);
+    });
+    reveal.classList.toggle("opening-complete", revealedCount >= pulledCards.length);
+  };
+  setTimeout(() => updateReveal(1), window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? 80 : 980);
   const closeReveal = () => {
     reveal.classList.remove("is-visible");
     reveal.addEventListener("transitionend", () => reveal.remove(), { once: true });
   };
-  reveal.querySelector(".pack-reveal-close")?.addEventListener("click", closeReveal);
+  reveal.querySelectorAll(".pack-reveal-close").forEach((button) => button.addEventListener("click", closeReveal));
   reveal.addEventListener("click", (event) => {
+    const action = event.target.closest("[data-reveal-action]");
+    if (action) {
+      if (action.dataset.revealAction === "skip" || action.dataset.revealAction === "all") updateReveal(pulledCards.length);
+      if (action.dataset.revealAction === "next") updateReveal(revealedCount + 1);
+      return;
+    }
     if (event.target === reveal) closeReveal();
   });
 }
 
-function renderPackRevealCard(card) {
+function renderPackRevealCard(card, index = 0) {
   const tier = normalizeClassIndex(card.cls);
   const club = getClub(card.club);
+  const rare = tier >= 8 ? " rare-hit" : "";
   return `
-    <article class="pack-reveal-card card-tier-${tier}">
+    <article class="pack-reveal-card card-tier-${tier}${rare}" style="--reveal-delay:${index * 90}ms">
+      <button type="button" class="pack-card-cover" data-reveal-action="next">Karte aufdecken</button>
       <div class="pack-reveal-card-top">
         <strong>${rating(card)}</strong>
         <span>${escapeHtml(card.pos)}</span>
@@ -2978,15 +3088,20 @@ function calculateChemistry() {
 function openAdminCenter() {
   const user = activeUser();
   if (!canOpenAdmin(user)) {
-    showToast("Admin Center nur fuer Owner und Admin.", "error");
-    openLoginPanel(`Admin Center nur fuer Owner und Admin. Aktuell: ${user.role}.`);
+    const message = state.adminData?.enabled === false ? "Admin Center ist deaktiviert." : `Admin Center fuer ${user.role} nicht freigegeben.`;
+    showToast(message, "error");
+    openLoginPanel(message);
     return;
   }
   renderAdminControls();
   els.adminCenter.classList.remove("is-hidden");
   markAdminContentViews();
-  setActiveAdminNav("events");
-  setAdminContentView("events");
+  const firstSection = canUseAdminModule("dashboard", user) ? "dashboard" : firstAllowedAdminSection(user);
+  setActiveAdminNav(firstSection);
+  setAdminContentView(firstSection);
+  renderAdminDashboard();
+  renderAdminPhase9Module(firstSection);
+  logAdminAction("admin", "open", firstSection);
 }
 
 function closeAdminCenter() {
@@ -3076,6 +3191,8 @@ function initAdminControls() {
 
 function renderAdminControls() {
   updateAccountUi();
+  updateAdminNavigationVisibility();
+  renderAdminDashboard();
   els.adminLpInput.value = state.lp;
   els.adminLeagueSelect.value = state.leagueIndex;
   els.adminClassSelect.value = state.teamClassIndex;
@@ -3090,6 +3207,494 @@ function renderAdminControls() {
   renderAdminUsers();
   renderAdminRewardPools();
   renderAdminDatabase();
+  renderAdminPhase9Module(currentAdminSection());
+}
+
+function currentAdminSection() {
+  return document.querySelector(".admin-nav [data-admin-section].active")?.dataset.adminSection || "dashboard";
+}
+
+function firstAllowedAdminSection(user = activeUser()) {
+  return ADMIN_MODULES.find((section) => canUseAdminModule(section, user)) || "dashboard";
+}
+
+function updateAdminNavigationVisibility() {
+  const user = activeUser();
+  document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
+    const allowed = canUseAdminModule(button.dataset.adminSection, user);
+    button.hidden = !allowed;
+    button.setAttribute("aria-hidden", String(!allowed));
+  });
+}
+
+function renderAdminDashboard() {
+  const project = state.adminData?.project || createDefaultAdminData().project;
+  const metrics = adminMetrics();
+  const headerCards = document.querySelectorAll(".admin-header .admin-top-card strong");
+  if (headerCards[0]) headerCards[0].textContent = project.version;
+  if (headerCards[1]) headerCards[1].textContent = project.season;
+  if (headerCards[2]) headerCards[2].textContent = state.adminData?.enabled === false ? "Deaktiviert" : "Lokal";
+  if (headerCards[3]) headerCards[3].textContent = project.lastUpdated || "Lokal gespeichert";
+
+  const hero = document.querySelector(".admin-hero");
+  if (!hero) return;
+  const section = currentAdminSection();
+  const title = adminSectionTitle(section);
+  hero.querySelector(".eyebrow").textContent = "Admin Center";
+  hero.querySelector("h2").textContent = title;
+  hero.querySelector("span").textContent = `${project.name} | ${project.status} | ${project.releaseName}`;
+  const metricRoot = hero.querySelector(".admin-metrics");
+  if (metricRoot) {
+    metricRoot.innerHTML = [
+      ["Spieler", metrics.players, `${metrics.missingImages} ohne Bild`],
+      ["Karten", metrics.cards, `${metrics.ownedCards} im Besitz`],
+      ["Vereine", metrics.clubs, `${metrics.leagues} Ligen`],
+      ["Booster", metrics.boosters, `${metrics.activeBoosters} aktiv`],
+      ["Warnungen", metrics.warnings, `${metrics.auditLog} Logs`],
+    ].map(([label, value, detail]) => `<article><i>LC</i><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong><em>${escapeHtml(String(detail))}</em></article>`).join("");
+  }
+}
+
+function adminMetrics() {
+  const validations = validateAdminData();
+  return {
+    players: new Set(GAME_CARDS.map((card) => card.playerId || card.name)).size,
+    cards: GAME_CARDS.length,
+    ownedCards: state.deck.length,
+    clubs: CLUBS.length,
+    nations: new Set(GAME_CARDS.map((card) => card.nation || "Unbekannt")).size,
+    leagues: DB_LEAGUES.length - 1,
+    boosters: state.boosterPacks.length,
+    activeBoosters: state.boosterPacks.filter((pack) => pack.active).length,
+    events: state.events.filter((event) => event.active).length,
+    news: state.adminData?.news?.filter((item) => item.active).length || 0,
+    warnings: validations.warnings.length + validations.errors.length,
+    auditLog: state.adminData?.auditLog?.length || 0,
+    missingImages: GAME_CARDS.filter((card) => !card.image || card.image === PLAYER_IMAGE_PLACEHOLDER).length,
+  };
+}
+
+function adminSectionTitle(section) {
+  return {
+    dashboard: "Dashboard",
+    users: "Benutzer",
+    roles: "Rollen & Rechte",
+    players: "Spieler-Verwaltung",
+    cards: "Karten-Verwaltung",
+    clubs: "Vereine-Verwaltung",
+    nations: "Nationen-Verwaltung",
+    leagues: "Ligen-Verwaltung",
+    boosters: "Booster-Verwaltung",
+    droprates: "Dropchancen",
+    missions: "Missionen",
+    news: "News",
+    events: "Kalender & Events",
+    shop: "Shop-Angebote",
+    platzpass: "Platzpass-Vorbereitung",
+    design: "Design",
+    texts: "Texte",
+    version: "Version",
+    status: "Projektstatus",
+    import: "Datenimport",
+    export: "Datenexport",
+    backups: "Backups",
+    logs: "Aenderungsprotokoll",
+    settings: "Einstellungen",
+    transfers: "Transfers",
+    editor: "Karten-Editor",
+  }[section] || "Admin Center";
+}
+
+function validateAdminData() {
+  const errors = [];
+  const warnings = [];
+  state.boosterPacks.forEach((pack) => {
+    const normalized = normalizeBoosterPack(pack);
+    const sum = dropRateSum(normalized.dropRates, normalized.minClass, normalized.maxClass);
+    if (Math.abs(sum - 100) > 0.01) errors.push(`${pack.name}: Dropchancen ergeben ${sum.toFixed(1)}% statt 100%.`);
+    if (!normalized.cardCount || normalized.cardCount < 1) errors.push(`${pack.name}: Kartenanzahl ungueltig.`);
+    if (!matchingCardsForPack(normalized).length) warnings.push(`${pack.name}: Kartenpool ist leer.`);
+    if (normalized.guaranteedClass != null && (normalized.guaranteedClass < normalized.minClass || normalized.guaranteedClass > normalized.maxClass)) {
+      errors.push(`${pack.name}: Garantieklasse liegt ausserhalb des Bereichs.`);
+    }
+  });
+  const league = leagueConfigById(state.leagueSystem?.currentLeagueId) || leagueConfigByIndex(state.leagueIndex);
+  if (!league?.id) errors.push("Aktive Liga besitzt keine ID.");
+  if (league && (league.promote + league.relegate > league.size)) errors.push(`${league.name}: Auf- und Abstiegsplaetze ueberschneiden sich.`);
+  const ownerCount = state.adminUsers.filter((user) => user.role === "Owner" && !user.locked).length;
+  if (ownerCount < 1) errors.push("Es muss mindestens ein aktiver Owner vorhanden sein.");
+  const nationCodes = new Set();
+  GAME_CARDS.forEach((card) => {
+    const code = card.nation || "DE";
+    if (nationCodes.has(code) && code.length < 2) warnings.push(`Nation ${code}: Kurzcode pruefen.`);
+    nationCodes.add(code);
+    if (!card.name || !card.club || !card.pos) errors.push(`${card.id || "Karte"}: Pflichtdaten fehlen.`);
+  });
+  return { errors, warnings };
+}
+
+function dropRateSum(rates, minClass = 0, maxClass = teamClasses.length - 1) {
+  return teamClasses.reduce((sum, _, index) => sum + (index >= minClass && index <= maxClass ? Number(rates?.[index]) || 0 : 0), 0);
+}
+
+function matchingCardsForPack(pack) {
+  return GAME_CARDS.filter((card) => {
+    const cls = normalizeClassIndex(card.cls);
+    const inClass = cls >= pack.minClass && cls <= pack.maxClass;
+    const inPool = pack.pool === "mixed" || pack.pool === "all" || cardMatchesPackPool(card, pack.pool);
+    const inPosition = !pack.positions?.length || pack.positions.includes(card.pos);
+    return inClass && inPool && inPosition;
+  });
+}
+
+function cardMatchesPackPool(card, pool) {
+  if (pool === "men-bundesliga") return card.league === "1. Bundesliga";
+  if (pool === "women-bundesliga") return card.league === "Google Pixel Frauen-Bundesliga";
+  if (pool === "dfb-pokal") return DB_LEAGUES.includes(card.league);
+  if (pool === "totw") return card.series === "totw" || normalizeClassIndex(card.cls) >= 8;
+  if (pool === "icon") return normalizeClassIndex(card.cls) >= teamClasses.length - 1 || card.series === "icon";
+  return true;
+}
+
+function renderAdminPhase9Module(section = currentAdminSection()) {
+  if (!els.adminPhase9Content) return;
+  if (!canUseAdminModule(section)) {
+    els.adminPhase9Content.innerHTML = `<h3>${escapeHtml(adminSectionTitle(section))}</h3><p>Keine Berechtigung fuer dieses Modul.</p>`;
+    return;
+  }
+  if (!["players", "nations", "leagues", "droprates", "roles", "news", "shop", "platzpass", "design", "texts", "version", "status", "export", "backups", "logs"].includes(section)) {
+    els.adminPhase9Content.innerHTML = renderAdminOverviewPanel(section);
+    return;
+  }
+  const renderers = {
+    players: renderAdminPlayersModule,
+    nations: renderAdminNationsModule,
+    leagues: renderAdminLeaguesModule,
+    droprates: renderAdminDropRatesModule,
+    roles: renderAdminRolesModule,
+    news: renderAdminNewsModule,
+    shop: renderAdminShopModule,
+    platzpass: renderAdminPlatzpassModule,
+    design: renderAdminDesignModule,
+    texts: renderAdminTextsModule,
+    version: renderAdminVersionModule,
+    status: renderAdminStatusModule,
+    export: renderAdminExportModule,
+    backups: renderAdminBackupsModule,
+    logs: renderAdminLogsModule,
+  };
+  els.adminPhase9Content.innerHTML = renderers[section]();
+}
+
+function renderAdminOverviewPanel(section) {
+  const validation = validateAdminData();
+  return `
+    <h3>${escapeHtml(adminSectionTitle(section))}</h3>
+    <p>Dieses Modul nutzt die vorhandenen Liga-Clash-Daten. Detailansichten sind ueber die linke Navigation erreichbar.</p>
+    <div class="phase9-grid">
+      <article><b>${GAME_CARDS.length}</b><span>Karten im Datenpool</span></article>
+      <article><b>${CLUBS.length}</b><span>Vereine integriert</span></article>
+      <article><b>${state.boosterPacks.length}</b><span>Booster konfiguriert</span></article>
+      <article><b>${validation.errors.length}</b><span>Datenfehler</span></article>
+    </div>
+  `;
+}
+
+function renderAdminPlayersModule() {
+  const players = GAME_CARDS.slice(0, 80);
+  return `
+    <h3>Spieler-Verwaltung</h3>
+    <p>Spieler und Karten bleiben getrennt. Harte Loeschungen sind vorbereitet gesperrt; vorhandene Datensaetze werden deaktivierbar verwaltet.</p>
+    ${renderPhase9Table(["Spieler", "Verein", "Liga", "Position", "Bild", "Status"], players.map((card) => [
+      card.name,
+      getClub(card.club).name,
+      card.league,
+      card.pos,
+      card.image && card.image !== PLAYER_IMAGE_PLACEHOLDER ? "vorhanden" : "fehlt",
+      "aktiv",
+    ]))}
+  `;
+}
+
+function renderAdminNationsModule() {
+  const nations = [...new Set(GAME_CARDS.map((card) => card.nation || "Deutschland"))].sort();
+  return `
+    <h3>Nationen-Verwaltung</h3>
+    <p>Nationencodes werden aus den vorhandenen Kartendaten abgeleitet und fuer spaetere Importe zentral validiert.</p>
+    ${renderPhase9Table(["Nation", "Code", "Spieler", "Status"], nations.map((nation) => [
+      nation,
+      String(nation).slice(0, 3).toUpperCase(),
+      GAME_CARDS.filter((card) => (card.nation || "Deutschland") === nation).length,
+      "aktiv",
+    ]))}
+  `;
+}
+
+function renderAdminLeaguesModule() {
+  ensurePhase8Systems();
+  const league = currentLeagueConfig();
+  const week = state.leagueSystem.currentWeek;
+  const participants = week.participants || [];
+  const cpuCount = participants.filter((participant) => !participant.player).length;
+  const freeSlots = Math.max(0, league.participantCount - participants.length);
+  return `
+    <h3>Ligen-Verwaltung</h3>
+    <p>Aufstieg, Abstieg, Teilnehmer und Wochenlogik stammen aus Phase 8. Aktive Ligawochen sind geschuetzt und werden hier als Verwaltungsvorschau angezeigt.</p>
+    <div class="phase9-grid">
+      <article><b>${escapeHtml(league.name)}</b><span>Aktuelle Liga</span></article>
+      <article><b>${participants.length}/${league.participantCount}</b><span>Teilnehmer</span></article>
+      <article><b>${cpuCount}</b><span>CPU-Gegner</span></article>
+      <article><b>${freeSlots}</b><span>Freie Plaetze</span></article>
+    </div>
+    ${renderPhase9Table(["Liga", "Kurz", "Stufe", "Teilnehmer", "Aufstieg", "Abstieg", "Saison"], LEAGUE_PHASE_CONFIG.map((league) => [
+      league.name,
+      league.shortName,
+      league.level,
+      league.participantCount,
+      league.promotionPlaces,
+      league.relegationPlaces,
+      state.adminData.project.season,
+    ]))}
+    <h3>Liga-Teilnehmer: ${escapeHtml(league.name)}</h3>
+    ${renderPhase9Table(["Teilnehmer", "Typ", "Deckstaerke", "Formation", "Schwierigkeit", "Punkte", "Status"], participants.map((participant) => [
+      participant.displayName,
+      participant.player ? "Spieler" : "CPU",
+      participant.deckStrength,
+      participant.formation,
+      participant.player ? "-" : CPU_DIFFICULTIES[participant.difficulty]?.label || participant.difficulty,
+      participant.points,
+      participant.status,
+    ]))}
+    <h3>Spielplan-Vorschau</h3>
+    ${renderPhase9Table(["Spiel", "Heim", "Auswaerts", "Abgeschlossen"], (week.schedule || []).slice(0, 12).map((match) => [
+      match.matchNumber,
+      participantName(match.homeId),
+      participantName(match.awayId),
+      match.completed ? "ja" : "nein",
+    ]))}
+  `;
+}
+
+function renderAdminDropRatesModule() {
+  const validation = validateAdminData();
+  return `
+    <h3>Dropchancen-Verwaltung</h3>
+    <p>Speichern ist nur erlaubt, wenn die Dropchancen im Klassenbereich exakt 100% ergeben.</p>
+    ${renderPhase9Table(["Booster", "Klassen", "Summe", "Pool", "Kartenpool"], state.boosterPacks.map((pack) => {
+      const normalized = normalizeBoosterPack(pack);
+      return [
+        normalized.name,
+        `${classLabel(normalized.minClass)} - ${classLabel(normalized.maxClass)}`,
+        `${dropRateSum(normalized.dropRates, normalized.minClass, normalized.maxClass).toFixed(1)}%`,
+        packPoolLabel(normalized.pool),
+        matchingCardsForPack(normalized).length,
+      ];
+    }))}
+    ${renderValidationList(validation)}
+  `;
+}
+
+function renderAdminRolesModule() {
+  return `
+    <h3>Rollen & Rechte</h3>
+    <p>Alle Admin-Aktionen pruefen die Rechte technisch ueber diese zentrale Matrix.</p>
+    ${renderPhase9Table(["Rolle", "Darf Admin oeffnen", "Daten", "Content", "Kritisch"], ADMIN_ROLES.map((role) => [
+      role,
+      adminPermissionsFor(role).includes("admin.open") ? "ja" : "nein",
+      hasRolePermission(role, "game-data.manage") ? "ja" : "nein",
+      hasRolePermission(role, "content.manage") ? "ja" : "nein",
+      role === "Owner" ? "voll" : "eingeschraenkt",
+    ]))}
+  `;
+}
+
+function renderAdminNewsModule() {
+  const news = state.adminData.news || [];
+  return `
+    <h3>News-Verwaltung</h3>
+    <p>News werden als sichere Textdaten gespeichert; ungefiltertes HTML wird nicht gerendert.</p>
+    <div class="phase9-form">
+      <input id="adminNewsTitle" placeholder="News-Titel" />
+      <input id="adminNewsSummary" placeholder="Kurztext" />
+      <button type="button" data-phase9-action="add-news">News anlegen</button>
+    </div>
+    ${renderPhase9Table(["Titel", "Kategorie", "Aktiv", "Autor"], news.map((item) => [item.title, item.category, item.active ? "ja" : "nein", item.author]))}
+  `;
+}
+
+function renderAdminShopModule() {
+  const offers = state.adminData.shopOffers || [];
+  return `
+    <h3>Shop-Verwaltung</h3>
+    <p>Nur Ingame-Angebote. Echtgeldzahlungen und Zahlungsanbieter sind nicht Teil von Phase 9.</p>
+    <div class="phase9-form">
+      <input id="adminOfferName" placeholder="Angebotsname" />
+      <input id="adminOfferPrice" type="number" min="0" value="100" />
+      <select id="adminOfferCurrency"><option value="coins">Coins</option><option value="gems">Diamanten</option></select>
+      <button type="button" data-phase9-action="add-offer">Angebot anlegen</button>
+    </div>
+    ${renderPhase9Table(["Angebot", "Inhalt", "Preis", "Aktiv"], offers.map((offer) => [offer.name, offer.content, `${offer.price} ${offer.currency}`, offer.active ? "ja" : "nein"]))}
+  `;
+}
+
+function renderAdminPlatzpassModule() {
+  const pass = state.adminData.platzpass;
+  return `
+    <h3>Platzpass-Vorbereitung</h3>
+    <p>Vorbereitetes Modul ohne Echtgeld, Kaufstatus oder Premium-Aktivierung.</p>
+    ${renderKeyValueForm("platzpass", pass, ["seasonId", "name", "startDate", "endDate", "maxLevel", "xpPerLevel", "active"])}
+  `;
+}
+
+function renderAdminDesignModule() {
+  return `<h3>Design-Verwaltung</h3><p>Asset-Pfade werden nur als Textreferenz gespeichert; Originalassets werden nicht ueberschrieben.</p>${renderKeyValueForm("design", state.adminData.design, ["logo", "background", "slogan", "accent"])}`;
+}
+
+function renderAdminTextsModule() {
+  return `<h3>Texte-Verwaltung</h3><p>Zentrale UI-Texte fuer spaetere Internationalisierung.</p>${renderKeyValueForm("texts", state.adminData.texts, Object.keys(state.adminData.texts))}`;
+}
+
+function renderAdminVersionModule() {
+  return `<h3>Version</h3><p>Projektversion, Build und Release-Name sind zentral verwaltbar.</p>${renderKeyValueForm("project", state.adminData.project, ["version", "season", "build", "releaseName", "lastUpdated"])}`;
+}
+
+function renderAdminStatusModule() {
+  return `<h3>Projektstatus</h3><p>Wartungsmodus ist nur vorbereitet, da kein Backend vorhanden ist.</p>${renderKeyValueForm("project", state.adminData.project, ["name", "status", "progress", "maintenance"])}`;
+}
+
+function renderAdminExportModule() {
+  return `
+    <h3>Datenexport</h3>
+    <p>Exportiert Spiel- und Admin-Daten ohne PINs oder sensible Zugangsdaten.</p>
+    <button type="button" data-phase9-action="create-export">Export erzeugen</button>
+    <textarea id="adminExportText" readonly rows="8">${escapeHtml(JSON.stringify(createAdminExportPayload(), null, 2))}</textarea>
+  `;
+}
+
+function renderAdminBackupsModule() {
+  const backups = state.adminData.backups || [];
+  return `
+    <h3>Backups</h3>
+    <p>Vor kritischen Aenderungen werden lokale Snapshots erzeugt. Wiederherstellung ist als Vorschau dokumentiert.</p>
+    <button type="button" data-phase9-action="create-backup">Backup erstellen</button>
+    ${renderPhase9Table(["Zeit", "Grund", "Bereiche", "Groesse"], backups.map((backup) => [backup.createdAt, backup.reason, backup.areas.join(", "), `${backup.size} B`]))}
+  `;
+}
+
+function renderAdminLogsModule() {
+  const logs = state.adminData.auditLog || [];
+  return `
+    <h3>Aenderungsprotokoll</h3>
+    <p>Rollen, Loeschungen, Importe, Exporte, Backups und Admin-Aktionen werden ohne PINs protokolliert.</p>
+    ${renderPhase9Table(["Zeit", "Benutzer", "Rolle", "Bereich", "Aktion", "Ergebnis"], logs.map((log) => [log.time, log.userName, log.role, log.area, log.action, log.result]))}
+  `;
+}
+
+function renderPhase9Table(headers, rows) {
+  return `<div class="phase9-table-wrap"><table class="phase9-table"><thead><tr>${headers.map((header) => `<th>${escapeHtml(String(header))}</th>`).join("")}</tr></thead><tbody>${rows.length ? rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(String(cell ?? ""))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length}">Keine Daten vorhanden.</td></tr>`}</tbody></table></div>`;
+}
+
+function renderValidationList(validation) {
+  const items = [...validation.errors.map((item) => ["Fehler", item]), ...validation.warnings.map((item) => ["Warnung", item])];
+  return `<div class="phase9-validation">${items.length ? items.map(([type, text]) => `<p class="${type === "Fehler" ? "error" : "warning"}"><b>${type}</b>${escapeHtml(text)}</p>`).join("") : "<p><b>OK</b>Keine kritischen Datenfehler gefunden.</p>"}</div>`;
+}
+
+function renderKeyValueForm(area, source, keys) {
+  return `<div class="phase9-form" data-phase9-form="${escapeAttr(area)}">${keys.map((key) => `<label>${escapeHtml(key)}<input data-phase9-field="${escapeAttr(key)}" value="${escapeAttr(String(source[key] ?? ""))}" /></label>`).join("")}<button type="button" data-phase9-action="save-settings" data-phase9-area="${escapeAttr(area)}">Speichern</button></div>`;
+}
+
+function hasRolePermission(role, permission) {
+  const permissions = adminPermissionsFor(role);
+  return permissions.includes(permission) || permissions.includes("admin.manage");
+}
+
+function createAdminExportPayload(scope = "full") {
+  const user = activeUser();
+  return {
+    exportVersion: 1,
+    schemaVersion: "phase9-admin-v1",
+    createdAt: new Date().toISOString(),
+    createdBy: { id: user.id, name: user.name, role: user.role },
+    scope,
+    data: {
+      cards: safeAdminSnapshot(GAME_CARDS),
+      clubs: safeAdminSnapshot(CLUBS),
+      leagues: safeAdminSnapshot(LEAGUE_PHASE_CONFIG),
+      boosters: safeAdminSnapshot(state.boosterPacks),
+      missions: safeAdminSnapshot({ daily: DAILY_MISSION_CONFIG, weekly: WEEKLY_MISSION_CONFIG, state: state.missionSystem }),
+      events: safeAdminSnapshot(state.events),
+      news: safeAdminSnapshot(state.adminData.news),
+      shopOffers: safeAdminSnapshot(state.adminData.shopOffers),
+      settings: safeAdminSnapshot({ project: state.adminData.project, design: state.adminData.design, texts: state.adminData.texts, platzpass: state.adminData.platzpass }),
+    },
+  };
+}
+
+function handleAdminPhase9Action(event) {
+  const button = event.target.closest("[data-phase9-action]");
+  if (!button) return;
+  const action = button.dataset.phase9Action;
+  if (action === "add-news") {
+    if (!requireAdminPermission("content.manage")) return;
+    const title = document.querySelector("#adminNewsTitle")?.value.trim();
+    const summary = document.querySelector("#adminNewsSummary")?.value.trim();
+    if (!title) {
+      setAdminStatus("News benoetigt einen Titel.");
+      return;
+    }
+    const item = normalizeAdminNewsItem({ title, summary, author: activeUser().name, publishDate: new Date().toISOString().slice(0, 10) });
+    state.adminData.news.unshift(item);
+    logAdminAction("news", "create", item.id, null, item);
+    setAdminStatus(`${item.title} wurde als News angelegt.`);
+  } else if (action === "add-offer") {
+    if (!requireAdminPermission("shop.manage")) return;
+    const offer = normalizeShopOffer({
+      name: document.querySelector("#adminOfferName")?.value.trim(),
+      price: document.querySelector("#adminOfferPrice")?.value,
+      currency: document.querySelector("#adminOfferCurrency")?.value,
+      content: "Ingame-Angebot",
+    });
+    state.adminData.shopOffers.unshift(offer);
+    logAdminAction("shop", "create", offer.id, null, offer);
+    setAdminStatus(`${offer.name} wurde als Shop-Angebot angelegt.`);
+  } else if (action === "save-settings") {
+    if (!requireAdminPermission("project.manage")) return;
+    const area = button.dataset.phase9Area;
+    const form = button.closest("[data-phase9-form]");
+    const target = area === "project" ? state.adminData.project : area === "design" ? state.adminData.design : area === "texts" ? state.adminData.texts : area === "platzpass" ? state.adminData.platzpass : null;
+    if (!target || !form) return;
+    const before = safeAdminSnapshot(target);
+    form.querySelectorAll("[data-phase9-field]").forEach((input) => {
+      const key = input.dataset.phase9Field;
+      const oldValue = target[key];
+      if (typeof oldValue === "boolean") target[key] = ["true", "1", "ja", "aktiv"].includes(String(input.value).toLowerCase());
+      else if (typeof oldValue === "number") target[key] = Math.max(0, Number(input.value) || 0);
+      else target[key] = input.value.trim();
+    });
+    state.adminData.project.lastUpdated = new Date().toISOString().slice(0, 10);
+    logAdminAction(area, "save", area, before, target);
+    setAdminStatus(`${adminSectionTitle(currentAdminSection())} gespeichert.`);
+  } else if (action === "create-export") {
+    if (!requireAdminPermission("export.read")) return;
+    const payload = createAdminExportPayload();
+    state.adminData.exportHistory.unshift({ id: `export-${Date.now()}`, createdAt: payload.createdAt, scope: payload.scope, size: JSON.stringify(payload).length });
+    state.adminData.exportHistory = state.adminData.exportHistory.slice(0, 20);
+    logAdminAction("export", "create", payload.scope, null, { size: JSON.stringify(payload).length });
+    setAdminStatus("Export wurde erzeugt.");
+  } else if (action === "create-backup") {
+    if (!requireAdminPermission("backup.create")) return;
+    createAdminBackup("Manuelles Phase-9-Backup", ["events", "boosters", "adminData", "leagueSystem", "missionSystem"]);
+    setAdminStatus("Backup wurde erstellt.");
+  }
+  renderAdminDashboard();
+  renderAdminPhase9Module(currentAdminSection());
+  saveState();
+}
+
+function handleAdminPhase9Change(event) {
+  if (event.target.matches("[data-phase9-field]")) {
+    setAdminStatus("Ungespeicherte Admin-Aenderung erkannt.");
+  }
 }
 
 function renderAdminUsers() {
@@ -3098,6 +3703,8 @@ function renderAdminUsers() {
   }
   syncActiveUserWallet();
   renderAdminWalletTools();
+  const canManageRoles = hasAdminPermission("roles.manage");
+  const canManageUsers = hasAdminPermission("users.manage") || canManageRoles;
   els.adminUserList.innerHTML = state.adminUsers
     .map((user) => {
       const wallet = userWallet(user);
@@ -3105,14 +3712,14 @@ function renderAdminUsers() {
       <article class="${user.locked ? "locked" : ""} ${user.id === state.activeUserId ? "active-user" : ""}" data-user-id="${user.id}">
         <label>Name<input data-user-field="name" type="text" value="${escapeAttr(user.name)}" /></label>
         <label>E-Mail<input data-user-field="email" type="email" value="${escapeAttr(user.email)}" /></label>
-        <select data-user-action="role">
-          ${["Owner", "Admin", "Moderator", "User"].map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${role}</option>`).join("")}
+        <select data-user-action="role" ${canManageRoles ? "" : "disabled"}>
+          ${ADMIN_ROLES.map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${role}</option>`).join("")}
         </select>
         <label>PIN<input data-user-field="pin" type="text" inputmode="numeric" value="${escapeAttr(user.pin)}" /></label>
         <span>${user.id === state.activeUserId ? "Aktiv | " : ""}${user.locked ? "Gesperrt" : "Freigegeben"}<br />${formatNumber(wallet.coins)} Credits | ${formatNumber(wallet.gems)} Diamanten</span>
-        <button type="button" data-user-action="save">Speichern</button>
-        <button type="button" data-user-action="lock" ${user.role === "Owner" ? "disabled" : ""}>${user.locked ? "Entsperren" : "Sperren"}</button>
-        <button class="danger" type="button" data-user-action="delete" ${user.role === "Owner" ? "disabled" : ""}>Entfernen</button>
+        <button type="button" data-user-action="save" ${canManageUsers ? "" : "disabled"}>Speichern</button>
+        <button type="button" data-user-action="lock" ${canManageUsers && user.role !== "Owner" ? "" : "disabled"}>${user.locked ? "Entsperren" : "Sperren"}</button>
+        <button class="danger" type="button" data-user-action="delete" ${canManageUsers && user.role !== "Owner" ? "" : "disabled"}>Entfernen</button>
       </article>
     `;
     })
@@ -3129,11 +3736,7 @@ function renderAdminWalletTools() {
 }
 
 function grantAdminWallet() {
-  const currentUser = activeUser();
-  if (!["Owner", "Admin"].includes(currentUser.role)) {
-    setAdminStatus("Nur Owner und Admins duerfen Wallets gutschreiben.");
-    return;
-  }
+  if (!requireAdminPermission("wallet.grant", "Nur Owner und Admins duerfen Wallets gutschreiben.")) return;
   const user = state.adminUsers.find((item) => item.id === els.adminWalletUser.value);
   if (!user) {
     setAdminStatus("Benutzer fuer Gutschrift nicht gefunden.");
@@ -3149,6 +3752,7 @@ function grantAdminWallet() {
     state.coins = wallet.coins;
     state.gems = wallet.gems;
   }
+  logAdminAction("wallet", "grant", user.id, { coins: wallet.coins - coins, gems: wallet.gems - gems }, wallet);
   state.log = [`Admin-Gutschrift fuer ${user.name}: +${formatNumber(coins)} Credits, +${formatNumber(gems)} Diamanten.`, ...state.log].slice(0, 8);
   setAdminStatus(`${user.name} erhielt ${formatNumber(coins)} Credits und ${formatNumber(gems)} Diamanten.`);
   render();
@@ -3220,20 +3824,42 @@ function handleAdminUserAction(event) {
   if (!action) return;
 
   if (action === "role") {
-    user.role = event.target.value;
+    if (!requireAdminPermission("roles.manage", "Nur Owner duerfen Rollen aendern.")) {
+      event.target.value = user.role;
+      return;
+    }
+    const nextRole = normalizeAdminRole(event.target.value);
+    if (!canChangeAdminRole(user, nextRole)) {
+      event.target.value = user.role;
+      return;
+    }
+    const before = safeAdminSnapshot(user);
+    user.role = nextRole;
     user.pin = user.pin || defaultPinForRole(user.role);
+    logAdminAction("users", "role", user.id, before, user);
     setAdminStatus(`${user.name} ist jetzt ${user.role}.`);
   } else if (action === "save") {
+    if (!requireAdminPermission("users.manage", "Keine Berechtigung zum Speichern von Benutzern.")) return;
+    const before = safeAdminSnapshot(user);
     user.name = (row.querySelector('[data-user-field="name"]')?.value || user.name).trim();
     user.email = normalizeEmail(row.querySelector('[data-user-field="email"]')?.value, user.name);
-    user.role = row.querySelector('[data-user-action="role"]')?.value || user.role;
+    const nextRole = normalizeAdminRole(row.querySelector('[data-user-action="role"]')?.value || user.role);
+    if (nextRole !== user.role && !canChangeAdminRole(user, nextRole)) return;
+    user.role = nextRole;
     user.pin = normalizePin(row.querySelector('[data-user-field="pin"]')?.value, user.role);
+    logAdminAction("users", "save", user.id, before, user);
     setAdminStatus(`${user.name} wurde gespeichert.`);
   } else if (action === "lock" && user.role !== "Owner") {
+    if (!requireAdminPermission("users.manage", "Keine Berechtigung zum Sperren von Benutzern.")) return;
+    const before = safeAdminSnapshot(user);
     user.locked = !user.locked;
     if (user.id === state.activeUserId && user.locked) state.activeUserId = normalizeActiveUserId(user.id, state.adminUsers);
+    logAdminAction("users", user.locked ? "lock" : "unlock", user.id, before, user);
     setAdminStatus(`${user.name} wurde ${user.locked ? "gesperrt" : "entsperrt"}.`);
   } else if (action === "delete" && user.role !== "Owner") {
+    if (!requireAdminPermission("users.manage", "Keine Berechtigung zum Entfernen von Benutzern.")) return;
+    createAdminBackup("Benutzer entfernt", ["adminUsers"]);
+    logAdminAction("users", "delete", user.id, user, null);
     state.adminUsers = state.adminUsers.filter((item) => item.id !== user.id);
     if (user.id === state.activeUserId) state.activeUserId = normalizeActiveUserId(user.id, state.adminUsers);
     setAdminStatus(`${user.name} wurde entfernt.`);
@@ -3244,8 +3870,9 @@ function handleAdminUserAction(event) {
 }
 
 function addAdminUser() {
+  if (!requireAdminPermission("users.manage", "Keine Berechtigung zum Anlegen von Benutzern.")) return;
   const name = (els.adminNewUserName.value || "Neuer Benutzer").trim();
-  const role = els.adminNewUserRole.value || "Moderator";
+  const role = normalizeAdminRole(els.adminNewUserRole.value || "Moderator");
   const user = {
     id: `admin-user-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
@@ -3256,10 +3883,29 @@ function addAdminUser() {
     wallet: { coins: 0, gems: 0 },
   };
   state.adminUsers.push(user);
+  logAdminAction("users", "create", user.id, null, user);
   els.adminNewUserName.value = "";
   renderAdminUsers();
   setAdminStatus(`${name} wurde als ${role} angelegt.`);
   saveState();
+}
+
+function canChangeAdminRole(user, nextRole) {
+  if (!ADMIN_ROLES.includes(nextRole)) {
+    setAdminStatus("Ungueltige Rolle.");
+    return false;
+  }
+  const activeOwners = state.adminUsers.filter((item) => item.role === "Owner" && !item.locked);
+  if (user.role === "Owner" && nextRole !== "Owner" && activeOwners.length <= 1) {
+    setAdminStatus("Der letzte aktive Owner darf nicht entfernt werden.");
+    showToast("Der letzte aktive Owner bleibt geschuetzt.", "error");
+    return false;
+  }
+  if (user.id === state.activeUserId && user.role === "Owner" && nextRole !== "Owner") {
+    const confirmed = window.confirm("Du entziehst dir Owner-Rechte. Wirklich fortfahren?");
+    if (!confirmed) return false;
+  }
+  return true;
 }
 
 function activeUser() {
@@ -3273,7 +3919,96 @@ function activeUser() {
 }
 
 function canOpenAdmin(user) {
-  return ["Owner", "Admin"].includes(user.role) && !user.locked;
+  return Boolean(state.adminData?.enabled) && hasAdminPermission("admin.open", user);
+}
+
+function adminPermissionsFor(role) {
+  return ADMIN_PERMISSION_MATRIX[normalizeAdminRole(role)] || [];
+}
+
+function hasAdminPermission(permission, user = activeUser()) {
+  const checkedUser = user || activeUser();
+  if (!checkedUser || checkedUser.locked) return false;
+  const permissions = adminPermissionsFor(checkedUser.role);
+  return permissions.includes(permission) || permissions.includes("admin.manage");
+}
+
+function canUseAdminModule(section, user = activeUser()) {
+  const permission = ADMIN_MODULE_PERMISSIONS[section] || "admin.open";
+  return hasAdminPermission(permission, user);
+}
+
+function requireAdminPermission(permission, message = "Keine Berechtigung fuer diese Admin-Aktion.") {
+  if (hasAdminPermission(permission)) return true;
+  setAdminStatus(message);
+  showToast(message, "error");
+  logAdminAction("security", permission, "", null, null, "denied", message);
+  return false;
+}
+
+function safeAdminSnapshot(value) {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value, (key, item) => key === "pin" ? "***" : item));
+  } catch {
+    return "[nicht serialisierbar]";
+  }
+}
+
+function logAdminAction(area, action, recordId = "", before = null, after = null, result = "success", error = "") {
+  if (!state.adminData) state.adminData = createDefaultAdminData();
+  const user = activeUser();
+  state.adminData.auditLog = [
+    {
+      id: `log-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      userId: user.id,
+      userName: user.name,
+      role: user.role,
+      area,
+      action,
+      recordId,
+      before: safeAdminSnapshot(before),
+      after: safeAdminSnapshot(after),
+      time: new Date().toISOString(),
+      result,
+      error,
+    },
+    ...(state.adminData.auditLog || []),
+  ].slice(0, 80);
+}
+
+function createAdminBackup(reason = "Manuelles Backup", areas = ["state"]) {
+  if (!state.adminData) state.adminData = createDefaultAdminData();
+  const user = activeUser();
+  const snapshot = {
+    version: 1,
+    reason,
+    areas,
+    createdAt: new Date().toISOString(),
+    createdBy: { id: user.id, name: user.name, role: user.role },
+    data: {
+      events: safeAdminSnapshot(state.events),
+      boosterPacks: safeAdminSnapshot(state.boosterPacks),
+      rewardPools: safeAdminSnapshot(state.rewardPools),
+      adminData: safeAdminSnapshot({ ...state.adminData, backups: [], auditLog: [] }),
+      leagueSystem: safeAdminSnapshot(state.leagueSystem),
+      missionSystem: safeAdminSnapshot(state.missionSystem),
+    },
+  };
+  state.adminData.backups = [
+    {
+      id: `backup-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      reason,
+      areas,
+      createdAt: snapshot.createdAt,
+      createdBy: snapshot.createdBy,
+      size: JSON.stringify(snapshot).length,
+      snapshot,
+    },
+    ...(state.adminData.backups || []),
+  ].slice(0, 10);
+  logAdminAction("backups", "create", reason, null, { areas }, "success");
+  return state.adminData.backups[0];
 }
 
 function verifyPin(user, pin) {
@@ -3346,7 +4081,7 @@ function renderAdminBoosters() {
       return `
       <article class="${pack.active ? "" : "disabled"}" data-pack-id="${pack.id}">
         <div class="admin-booster-art">
-          ${pack.image ? `<img src="${escapeAttr(pack.image)}" alt="${escapeAttr(pack.name)}" />` : `<span>${escapeHtml(pack.name.slice(0, 2))}</span>`}
+          ${pack.image ? `<img src="${escapeAttr(getPackImageUrl(pack))}" alt="${escapeAttr(pack.name)}" />` : `<span>${escapeHtml(pack.name.slice(0, 2))}</span>`}
         </div>
         <div class="admin-booster-editor">
           <label>Name<input data-pack-field="name" value="${escapeAttr(pack.name)}" /></label>
@@ -3363,12 +4098,13 @@ function renderAdminBoosters() {
           <label>Pool<select data-pack-field="pool">${poolOptions}</select></label>
           <label>Positionen<select data-pack-field="positions">${positionOptions}</select></label>
           <label>Bild<select data-pack-field="image">${imageOptions}</select></label>
+          <label class="pack-upload-field">Bild hochladen<input data-pack-upload="image" type="file" accept="image/png,image/jpeg,image/webp" /></label>
           <fieldset class="drop-rate-grid">
             <legend>Drop-Rate nach Klasse</legend>
             ${dropRateInputs}
           </fieldset>
           <label class="wide">Beschreibung<textarea data-pack-field="description" rows="2">${escapeHtml(pack.description)}</textarea></label>
-          <span>${pack.active ? "Aktiv" : "Deaktiviert"} | ${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | ${teamClasses[pack.minClass]} bis ${teamClasses[pack.maxClass]} | ${escapeHtml(packPoolLabel(pack.pool))} | ${escapeHtml(packPositionLabel(pack.positions))}</span>
+          <span>${pack.active ? "Aktiv" : "Deaktiviert"} | ${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | ${teamClasses[pack.minClass]} bis ${teamClasses[pack.maxClass]} | ${escapeHtml(packPoolLabel(pack.pool))} | ${escapeHtml(packPositionLabel(pack.positions))}${pack.imageSource === "admin-upload" ? " | eigenes Bild" : ""}</span>
         </div>
         <div class="admin-booster-actions">
           <button type="button" data-pack-action="save">Speichern</button>
@@ -3382,6 +4118,7 @@ function renderAdminBoosters() {
 }
 
 function createAdminBooster() {
+  if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Anlegen von Boostern.")) return;
   const minClass = clamp(Number(els.adminBoosterMinClass.value) || 0, 0, teamClasses.length - 1);
   const maxClass = clamp(Number(els.adminBoosterMaxClass.value) || minClass, minClass, teamClasses.length - 1);
   const image = els.adminBoosterImage.value;
@@ -3402,6 +4139,7 @@ function createAdminBooster() {
     active: true,
   });
   state.boosterPacks.push(pack);
+  logAdminAction("boosters", "create", pack.id, null, pack);
   resetAdminBoosterForm();
   renderAdminBoosters();
   setAdminStatus(`${pack.name} wurde angelegt.`);
@@ -3429,6 +4167,8 @@ function handleAdminBoosterAction(event) {
   if (!pack) return;
 
   if (button.dataset.packAction === "save") {
+    if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Bearbeiten von Boostern.")) return;
+    const before = safeAdminSnapshot(pack);
     const minClass = normalizeClassIndex(row.querySelector('[data-pack-field="minClass"]').value);
     const maxClass = clamp(normalizeClassIndex(row.querySelector('[data-pack-field="maxClass"]').value), minClass, teamClasses.length - 1);
     pack.name = row.querySelector('[data-pack-field="name"]').value.trim() || pack.name;
@@ -3439,21 +4179,95 @@ function handleAdminBoosterAction(event) {
     pack.cardCount = normalizePackCardCount(row.querySelector('[data-pack-field="cardCount"]').value);
     pack.pool = normalizePackPool(row.querySelector('[data-pack-field="pool"]').value);
     pack.positions = packPositionsFromOption(row.querySelector('[data-pack-field="positions"]').value);
-    pack.dropRates = readDropRates(row, minClass, maxClass);
+    const dropRates = readDropRates(row, minClass, maxClass, { strict: true });
+    const sum = dropRateSum(dropRates, minClass, maxClass);
+    if (Math.abs(sum - 100) > 0.01) {
+      setAdminStatus(`Dropchancen muessen 100% ergeben. Aktuell: ${sum.toFixed(1)}%.`);
+      showToast("Dropchancen nicht gespeichert.", "error");
+      return;
+    }
+    pack.dropRates = dropRates;
     pack.image = row.querySelector('[data-pack-field="image"]').value;
-    pack.tier = packTierFromImage(pack.image);
+    pack.imageSource = pack.image && pack.image.startsWith("pack-img-") ? "admin-upload" : pack.image ? "asset" : "placeholder";
+    pack.tier = packTierFromImage(getPackImageUrl(pack));
     pack.description = row.querySelector('[data-pack-field="description"]').value.trim() || pack.description;
+    logAdminAction("boosters", "save", pack.id, before, pack);
     setAdminStatus(`${pack.name} wurde gespeichert.`);
   } else if (button.dataset.packAction === "toggle") {
+    if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Aktivieren von Boostern.")) return;
+    const before = safeAdminSnapshot(pack);
     pack.active = !pack.active;
+    logAdminAction("boosters", pack.active ? "activate" : "deactivate", pack.id, before, pack);
     setAdminStatus(`${pack.name} wurde ${pack.active ? "aktiviert" : "deaktiviert"}.`);
   } else if (button.dataset.packAction === "delete") {
+    if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Loeschen von Boostern.")) return;
+    if (!window.confirm(`${pack.name} wirklich entfernen? Ein Backup wird erstellt.`)) return;
+    createAdminBackup(`Booster geloescht: ${pack.name}`, ["boosterPacks"]);
+    logAdminAction("boosters", "delete", pack.id, pack, null);
     state.boosterPacks = state.boosterPacks.filter((item) => item.id !== pack.id);
     setAdminStatus(`${pack.name} wurde geloescht.`);
   }
 
   renderAdminBoosters();
   saveState();
+}
+
+function handleAdminBoosterImageUpload(event) {
+  const input = event.target.closest("[data-pack-upload='image']");
+  if (!input) return;
+  const row = input.closest("[data-pack-id]");
+  const pack = state.boosterPacks.find((item) => item.id === row?.dataset.packId);
+  const file = input.files?.[0];
+  if (!pack || !file) return;
+  if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Hochladen von Booster-Bildern.")) {
+    input.value = "";
+    return;
+  }
+  const validation = validatePackImage(file);
+  if (!validation.ok) {
+    setAdminStatus(validation.message);
+    showToast(validation.message, "error");
+    input.value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    const before = safeAdminSnapshot(pack);
+    const asset = {
+      id: `pack-img-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      packId: pack.id,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      dataUrl: String(reader.result || ""),
+      createdAt: new Date().toISOString(),
+      source: "admin-upload-local",
+    };
+    state.adminData.packImages = [asset, ...(state.adminData.packImages || [])].slice(0, 40);
+    pack.previousImages = [pack.image, ...(pack.previousImages || [])].filter(Boolean).slice(0, 5);
+    pack.image = asset.id;
+    pack.imageSource = "admin-upload";
+    pack.uploadStatus = "ready";
+    pack.updatedAt = asset.createdAt;
+    pack.tier = packTierFromImage(asset.name);
+    logAdminAction("boosters", "upload-image", pack.id, before, pack);
+    setAdminStatus(`${pack.name}: Bild ${file.name} wurde lokal zugeordnet.`);
+    showToast("Booster-Bild zugeordnet.", "success");
+    renderAdminBoosters();
+    saveState();
+  });
+  reader.addEventListener("error", () => {
+    setAdminStatus("Booster-Bild konnte nicht gelesen werden.");
+    showToast("Bild konnte nicht gelesen werden.", "error");
+  });
+  reader.readAsDataURL(file);
+}
+
+function validatePackImage(file) {
+  const allowed = ["image/png", "image/jpeg", "image/webp"];
+  if (!allowed.includes(file.type)) return { ok: false, message: "Nur PNG, JPG oder WebP sind erlaubt." };
+  if (file.size > 2.5 * 1024 * 1024) return { ok: false, message: "Das Booster-Bild darf maximal 2,5 MB gross sein." };
+  return { ok: true, message: "Bild ist gueltig." };
 }
 
 function renderAdminEvents() {
@@ -3603,11 +4417,14 @@ function handleAdminEventListClick(event) {
 function handleAdminEventAction(event) {
   const button = event.target.closest("[data-event-action]");
   if (!button) return;
+  if (!requireAdminPermission("events.manage", "Keine Berechtigung fuer Event-Aenderungen.")) return;
   const selected = state.events.find((item) => item.id === state.selectedAdminEventId);
   if (!selected) return;
+  const before = safeAdminSnapshot(selected);
 
   if (button.dataset.eventAction === "toggle") {
     selected.active = !selected.active;
+    logAdminAction("events", selected.active ? "activate" : "deactivate", selected.id, before, selected);
     setAdminStatus(`${selected.title} wurde ${selected.active ? "aktiviert" : "deaktiviert"}.`);
   } else if (button.dataset.eventAction === "save") {
     const previousType = selected.type;
@@ -3621,8 +4438,12 @@ function handleAdminEventAction(event) {
     if (previousType !== selected.type) {
       selected.rewards = rewardForEventType(selected.type);
     }
+    logAdminAction("events", "save", selected.id, before, selected);
     setAdminStatus(`${selected.title} wurde gespeichert.`);
   } else if (button.dataset.eventAction === "delete") {
+    if (!window.confirm(`${selected.title} wirklich entfernen? Ein Backup wird erstellt.`)) return;
+    createAdminBackup(`Event geloescht: ${selected.title}`, ["events"]);
+    logAdminAction("events", "delete", selected.id, selected, null);
     state.events = state.events.filter((item) => item.id !== selected.id);
     state.selectedAdminEventId = state.events[0]?.id || null;
     setAdminStatus(`${selected.title} wurde geloescht.`);
@@ -3635,6 +4456,7 @@ function handleAdminEventAction(event) {
     };
     state.events.push(copy);
     state.selectedAdminEventId = copy.id;
+    logAdminAction("events", "duplicate", selected.id, selected, copy);
     setAdminStatus(`${selected.title} wurde dupliziert.`);
   }
   renderAdminEvents();
@@ -3652,6 +4474,7 @@ function selectAdminEventTemplate(type) {
 }
 
 function createAdminEvent(defaultType = "Spezial Event") {
+  if (!requireAdminPermission("events.manage", "Keine Berechtigung zum Anlegen von Events.")) return;
   const titleInput = document.querySelector("#adminNewEventTitle");
   const typeInput = document.querySelector("#adminNewEventType");
   const dateInput = document.querySelector("#adminNewEventDate");
@@ -3676,6 +4499,7 @@ function createAdminEvent(defaultType = "Spezial Event") {
     active: true,
   };
   state.events.push(event);
+  logAdminAction("events", "create", event.id, null, event);
   state.selectedAdminEventId = event.id;
   resetAdminEventForm(type);
   renderAdminEvents();
@@ -3704,8 +4528,15 @@ function resetAdminEventForm(type = "Spezial Event") {
 
 function handleAdminNav(button) {
   const section = button.dataset.adminSection;
+  if (!canUseAdminModule(section)) {
+    setAdminStatus("Keine Berechtigung fuer dieses Admin-Modul.");
+    showToast("Admin-Modul gesperrt.", "error");
+    return;
+  }
   setActiveAdminNav(section);
   setAdminContentView(section);
+  renderAdminDashboard();
+  renderAdminPhase9Module(section);
 
   const actions = {
     dashboard: {
@@ -3770,6 +4601,20 @@ function handleAdminNav(button) {
       selector: ".admin-status",
       message: `Logs: ${state.log.slice(0, 3).join(" | ") || "Keine Eintraege vorhanden."}`,
     },
+    droprates: { selector: ".admin-phase9-panel", message: "Dropchancen-Verwaltung geoeffnet." },
+    players: { selector: ".admin-phase9-panel", message: "Spieler-Verwaltung geoeffnet." },
+    nations: { selector: ".admin-phase9-panel", message: "Nationen-Verwaltung geoeffnet." },
+    leagues: { selector: ".admin-phase9-panel", message: "Ligen-Verwaltung geoeffnet." },
+    news: { selector: ".admin-phase9-panel", message: "News-Verwaltung geoeffnet." },
+    shop: { selector: ".admin-phase9-panel", message: "Shop-Verwaltung geoeffnet." },
+    platzpass: { selector: ".admin-phase9-panel", message: "Platzpass-Vorbereitung geoeffnet." },
+    design: { selector: ".admin-phase9-panel", message: "Design-Verwaltung geoeffnet." },
+    texts: { selector: ".admin-phase9-panel", message: "Texte-Verwaltung geoeffnet." },
+    version: { selector: ".admin-phase9-panel", message: "Version geoeffnet." },
+    status: { selector: ".admin-phase9-panel", message: "Projektstatus geoeffnet." },
+    roles: { selector: ".admin-phase9-panel", message: "Rollenmatrix geoeffnet." },
+    export: { selector: ".admin-phase9-panel", message: "Datenexport geoeffnet." },
+    backups: { selector: ".admin-phase9-panel", message: "Backups geoeffnet." },
   };
 
   const action = actions[section];
@@ -3799,11 +4644,25 @@ function setAdminContentView(section) {
     transfers: [".admin-transfers"],
     editor: [".admin-controls"],
     boosters: [".admin-boosters"],
-    events: [],
+    events: [".admin-calendar-board"],
     missions: [".event-categories"],
     users: [".admin-users"],
     settings: [".admin-reward-pools", ".admin-users", ".admin-system"],
-    logs: [".admin-system"],
+    logs: [".admin-phase9-panel"],
+    droprates: [".admin-phase9-panel"],
+    players: [".admin-phase9-panel"],
+    nations: [".admin-phase9-panel"],
+    leagues: [".admin-phase9-panel"],
+    news: [".admin-phase9-panel"],
+    shop: [".admin-phase9-panel"],
+    platzpass: [".admin-phase9-panel"],
+    design: [".admin-phase9-panel"],
+    texts: [".admin-phase9-panel"],
+    version: [".admin-phase9-panel"],
+    status: [".admin-phase9-panel"],
+    roles: [".admin-phase9-panel"],
+    export: [".admin-phase9-panel"],
+    backups: [".admin-phase9-panel"],
   };
   const visibleSelectors = new Set(viewMap[section] || []);
   document.querySelectorAll("[data-admin-view]").forEach((item) => {
@@ -3814,6 +4673,7 @@ function setAdminContentView(section) {
 function markAdminContentViews() {
   const viewSelectors = {
     ".admin-hero": ".admin-hero",
+    ".admin-calendar-board": ".admin-calendar-board",
     ".admin-import": ".admin-import",
     ".admin-transfers": ".admin-transfers",
     ".admin-quick": ".admin-quick",
@@ -3825,6 +4685,7 @@ function markAdminContentViews() {
     ".admin-system": ".admin-system",
     ".admin-reward-pools": ".admin-reward-pools",
     ".event-categories": ".event-categories",
+    ".admin-phase9-panel": ".admin-phase9-panel",
   };
   Object.entries(viewSelectors).forEach(([selector, view]) => {
     const item = document.querySelector(selector);
@@ -3960,6 +4821,109 @@ function loadState() {
   }
 }
 
+function createDefaultAdminData() {
+  return {
+    enabled: true,
+    project: {
+      name: "Liga Clash Games",
+      version: "0.2.0 ALPHA",
+      season: "2026/27",
+      status: "Alpha",
+      build: "local-static",
+      releaseName: "Admin Center Phase 9",
+      progress: 65,
+      maintenance: false,
+      lastUpdated: "2026-07-12",
+    },
+    news: [],
+    shopOffers: [],
+    design: {
+      logo: "",
+      background: "",
+      slogan: "The Football Card Game",
+      accent: "#79ff31",
+    },
+    texts: {
+      home: "Hauptmenue",
+      play: "Spielen",
+      collection: "Sammlung",
+      shop: "Shop",
+      adminDenied: "Kein Zugriff auf das Admin Center.",
+    },
+    packImages: [],
+    platzpass: {
+      seasonId: "platzpass-2026-27",
+      name: "Liga Clash Platzpass",
+      startDate: "",
+      endDate: "",
+      maxLevel: 100,
+      xpPerLevel: 1000,
+      active: false,
+      preparedOnly: true,
+    },
+    importPreview: null,
+    exportHistory: [],
+    backups: [],
+    auditLog: [],
+    validationReports: [],
+  };
+}
+
+function normalizeAdminData(data) {
+  const fresh = createDefaultAdminData();
+  const adminData = data && typeof data === "object" ? data : {};
+  return {
+    ...fresh,
+    ...adminData,
+    enabled: adminData.enabled !== false,
+    project: { ...fresh.project, ...(adminData.project || {}) },
+    news: Array.isArray(adminData.news) ? adminData.news.map(normalizeAdminNewsItem) : fresh.news,
+    shopOffers: Array.isArray(adminData.shopOffers) ? adminData.shopOffers.map(normalizeShopOffer) : fresh.shopOffers,
+    design: { ...fresh.design, ...(adminData.design || {}) },
+    texts: { ...fresh.texts, ...(adminData.texts || {}) },
+    packImages: Array.isArray(adminData.packImages) ? adminData.packImages.slice(0, 40) : fresh.packImages,
+    platzpass: { ...fresh.platzpass, ...(adminData.platzpass || {}) },
+    exportHistory: Array.isArray(adminData.exportHistory) ? adminData.exportHistory.slice(0, 20) : fresh.exportHistory,
+    backups: Array.isArray(adminData.backups) ? adminData.backups.slice(0, 10) : fresh.backups,
+    auditLog: Array.isArray(adminData.auditLog) ? adminData.auditLog.slice(0, 80) : fresh.auditLog,
+    validationReports: Array.isArray(adminData.validationReports) ? adminData.validationReports.slice(0, 20) : fresh.validationReports,
+  };
+}
+
+function normalizeAdminNewsItem(item) {
+  item = item || {};
+  return {
+    id: item.id || `news-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    title: String(item.title || "Neue Meldung").trim(),
+    summary: String(item.summary || "").trim(),
+    body: String(item.body || "").trim(),
+    category: String(item.category || "Allgemein").trim(),
+    publishDate: String(item.publishDate || ""),
+    expireDate: String(item.expireDate || ""),
+    active: item.active !== false,
+    priority: Math.max(0, Math.round(Number(item.priority) || 0)),
+    audience: String(item.audience || "Alle Spieler").trim(),
+    author: String(item.author || "System").trim(),
+  };
+}
+
+function normalizeShopOffer(offer) {
+  offer = offer || {};
+  return {
+    id: offer.id || `offer-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: String(offer.name || "Neues Angebot").trim(),
+    content: String(offer.content || "coins").trim(),
+    price: Math.max(0, Math.round(Number(offer.price) || 0)),
+    currency: offer.currency === "gems" ? "gems" : "coins",
+    startDate: String(offer.startDate || ""),
+    endDate: String(offer.endDate || ""),
+    limit: Math.max(0, Math.round(Number(offer.limit) || 0)),
+    active: offer.active !== false,
+    audience: String(offer.audience || "Alle Spieler").trim(),
+    order: Math.max(0, Math.round(Number(offer.order) || 999)),
+  };
+}
+
 function createInitialState() {
   const leagueRows = names.map((name, index) => ({
     name,
@@ -3999,8 +4963,9 @@ function createInitialState() {
     boosterOpenings: [],
     freePacks: {},
     rewardPools: defaultRewardPools(),
+    adminData: createDefaultAdminData(),
     adminUsers: defaultAdminUsers(),
-    activeUserId: "user-owner-goernaldo",
+    activeUserId: ADMIN_OWNER_ID,
     career: defaultCareerState(),
     leagueSystem: createDefaultLeagueSystem(1),
     missionSystem: createDefaultMissionSystem(),
@@ -4047,6 +5012,7 @@ function normalizeState(saved) {
     boosterOpenings: normalizeBoosterOpenings(saved.boosterOpenings),
     freePacks: normalizeFreePacks(saved.freePacks),
     rewardPools: normalizeRewardPools(saved.rewardPools),
+    adminData: normalizeAdminData(saved.adminData),
     adminUsers: migratedUsers,
     activeUserId,
     career: normalizeCareerState(saved.career),
@@ -4572,6 +5538,12 @@ function settleLeagueWeek() {
     showToast(system.lastError, "warning");
     return;
   }
+  if (week.playedPlayerMatches < week.maxPlayerMatches) {
+    const remaining = week.maxPlayerMatches - week.playedPlayerMatches;
+    system.lastError = `Ligawoche kann erst nach allen Ligaspielen abgeschlossen werden. Noch ${remaining} ${remaining === 1 ? "Spiel" : "Spiele"} offen.`;
+    showToast(system.lastError, "warning");
+    return;
+  }
   simulateCpuLeagueMatches(week);
   const table = updateLeagueTable(week);
   const playerRank = table.find((participant) => participant.player)?.rank || table.length;
@@ -4623,10 +5595,23 @@ function leagueOutcomeLabel(outcome) {
 function renderPhase8LeagueTable(rows, league) {
   return `
     <table class="mini-table phase8-league-table">
-      <thead><tr><th>#</th><th>Teilnehmer</th><th>Sp</th><th>S</th><th>N</th><th>RD</th><th>Pkt</th><th>Form</th></tr></thead>
+      <thead><tr><th>#</th><th>Teilnehmer</th><th>Status</th><th>Sp</th><th>S</th><th>N</th><th>RD</th><th>Pkt</th><th>Deck</th><th>Formation</th><th>Zone</th></tr></thead>
       <tbody>${rows.map((row) => {
         const zone = row.rank <= league.promotionPlaces ? "promotion" : league.relegationPlaces && row.rank > league.participantCount - league.relegationPlaces ? "relegation" : "stay";
-        return `<tr class="${row.player ? "player-row" : ""} ${zone}"><td>${row.rank}</td><td>${escapeHtml(row.displayName)}</td><td>${row.played}</td><td>${row.wins}</td><td>${row.losses}</td><td>${formatRoundDiff(row.roundDiff)}</td><td>${row.points}</td><td>${row.form.join(" ") || "-"}</td></tr>`;
+        const zoneLabel = zone === "promotion" ? "Aufstieg" : zone === "relegation" ? "Abstieg" : "Bleibt";
+        return `<tr class="${row.player ? "player-row" : ""} ${zone}">
+          <td>${row.rank}</td>
+          <td><span class="league-participant-name"><i>${escapeHtml(row.logo || row.avatar || (row.player ? "DU" : "CPU"))}</i>${escapeHtml(row.displayName)}${row.player ? " <b>Du</b>" : ""}</span></td>
+          <td>${row.player ? "Spieler" : `CPU ${escapeHtml(CPU_DIFFICULTIES[row.difficulty]?.label || row.difficulty)}`}</td>
+          <td>${row.played}</td>
+          <td>${row.wins}</td>
+          <td>${row.losses}</td>
+          <td>${formatRoundDiff(row.roundDiff)}</td>
+          <td>${row.points}</td>
+          <td>${row.deckStrength}</td>
+          <td>${escapeHtml(row.formation)}</td>
+          <td>${zoneLabel}</td>
+        </tr>`;
       }).join("")}</tbody>
     </table>
   `;
@@ -4863,10 +5848,11 @@ function ensureStarterDeckSize(deck) {
 
 function normalizeStoredMatch(match) {
   if (!match || typeof match !== "object" || !match.id) return null;
-  const activeStatuses = ["preparing", "active", "resolving_round", "round_complete"];
+  const activeStatuses = ["preparing", "active", "resolving_round", "awaiting_selection", "round_complete"];
   const completedStatuses = ["completed", "match_complete"];
   const storedStatus = [...activeStatuses, ...completedStatuses, "aborted", "failed"].includes(match.status) ? match.status : "aborted";
-  const status = activeStatuses.includes(storedStatus) ? "aborted" : completedStatuses.includes(storedStatus) ? "match_complete" : storedStatus;
+  const manualActive = match.manualPlayerSelection && ["awaiting_selection", "round_complete"].includes(storedStatus);
+  const status = manualActive ? storedStatus : activeStatuses.includes(storedStatus) ? "aborted" : completedStatuses.includes(storedStatus) ? "match_complete" : storedStatus;
   return {
     id: String(match.id),
     date: match.date || new Date().toISOString(),
@@ -4874,9 +5860,14 @@ function normalizeStoredMatch(match) {
     startedAt: match.startedAt || match.date || new Date().toISOString(),
     endedAt: match.endedAt || "",
     status,
+    manualPlayerSelection: Boolean(match.manualPlayerSelection),
+    autoResolveMatch: match.autoResolveMatch === true,
     mode: match.mode || "cpu",
     playerDeck: Array.isArray(match.playerDeck) ? match.playerDeck.slice(0, MATCH_CARD_COUNT) : [],
     cpuDeck: Array.isArray(match.cpuDeck) ? match.cpuDeck.slice(0, MATCH_CARD_COUNT) : [],
+    cpuCards: Array.isArray(match.cpuCards) ? match.cpuCards.map(normalizeCard).slice(0, MATCH_CARD_COUNT) : [],
+    situationIds: Array.isArray(match.situationIds) ? match.situationIds.slice(0, MATCH_ROUNDS) : [],
+    pendingPlayerCardId: match.pendingPlayerCardId || "",
     playerSubstitutes: Array.isArray(match.playerSubstitutes) ? match.playerSubstitutes.slice(0, MATCH_SUBSTITUTE_COUNT) : [],
     cpuSubstitutes: Array.isArray(match.cpuSubstitutes) ? match.cpuSubstitutes.slice(0, MATCH_SUBSTITUTE_COUNT) : [],
     cpu: {
@@ -4928,13 +5919,39 @@ function normalizeMatchHistory(history) {
 
 function normalizePendingRewardBoard(board) {
   if (!board || typeof board !== "object" || !board.matchId) return null;
+  const slots = Array.isArray(board.slots) ? board.slots.slice(0, 25).map((slot, index) => ({
+    id: slot?.id || `slot-${index}`,
+    index,
+    revealed: Boolean(slot?.revealed),
+    claimed: Boolean(slot?.claimed),
+    reward: normalizeDraftReward(slot?.reward),
+  })) : [];
   return {
+    id: board.id || `draft-${board.matchId}`,
     matchId: String(board.matchId),
     result: ["win", "loss", "draw"].includes(board.result) ? board.result : "loss",
     selectionCount: Math.max(0, Number(board.selectionCount) || 0),
+    picksRemaining: Math.max(0, Number(board.picksRemaining ?? board.selectionCount) || 0),
     rewardTier: board.rewardTier || (board.result === "win" ? "winner" : "consolation"),
     rewarded: Boolean(board.rewarded),
-    status: board.status === "ready" ? "ready" : "prepared",
+    status: ["ready", "prepared", "completed"].includes(board.status) ? board.status : "prepared",
+    createdAt: board.createdAt || new Date().toISOString(),
+    slots,
+    claimedSlots: Array.isArray(board.claimedSlots) ? board.claimedSlots : [],
+    claimedRewards: Array.isArray(board.claimedRewards) ? board.claimedRewards.map(normalizeDraftReward) : [],
+  };
+}
+
+function normalizeDraftReward(reward) {
+  reward = reward || {};
+  return {
+    type: reward.type || "coins",
+    amount: Math.max(0, Number(reward.amount) || 0),
+    packId: reward.packId || "",
+    classIndex: reward.classIndex == null ? 0 : normalizeClassIndex(reward.classIndex),
+    material: reward.material || "",
+    label: reward.label || rewardLabel(reward),
+    slotId: reward.slotId || "",
   };
 }
 
@@ -5037,6 +6054,7 @@ function defaultAdminUsers() {
     { id: "user-owner-goernaldo", name: "G\u00d6RNALDOBERLIN", email: "owner@liga-clash.local", role: "Owner", pin: "0000", locked: false, wallet: { coins: 80, gems: 2350 } },
     { id: "user-admin-liga", name: "LigaAdmin", email: "admin@liga-clash.local", role: "Admin", pin: "1111", locked: false, wallet: { coins: 0, gems: 0 } },
     { id: "user-mod-events", name: "EventMod", email: "events@liga-clash.local", role: "Moderator", pin: "2222", locked: false, wallet: { coins: 0, gems: 0 } },
+    { id: "user-tester-preview", name: "LigaTester", email: "tester@liga-clash.local", role: "Tester", pin: "5555", locked: false, wallet: { coins: 0, gems: 0 } },
     { id: "user-support", name: "SupportTeam", email: "support@liga-clash.local", role: "Moderator", pin: "3333", locked: true, wallet: { coins: 0, gems: 0 } },
     { id: "user-player-test", name: "TestSpieler", email: "spieler@liga-clash.local", role: "User", pin: "4444", locked: false, wallet: { coins: 0, gems: 0 } },
   ];
@@ -5044,16 +6062,21 @@ function defaultAdminUsers() {
 
 function normalizeAdminUser(user) {
   const id = user.id || `admin-user-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const ownerName = id === "user-owner-goernaldo" ? "G\u00d6RNALDOBERLIN" : user.name;
+  const ownerName = id === ADMIN_OWNER_ID ? "G\u00d6RNALDOBERLIN" : user.name;
+  const role = normalizeAdminRole(user.role);
   return {
     id,
     name: ownerName || "Unbenannter Benutzer",
     email: user.email || "user@liga-clash.local",
-    role: ["Owner", "Admin", "Moderator", "User"].includes(user.role) ? user.role : "User",
-    pin: String(user.pin || defaultPinForRole(user.role)),
+    role,
+    pin: String(user.pin || defaultPinForRole(role)),
     locked: Boolean(user.locked),
     wallet: normalizeWallet(user.wallet),
   };
+}
+
+function normalizeAdminRole(role) {
+  return ADMIN_ROLES.includes(role) ? role : "User";
 }
 
 function normalizeWallet(wallet) {
@@ -5097,6 +6120,7 @@ function defaultPinForRole(role) {
     Owner: "0000",
     Admin: "1111",
     Moderator: "2222",
+    Tester: "5555",
     User: "4444",
   }[role] || "1234";
 }
@@ -5181,6 +6205,10 @@ function normalizeBoosterPack(pack) {
     purchaseLimit: Math.max(0, Number(pack.purchaseLimit ?? phaseFiveDefault?.purchaseLimit) || 0),
     animation: pack.animation || phaseFiveDefault?.animation || packTierFromImage(image),
     order: Math.max(0, Number(pack.order ?? phaseFiveDefault?.order) || 999),
+    imageSource: pack.imageSource || (String(image).startsWith("pack-img-") ? "admin-upload" : image ? "asset" : "placeholder"),
+    uploadStatus: pack.uploadStatus || "",
+    updatedAt: pack.updatedAt || "",
+    previousImages: Array.isArray(pack.previousImages) ? pack.previousImages.filter(Boolean).slice(0, 5) : [],
     active: pack.active !== false,
   };
   return BOOSTER_SYSTEM?.normalizeBoosterConfig ? BOOSTER_SYSTEM.normalizeBoosterConfig(base, { classCount: teamClasses.length }) : base;
@@ -5224,11 +6252,19 @@ function legacyClassBoundsForPack(id) {
   }[id] || null;
 }
 
-function readDropRates(row, minClass, maxClass) {
+function readDropRates(row, minClass, maxClass, options = {}) {
   const values = {};
   row.querySelectorAll("[data-pack-drop-rate]").forEach((input) => {
     values[input.dataset.packDropRate] = input.value;
   });
+  if (options.strict) {
+    const result = {};
+    teamClasses.forEach((_, index) => {
+      const raw = values[index] == null ? 0 : Number(values[index]);
+      result[index] = index >= minClass && index <= maxClass ? clamp(Number.isFinite(raw) ? raw : 0, 0, 100) : 0;
+    });
+    return result;
+  }
   return normalizeDropRates(values, minClass, maxClass);
 }
 
@@ -5366,21 +6402,35 @@ function samePositions(a, b) {
 }
 
 function packTierFromImage(image) {
-  if (image.includes("bronze")) return "bronze";
-  if (image.includes("silver")) return "silver";
-  if (image.includes("gold")) return "gold";
-  if (image.includes("elite")) return "elite";
+  const value = String(image || "").toLowerCase();
+  if (value.includes("bronze")) return "bronze";
+  if (value.includes("silver") || value.includes("silber")) return "silver";
+  if (value.includes("gold")) return "gold";
+  if (value.includes("elite")) return "elite";
   return "elite";
 }
 
 function boosterImageOptions() {
+  const uploaded = (state.adminData?.packImages || []).map((asset) => ({
+    value: asset.id,
+    label: `Upload: ${asset.name || asset.id}`,
+  }));
   return [
     { value: "", label: "Platzhalter" },
     { value: "assets/packs/bronze.png", label: "Bronze Pack Bild" },
     { value: "assets/packs/silver.png", label: "Silber Pack Bild" },
     { value: "assets/packs/gold.png", label: "Gold Pack Bild" },
     { value: "assets/packs/elite.png", label: "Elite Pack Bild" },
+    ...uploaded,
   ];
+}
+
+function getPackImageUrl(pack) {
+  const image = typeof pack === "string" ? pack : pack?.image;
+  if (!image) return "";
+  const uploaded = state.adminData?.packImages?.find((asset) => asset.id === image);
+  if (uploaded?.dataUrl) return uploaded.dataUrl;
+  return image;
 }
 
 function normalizeEvent(event) {
@@ -5660,13 +6710,27 @@ function renderBattleBoard() {
   const match = state.activeMatch;
   if (!match || !match.rounds?.length) {
     els.roundTag.textContent = `Runde 0/${MATCH_ROUNDS}`;
-    els.battleBoard.innerHTML = `
-      <p class="muted">Starte ein Match, um die fuenf transparent berechneten Runden zu sehen.</p>
-    `;
+    if (match?.status === "awaiting_selection") {
+      renderManualRoundSelection(match);
+    } else {
+      els.battleBoard.innerHTML = `
+        <p class="muted">Starte ein Match, um Runde fuer Runde selbst Karten auszuwaehlen.</p>
+      `;
+    }
+    return;
+  }
+  if (match.status === "awaiting_selection") {
+    renderManualRoundSelection(match);
     return;
   }
   els.roundTag.textContent = `Runde ${match.currentRound || match.rounds.length}/${match.maxRounds || MATCH_ROUNDS}`;
-  els.battleBoard.innerHTML = match.rounds.map((round) => `
+  const actionHtml = match.status === "round_complete"
+    ? `<button class="primary-button" type="button" data-battle-action="next-round">Naechste Runde</button>`
+    : match.status === "match_complete"
+      ? `<button class="primary-button" type="button" data-battle-action="open-draft">Draft-Board oeffnen</button>`
+      : "";
+  els.battleBoard.innerHTML = `
+    ${match.rounds.map((round) => `
     <article class="battle-round ${round.winner === "player" ? "won" : "lost"}">
       <header>
         <strong>Runde ${round.round}</strong>
@@ -5688,7 +6752,47 @@ function renderBattleBoard() {
         </div>
       </details>
     </article>
-  `).join("");
+    `).join("")}
+    <div class="manual-round-actions">${actionHtml}</div>
+  `;
+}
+
+function renderManualRoundSelection(match) {
+  const situation = situationById(match.situationIds?.[match.currentRound - 1]) || matchSituations[0];
+  const options = manualRoundOptions(match);
+  els.roundTag.textContent = `Runde ${match.currentRound}/${match.maxRounds || MATCH_ROUNDS}`;
+  els.battleBoard.innerHTML = `
+    <article class="battle-round manual-pick">
+      <header>
+        <strong>Runde ${match.currentRound}</strong>
+        <span>${escapeHtml(situation.category)}</span>
+      </header>
+      <h3>${escapeHtml(situation.label)}</h3>
+      <p>${escapeHtml(situation.call)}</p>
+      <p class="battle-explain">${escapeHtml(situation.description || "Waehle eine verfuegbare Karte. Passende Positionen sind hervorgehoben.")}</p>
+      <div class="manual-card-grid">
+        ${options.map((option) => manualCardChoice(option, match.pendingPlayerCardId === option.card.id)).join("")}
+      </div>
+      ${!options.some((option) => option.preferred && !option.used) ? `<p class="fallback-note">Keine perfekte Karte mehr frei. Fallback ist erlaubt, aber der Positionsmalus wird in der Berechnung sichtbar.</p>` : ""}
+      <div class="manual-round-actions">
+        <button class="primary-button" type="button" data-battle-action="confirm-card" ${match.pendingPlayerCardId ? "" : "disabled"}>Auswahl bestaetigen</button>
+      </div>
+    </article>
+  `;
+}
+
+function manualCardChoice(option, selected) {
+  const card = option.card;
+  const disabled = option.disabled;
+  return `
+    <button type="button" class="manual-card-choice ${selected ? "selected" : ""} ${option.preferred ? "preferred" : ""} ${option.fallback ? "fallback" : ""} ${option.used ? "used" : ""}" data-battle-action="select-card" data-card="${escapeAttr(card.id)}" ${disabled ? "disabled" : ""}>
+      ${renderCardPhoto(card, "manual-card-photo")}
+      <span>${escapeHtml(card.pos)} | ${escapeHtml(cardCategory(card))}</span>
+      <strong>${escapeHtml(card.name)}</strong>
+      <em>OVR ${rating(card)} | Wert ${option.power} | Lvl ${cardLevel(card)} | ${proStars(card)} Stern(e)</em>
+      <small>${option.used ? "Bereits verwendet" : option.preferred ? "Passende Karte" : option.fallback ? `Fallback: ${option.fit.label}` : "Gesperrt: passende Karte verfuegbar"}</small>
+    </button>
+  `;
 }
 
 function battleSide(label, data, won) {
@@ -5857,14 +6961,216 @@ function isAttacker(card) {
 }
 
 function playMatch() {
+  if (state.activeMatch && ["awaiting_selection", "round_complete"].includes(state.activeMatch.status)) {
+    render();
+    return;
+  }
+  startManualMatch("league");
+}
+
+function startManualMatch(mode = "league") {
   const prepared = prepareMatch("league");
   if (!prepared.ok) {
     state.log = [prepared.message, ...state.log].slice(0, 8);
     render();
     return;
   }
-  const match = runMatchEngine(prepared);
-  applyFinishedMatch(match, { lp: true, coins: true, leagueRows: true });
+  const startedAt = new Date().toISOString();
+  const situations = drawMatchSituations(MATCH_ROUNDS);
+  state.activeMatch = {
+    id: `match-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    playerId: state.activeUserId,
+    date: startedAt,
+    startedAt,
+    endedAt: "",
+    status: "awaiting_selection",
+    manualPlayerSelection: true,
+    autoResolveMatch: false,
+    mode,
+    difficulty: prepared.difficulty,
+    formation: prepared.formation,
+    playerFormation: prepared.formation,
+    cpuFormation: prepared.formation,
+    currentRound: 1,
+    maxRounds: MATCH_ROUNDS,
+    situationIds: situations.map((situation) => situation.id),
+    pendingPlayerCardId: "",
+    playerDeck: prepared.playerDeck.map((card) => card.id),
+    cpuDeck: prepared.cpuDeck.map((card) => card.id),
+    cpuCards: prepared.cpuDeck.map((card) => ({ ...card })),
+    playerSubstitutes: (prepared.playerSubstitutes || []).map((card) => card.id),
+    cpuSubstitutes: (prepared.cpuSubstitutes || []).map((card) => card.id),
+    cpu: { name: prepared.cpu.name, power: prepared.cpu.power, classIndex: prepared.cpu.classIndex, leagueIndex: prepared.cpu.leagueIndex },
+    score: { player: 0, cpu: 0 },
+    rounds: [],
+    usedCards: [],
+    usedPlayerCards: [],
+    usedCpuCards: [],
+    result: "pending",
+    aborted: false,
+    completed: false,
+    rewarded: false,
+    rewards: { selectionCount: 0, prepared: false, claimed: false },
+    rewardHandoff: null,
+    summary: null,
+  };
+  state.log = [`Match gestartet: Runde 1 wartet auf deine Kartenauswahl.`, ...state.log].slice(0, 8);
+  saveState();
+  render();
+}
+
+function handleBattleBoardClick(event) {
+  const target = event.target.closest("[data-battle-action]");
+  if (!target) return;
+  const action = target.dataset.battleAction;
+  if (action === "select-card") {
+    selectManualMatchCard(target.dataset.card);
+  } else if (action === "confirm-card") {
+    resolveManualRound();
+  } else if (action === "next-round") {
+    advanceManualRound();
+  } else if (action === "open-draft") {
+    openFeature("draft");
+  }
+}
+
+function selectManualMatchCard(cardId) {
+  const match = state.activeMatch;
+  if (!match || match.status !== "awaiting_selection") return;
+  const options = manualRoundOptions(match);
+  const option = options.find((item) => item.card.id === cardId);
+  if (!option || option.disabled) {
+    showToast("Diese Karte ist fuer die aktuelle Runde nicht verfuegbar.", "warning");
+    return;
+  }
+  match.pendingPlayerCardId = cardId;
+  state.log = [`${option.card.name} fuer Runde ${match.currentRound} ausgewaehlt.`, ...state.log].slice(0, 8);
+  saveState();
+  render();
+}
+
+function resolveManualRound() {
+  const match = state.activeMatch;
+  if (!match || match.status !== "awaiting_selection" || !match.pendingPlayerCardId) return;
+  match.status = "resolving_round";
+  const round = createManualRoundResult(match, match.pendingPlayerCardId);
+  if (!round) {
+    match.status = "awaiting_selection";
+    showToast("Runde konnte nicht ausgewertet werden.", "error");
+    return;
+  }
+  if (round.winner === "player") match.score.player += 1;
+  if (round.winner === "cpu") match.score.cpu += 1;
+  match.rounds.push(round);
+  match.usedPlayerCards.push(round.player.cardId);
+  match.usedCpuCards.push(round.cpu.cardId);
+  match.usedCards.push(round.player.cardId, round.cpu.cardId);
+  match.pendingPlayerCardId = "";
+  match.status = match.rounds.length >= MATCH_ROUNDS ? "match_complete" : "round_complete";
+  if (match.status === "match_complete") {
+    finishManualMatch(match);
+  } else {
+    state.log = [roundLogLine(round), `Klicke Naechste Runde fuer Runde ${match.currentRound + 1}.`, ...state.log].slice(0, 8);
+  }
+  saveState();
+  render();
+}
+
+function advanceManualRound() {
+  const match = state.activeMatch;
+  if (!match || match.status !== "round_complete") return;
+  match.currentRound = Math.min(MATCH_ROUNDS, match.currentRound + 1);
+  match.status = "awaiting_selection";
+  match.pendingPlayerCardId = "";
+  state.log = [`Runde ${match.currentRound}: Situation anzeigen, Karte waehlen.`, ...state.log].slice(0, 8);
+  saveState();
+  render();
+}
+
+function createManualRoundResult(match, playerCardId) {
+  const playerCards = match.playerDeck.map((id) => state.deck.find((card) => card.id === id)).filter(Boolean);
+  const cpuCards = Array.isArray(match.cpuCards) ? match.cpuCards.map(normalizeCard) : [];
+  const playerLineup = buildFormationLineup(playerCards, match.formation).lineup;
+  const cpuLineup = buildFormationLineup(cpuCards, match.formation).lineup;
+  const situation = situationById(match.situationIds?.[match.currentRound - 1]) || drawMatchSituations(1)[0];
+  const playerCard = playerCards.find((card) => card.id === playerCardId);
+  if (!playerCard) return null;
+  const cpuUsed = new Set(match.usedCpuCards || []);
+  const cpuCard = chooseBattleCard(cpuLineup, situation, cpuUsed, { isCpu: true, difficulty: CPU_DIFFICULTIES[match.difficulty] });
+  const playerCalc = calculateRoundValue(playerCard, situation, selectedTactic, "player", CPU_DIFFICULTIES[match.difficulty]);
+  const cpuCalc = calculateRoundValue(cpuCard, situation, situation.tactic, "cpu", CPU_DIFFICULTIES[match.difficulty]);
+  const winner = determineRoundWinner(playerCalc, cpuCalc);
+  return {
+    round: match.currentRound,
+    scenarioId: situation.id,
+    situation: situation.label,
+    description: situation.description || situation.call,
+    category: situation.category,
+    call: situation.call,
+    winner,
+    player: { cardId: playerCard.id, name: playerCard.name, pos: playerCard.pos, ...playerCalc },
+    cpu: { cardId: cpuCard.id, name: cpuCard.name, pos: cpuCard.pos, ...cpuCalc },
+    margin: Math.abs(playerCalc.total - cpuCalc.total),
+    explanation: roundExplanation(winner, playerCalc, cpuCalc),
+  };
+}
+
+function finishManualMatch(match) {
+  match.result = match.score.player > match.score.cpu ? "win" : match.score.player < match.score.cpu ? "loss" : "draw";
+  match.endedAt = new Date().toISOString();
+  match.completed = true;
+  match.summary = summarizeMatch(match);
+  match.rewards = {
+    selectionCount: rewardSelectionsForResult(match.result),
+    prepared: true,
+    claimed: false,
+    tier: match.result === "win" ? "winner" : "consolation",
+  };
+  const fromCoins = state.coins;
+  const points = match.result === "win" ? 25 : match.result === "draw" ? 10 : 5;
+  const coins = match.result === "win" ? 45 : match.result === "draw" ? 25 : 15;
+  state.record[match.result] += 1;
+  state.lp += points;
+  state.coins += coins;
+  state.homeScore = match.score.player;
+  state.awayScore = match.score.cpu;
+  state.matchHistory = [match, ...state.matchHistory].slice(0, 20);
+  state.pendingRewardBoard = createDraftBoard(match);
+  match.rewardHandoff = state.pendingRewardBoard;
+  recordGameEvent("match_completed", { id: match.id });
+  if (match.result === "win") recordGameEvent("match_won", { id: `match-win-${match.id}` });
+  recordGameEvent("round_won", { id: `rounds-${match.id}`, count: match.score.player });
+  completeLeagueMatch(match);
+  state.log = [`${match.score.player}:${match.score.cpu} gegen ${match.cpu.name}. Draft-Board mit ${match.rewards.selectionCount} Picks bereit.`, ...match.rounds.map(roundLogLine), ...state.log].slice(0, 8);
+  currentOpponent = createOpponent();
+  animateCoinChange(fromCoins, state.coins, els.playMatch);
+  setTimeout(() => openFeature("draft"), 120);
+}
+
+function situationById(id) {
+  return matchSituations.find((situation) => situation.id === id) || null;
+}
+
+function manualRoundOptions(match) {
+  const playerCards = match.playerDeck.map((id) => state.deck.find((card) => card.id === id)).filter(Boolean);
+  const lineup = buildFormationLineup(playerCards, match.formation).lineup;
+  const situation = situationById(match.situationIds?.[match.currentRound - 1]) || matchSituations[0];
+  const preferred = new Set(situationLineupCards(lineup, situation).map((card) => card.id));
+  const unused = playerCards.filter((card) => !(match.usedPlayerCards || []).includes(card.id));
+  const hasPreferredUnused = unused.some((card) => preferred.has(card.id));
+  return playerCards.map((card) => {
+    const used = (match.usedPlayerCards || []).includes(card.id);
+    const preferredForRound = preferred.has(card.id);
+    return {
+      card,
+      used,
+      preferred: preferredForRound,
+      fallback: !preferredForRound && !hasPreferredUnused,
+      disabled: used || (!preferredForRound && hasPreferredUnused),
+      power: situationPower(card, situation),
+      fit: positionFit(card, preferredRoleForSituation(situation, "player")),
+    };
+  });
 }
 
 function applyFinishedMatch(match, rewards = {}) {
@@ -6236,18 +7542,133 @@ function rewardSelectionsForResult(result) {
 function prepareRewardBoard(match) {
   const existing = state.pendingRewardBoard;
   if (existing?.matchId === match.id) return existing;
+  return createDraftBoard(match);
+}
+
+function createDraftBoard(match) {
+  const existing = state.pendingRewardBoard;
+  if (existing?.matchId === match.id && Array.isArray(existing.slots) && existing.slots.length === 25) return existing;
+  const selectionCount = rewardSelectionsForResult(match.result);
   return {
+    id: `draft-${match.id}`,
     matchId: match.id,
     result: match.result,
-    selectionCount: rewardSelectionsForResult(match.result),
+    selectionCount,
+    picksRemaining: selectionCount,
     rewardTier: match.result === "win" ? "winner" : "consolation",
     rewarded: false,
-    status: "prepared",
+    status: "ready",
+    createdAt: new Date().toISOString(),
+    slots: Array.from({ length: 25 }, (_, index) => createDraftRewardSlot(match, index)),
+    claimedSlots: [],
+    claimedRewards: [],
   };
 }
 
 function rewardBoardText(match) {
   return `${match.rewards.selectionCount} Belohnungsauswahlen`;
+}
+
+function createDraftRewardSlot(match, index) {
+  const win = match.result === "win";
+  const roll = rand(1, 100);
+  let reward;
+  if (roll >= (win ? 94 : 98)) {
+    reward = { type: "gems", amount: win ? 25 : 10, label: `${win ? 25 : 10} Diamanten` };
+  } else if (roll >= (win ? 82 : 90)) {
+    reward = { type: "freePack", amount: 1, packId: win ? "pack-silver" : "pack-bronze", label: `1 Gratis ${win ? "Silber" : "Bronze"} Pack` };
+  } else if (roll >= (win ? 68 : 78)) {
+    const classIndex = win ? clamp(state.teamClassIndex + 1, 0, teamClasses.length - 1) : state.teamClassIndex;
+    reward = { type: "card", classIndex, label: `${teamClasses[classIndex]} Karte` };
+  } else if (roll >= 52) {
+    reward = { type: "material", material: "Trainingspunkte", amount: win ? 4 : 2, label: `${win ? 4 : 2} Trainingspunkte` };
+  } else {
+    reward = { type: "coins", amount: win ? rand(80, 180) : rand(35, 95), label: "Credits" };
+    reward.label = `${reward.amount} Credits`;
+  }
+  return { id: `slot-${index}`, index, revealed: false, claimed: false, reward };
+}
+
+function renderDraftBoardFeature() {
+  const board = state.pendingRewardBoard;
+  if (!board || !Array.isArray(board.slots) || board.slots.length !== 25) {
+    setFeature("Draft-Board", "Belohnungs-Draft", `<article class="feature-card"><h3>Kein Draft bereit</h3><p>Schliesse zuerst ein Match ab.</p></article>`);
+    return;
+  }
+  const done = board.picksRemaining <= 0 || board.status === "completed";
+  setFeature(
+    "Draft-Board",
+    `${board.selectionCount} Picks | Match ${board.matchId.slice(0, 16)}`,
+    `
+      <section class="feature-card draft-board-shell">
+        <div class="feature-section-head">
+          <div>
+            <h3>Belohnungs-Draft</h3>
+            <p>Waehle deine Felder selbst. Nicht geoeffnete Felder werden nicht vergeben.</p>
+          </div>
+          <strong>${board.picksRemaining} Picks uebrig</strong>
+        </div>
+        <div class="draft-board-grid">
+          ${board.slots.map((slot) => draftBoardSlot(slot, done)).join("")}
+        </div>
+        <div class="draft-reward-log">
+          ${(board.claimedRewards || []).length ? board.claimedRewards.map((reward) => `<span>${escapeHtml(reward.label)}</span>`).join("") : "<span>Noch keine Felder gewaehlt.</span>"}
+        </div>
+        <button class="feature-action" type="button" data-feature-action="draft-close" ${done ? "" : "disabled"}>${done ? "Fertig" : "Erst alle Picks waehlen"}</button>
+      </section>
+    `
+  );
+}
+
+function draftBoardSlot(slot, done) {
+  const label = slot.claimed || slot.revealed ? slot.reward.label : "?";
+  return `
+    <button type="button" class="draft-slot ${slot.claimed ? "claimed" : ""}" data-feature-action="draft-pick" data-slot-index="${slot.index}" ${slot.claimed || done ? "disabled" : ""}>
+      <strong>${escapeHtml(label)}</strong>
+      <span>${slot.claimed ? "Geoeffnet" : "Verdeckt"}</span>
+    </button>
+  `;
+}
+
+function claimDraftPick(target) {
+  const board = state.pendingRewardBoard;
+  if (!board || board.status === "completed") return;
+  const index = Number(target.dataset.slotIndex);
+  const slot = board.slots?.[index];
+  if (!slot || slot.claimed || board.picksRemaining <= 0) return;
+  slot.claimed = true;
+  slot.revealed = true;
+  board.picksRemaining = Math.max(0, board.picksRemaining - 1);
+  board.claimedSlots = [...new Set([...(board.claimedSlots || []), slot.id])];
+  grantDraftReward(slot.reward);
+  board.claimedRewards = [...(board.claimedRewards || []), { ...slot.reward, slotId: slot.id }];
+  if (board.picksRemaining <= 0) {
+    board.status = "completed";
+    board.rewarded = true;
+    const match = state.activeMatch?.id === board.matchId ? state.activeMatch : state.matchHistory.find((item) => item.id === board.matchId);
+    if (match?.rewards) match.rewards.claimed = true;
+    recordGameEvent("reward_board_completed", { id: board.id });
+  }
+  saveState();
+  render();
+  renderDraftBoardFeature();
+}
+
+function grantDraftReward(reward) {
+  if (reward.type === "coins") {
+    state.coins += reward.amount;
+    recordGameEvent("credits_earned", { id: `draft-credit-${Date.now()}`, amount: reward.amount });
+  } else if (reward.type === "gems") {
+    state.gems += reward.amount;
+  } else if (reward.type === "freePack") {
+    grantFreePack(reward.packId, reward.amount);
+  } else if (reward.type === "card") {
+    const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    state.deck.push(card);
+    recordGameEvent("card_received", { id: `draft-card-${card.id}`, count: 1 });
+  } else {
+    state.log = [`Draft-Material: ${reward.amount} ${reward.material}.`, ...state.log].slice(0, 8);
+  }
 }
 
 function roundLogLine(round) {

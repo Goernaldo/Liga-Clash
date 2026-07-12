@@ -244,6 +244,20 @@
             <button type="button" data-admin-section="users">♚ <span>Benutzer & Rechte</span></button>
             <button type="button" data-admin-section="settings">⚙ <span>Einstellungen</span></button>
             <button type="button" data-admin-section="logs">☰ <span>Logs</span></button>
+            <button type="button" data-admin-section="droprates">DR <span>Dropchancen</span></button>
+            <button type="button" data-admin-section="players">SP <span>Spieler</span></button>
+            <button type="button" data-admin-section="nations">NA <span>Nationen</span></button>
+            <button type="button" data-admin-section="leagues">LI <span>Ligen</span></button>
+            <button type="button" data-admin-section="news">NE <span>News</span></button>
+            <button type="button" data-admin-section="shop">SH <span>Shop</span></button>
+            <button type="button" data-admin-section="platzpass">PP <span>Platzpass</span></button>
+            <button type="button" data-admin-section="design">DE <span>Design</span></button>
+            <button type="button" data-admin-section="texts">TX <span>Texte</span></button>
+            <button type="button" data-admin-section="version">VE <span>Version</span></button>
+            <button type="button" data-admin-section="status">ST <span>Projektstatus</span></button>
+            <button type="button" data-admin-section="roles">RO <span>Rollen</span></button>
+            <button type="button" data-admin-section="export">EX <span>Export</span></button>
+            <button type="button" data-admin-section="backups">BA <span>Backups</span></button>
           </nav>
           <button id="closeAdmin" class="admin-back" type="button">← Zurueck zum Spiel</button>
         </aside>
@@ -561,6 +575,7 @@
                     <option value="Moderator">Moderator</option>
                     <option value="Admin">Admin</option>
                     <option value="Owner">Owner</option>
+                    <option value="Tester">Tester</option>
                     <option value="User">User</option>
                   </select>
                 </label>
@@ -604,6 +619,10 @@
               <p>Bis zu 5 moegliche Belohnungen fuer schnelle Offline-Spiele einstellen.</p>
               <div id="quickRewardPoolList" class="admin-reward-pool-list"></div>
               <button id="saveQuickRewardPool" type="button">Preis-Pool speichern</button>
+            </section>
+
+            <section id="adminPhase9Panel" class="admin-card admin-phase9-panel">
+              <div id="adminPhase9Content" class="admin-phase9-content"></div>
             </section>
           </div>
 
@@ -757,6 +776,6 @@
     <script src="data/card-system.js?v=card-system-1"></script>
     <script src="data/deck-system.js?v=deck-system-1"></script>
     <script src="data/booster-system.js?v=booster-system-1"></script>
-    <script src="game.js?v=gameplay-core-1"></script>
+    <script src="game.js?v=phase9-admin-1"></script>
   </body>
 </html>

@@ -1,7 +1,25 @@
 # Liga Clash - Mission System
 
 Stand: 2026-07-11  
-Status: Phase 8 umgesetzt
+Status: Phase 8 umgesetzt und getestet
+
+## Dateien
+
+Das Missionssystem liegt aktuell im monolithischen `game.js`. Es gibt noch keine getrennten Missionsdateien.
+
+Betroffene Hauptfunktionen:
+
+- `DAILY_MISSION_CONFIG`
+- `WEEKLY_MISSION_CONFIG`
+- `createDefaultMissionSystem`
+- `normalizeMissionSystem`
+- `createMissionSet`
+- `normalizeMission`
+- `resetMissionsIfNeeded`
+- `recordGameEvent`
+- `missionIncrement`
+- `claimMission`
+- `grantMissionReward`
 
 ## Missionstypen
 
@@ -10,7 +28,7 @@ Aktiv:
 - taegliche Missionen
 - woechentliche Missionen
 
-Vorbereitet durch Datenmodell:
+Vorbereitet im Datenmodell:
 
 - saisonale Missionen
 - Event-Missionen
@@ -29,9 +47,9 @@ Vorbereitet durch Datenmodell:
 - Gewinne 3 Matches
 - Bereite 2 Belohnungsboards vor
 
-## Fortschritt
+## Zentrale Ereignisse
 
-Missionen reagieren zentral auf Spielereignisse:
+Missionen reagieren ueber `recordGameEvent()` auf:
 
 - `match_completed`
 - `match_won`
@@ -45,7 +63,7 @@ Missionen reagieren zentral auf Spielereignisse:
 - `reward_board_completed`
 - `card_leveled`
 
-Verarbeitete Events werden gespeichert, damit Fortschritt nicht doppelt zaehlt.
+Verarbeitete Events werden in `missionSystem.processedEvents` gespeichert. Dadurch zaehlt die gleiche Event-ID nicht mehrfach.
 
 ## Belohnungen
 
@@ -55,18 +73,20 @@ Unterstuetzt:
 - Diamanten
 - Gratis-Packs
 - Karten
-- Material als vorbereitete lokale Logmeldung
+- Material als lokale Logmeldung
 
-Eine Mission kann nur einmal abgeholt werden. Claims werden in `missionSystem.transactions` gespeichert.
+Missionstransaktionen werden in `missionSystem.transactions` gespeichert. Eine Mission kann nur abgeholt werden, wenn sie `claimable` ist und noch nicht `claimed` wurde.
 
 ## Reset
 
 - Daily-Reset ueber Tages-Key `YYYY-MM-DD`
-- Weekly-Reset ueber Ligawochen-Startdatum
-- Missionen werden nicht bei jedem Laden neu gewuerfelt
+- Weekly-Reset ueber Startdatum der Ligawoche
+- Missionen werden nicht bei jedem Laden neu erzeugt
+- Fortschritt wird beim passenden Zeitraumwechsel zurueckgesetzt
 
 ## Einschraenkungen
 
 - Kein Admin-Missionseditor in Phase 8.
 - Kein Platzpass-XP aktiv.
 - Kein Serverzeit-Abgleich.
+- Nicht abgeholte alte Missionen werden beim Reset ersetzt; ein nachtraegliches Claim-Archiv ist noch nicht vorhanden.
