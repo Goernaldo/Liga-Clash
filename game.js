@@ -32,6 +32,18 @@ const CARD_MAX_LEVEL = 100;
 const PRO_MAX_LEVEL = 100;
 const PRO_MAX_STARS = 5;
 const PLAYER_IMAGE_PLACEHOLDER = "assets/players/placeholder.svg";
+const PLAYER_IMAGE_SILHOUETTE = "assets/players/player-silhouette.svg";
+const CARD_PROGRESSION = {
+  maxLevel: CARD_MAX_LEVEL,
+  maxStars: 5,
+  starLevelCaps: { 1: 10, 2: 20, 3: 30, 4: 50, 5: 100 },
+  starDuplicateCosts: { 1: 1, 2: 2, 3: 3, 4: 5 },
+  xpBase: 120,
+  xpStep: 24,
+  levelButtonXp: 2600,
+  fusionXp: 1800,
+};
+const PLAYER_IMAGE_BLOCKED_TYPES = ["cartoon", "comic", "generated", "ai-generated", "childlike", "dummy", "placeholder-test"];
 const CARD_SYSTEM = globalThis.LigaClashCardSystem || null;
 const DECK_SYSTEM = globalThis.LigaClashDeckSystem || null;
 const BOOSTER_SYSTEM = globalThis.LigaClashBoosterSystem || null;
@@ -636,6 +648,7 @@ els.appDialogClose?.addEventListener("click", closeDialog);
 els.appDialog?.addEventListener("click", (event) => {
   if (event.target === els.appDialog) closeDialog();
 });
+els.appDialogMessage?.addEventListener("click", handleFeatureClick);
 els.featureContent.addEventListener("click", handleFeatureClick);
 els.featureContent.addEventListener("change", handleFeatureChange);
 els.featureContent.addEventListener("input", handleFeatureChange);
@@ -824,9 +837,10 @@ function applyRoute(route) {
     return;
   }
   if (route === "profile") {
-    closeFeaturePanel();
+    closeLoginPanel();
     closeAdminCenter();
-    openLoginPanel();
+    renderProfileFeature();
+    els.featurePanel.classList.remove("is-hidden");
     return;
   }
   if (route === "admin") {
@@ -1022,7 +1036,7 @@ function renderFusionFeature() {
         </div>
       </div>
       <div class="mini-deck">
-        ${sortedCards.length ? sortedCards.map((card) => miniCard(card, false, "collection")).join("") : emptyOwnedFilterMessage()}
+        ${sortedCards.length ? sortedCards.map((card) => miniCard(card, false, "fusion")).join("") : emptyOwnedFilterMessage()}
       </div>
     `
   );
@@ -1907,10 +1921,10 @@ function renderSettingsFeature() {
       <div class="feature-grid two">
         <article class="feature-card settings-profile-card">
           <div class="login-active-user">
-            <div class="admin-avatar">${escapeHtml(userInitials(user.name))}</div>
+            <div class="admin-avatar">${escapeHtml(userInitials(userDisplayName(user)))}</div>
             <div>
-              <strong>${escapeHtml(user.name)}</strong>
-              <span>Level 25</span>
+              <strong>${escapeHtml(userDisplayName(user))}</strong>
+              <span>Level ${Math.max(1, Math.floor(profileStats().xp / 1000) + 1)}</span>
             </div>
           </div>
           <p>Bearbeite Anzeigename, E-Mail und PIN im Profilfenster.</p>
@@ -1936,6 +1950,126 @@ function renderSettingsFeature() {
   );
 }
 
+function profileStats() {
+  const matches = Array.isArray(state.matchHistory) ? state.matchHistory : [];
+  const wins = matches.filter((match) => match.result === "win" || match.winner === "player").length + (Number(state.record?.win) || 0);
+  const losses = matches.filter((match) => match.result === "loss" || match.winner === "cpu").length + (Number(state.record?.loss) || 0);
+  const packsOpened = Array.isArray(state.boosterOpenings) ? state.boosterOpenings.length : 0;
+  const rarest = state.deck.reduce((best, card) => normalizeClassIndex(card.cls) > normalizeClassIndex(best?.cls) ? card : best, state.deck[0] || null);
+  const missionCompleted = Array.isArray(state.claimedMissions) ? state.claimedMissions.length : 0;
+  const xp = matches.length * 120 + packsOpened * 40 + state.deck.length * 10 + missionCompleted * 80;
+  return {
+    matches: matches.length,
+    wins,
+    losses,
+    roundsWon: matches.reduce((sum, match) => sum + (Number(match.playerRounds) || Number(match.roundsWon) || 0), 0),
+    highestLeague: leagues[Math.max(0, Number(state.leagueIndex) || 0)] || leagues[0],
+    currentLeague: leagues[state.leagueIndex] || leagues[0],
+    packsOpened,
+    cardsReceived: state.deck.length,
+    collectionCount: new Set(state.deck.map(sourceCardId)).size,
+    rarestCard: rarest ? `${safeCardName(rarest)} (${teamClasses[normalizeClassIndex(rarest.cls)]})` : "Keine Karte",
+    missionCompleted,
+    jackpots: Array.isArray(state.rewardBoards) ? state.rewardBoards.filter((board) => board.jackpot).length : 0,
+    xp,
+  };
+}
+
+function renderProfileFeature() {
+  const user = activeUser();
+  const profile = normalizeUserProfile(user.profile, user);
+  const stats = profileStats();
+  const accountLevel = Math.max(1, Math.floor(stats.xp / 1000) + 1);
+  setFeature(
+    "Profil",
+    "Account & Einstellungen",
+    `
+      <div class="profile-grid">
+        <article class="feature-card profile-summary-card">
+          <div class="login-active-user">
+            ${userAvatarMarkup(user)}
+            <div>
+              <strong>${escapeHtml(profile.displayName)}</strong>
+              <span>${escapeHtml(user.id)} | Level ${accountLevel}</span>
+            </div>
+          </div>
+          <div class="pill-row"><span>${escapeHtml(user.role)}</span><span>${escapeHtml(stats.currentLeague)}</span><span>${formatNumber(stats.xp)} XP</span></div>
+          <p>${profile.motto ? escapeHtml(profile.motto) : "Kein Motto gespeichert."}</p>
+          <p class="muted">${profile.bio ? escapeHtml(profile.bio) : "Noch keine Profilbeschreibung."}</p>
+        </article>
+        <article class="feature-card">
+          <h3>Statistiken</h3>
+          <div class="phase9-grid profile-stat-grid">
+            <article><b>${stats.matches}</b><span>Matches</span></article>
+            <article><b>${stats.wins}</b><span>Siege</span></article>
+            <article><b>${stats.losses}</b><span>Niederlagen</span></article>
+            <article><b>${stats.roundsWon}</b><span>Runden</span></article>
+            <article><b>${stats.packsOpened}</b><span>Packs</span></article>
+            <article><b>${stats.collectionCount}</b><span>Sammlung</span></article>
+          </div>
+          <p class="muted">Seltenste Karte: ${escapeHtml(stats.rarestCard)}. Missionen: ${stats.missionCompleted}. Jackpots: ${stats.jackpots}.</p>
+        </article>
+        <article class="feature-card profile-form-card">
+          <h3>Profil bearbeiten</h3>
+          <div class="profile-form">
+            <label>Anzeigename<input data-profile-field="displayName" maxlength="32" value="${escapeAttr(profile.displayName)}" /></label>
+            <label>Avatar URL oder Assetpfad<input data-profile-field="avatar" value="${escapeAttr(profile.avatar)}" placeholder="assets/..." /></label>
+            <label>Lieblingsverein<input data-profile-field="favoriteClubId" value="${escapeAttr(profile.favoriteClubId)}" /></label>
+            <label>Lieblingsnation<input data-profile-field="favoriteNationId" value="${escapeAttr(profile.favoriteNationId)}" /></label>
+            <label>Motto<input data-profile-field="motto" maxlength="72" value="${escapeAttr(profile.motto)}" /></label>
+            <label>Bio<textarea data-profile-field="bio" maxlength="180">${escapeHtml(profile.bio)}</textarea></label>
+            <label>Sprache<select data-profile-field="language"><option value="de" ${profile.language === "de" ? "selected" : ""}>Deutsch</option><option value="en" ${profile.language === "en" ? "selected" : ""}>English</option></select></label>
+            <label>Sichtbarkeit<select data-profile-field="visibility"><option value="private" ${profile.visibility === "private" ? "selected" : ""}>Privat</option><option value="friends" ${profile.visibility === "friends" ? "selected" : ""}>Freunde</option><option value="public" ${profile.visibility === "public" ? "selected" : ""}>Oeffentlich</option></select></label>
+            <label>Formation<select data-profile-field="preferredFormation">${Object.values(FORMATIONS).filter((formation) => formation.active !== false).map((formation) => `<option value="${escapeAttr(formation.id)}" ${formation.id === profile.preferredFormation ? "selected" : ""}>${escapeHtml(formation.label || formation.name || formation.id)}</option>`).join("")}</select></label>
+            <label><input type="checkbox" data-profile-pref="sound" ${profile.preferences.sound ? "checked" : ""} /> Sound</label>
+            <label><input type="checkbox" data-profile-pref="music" ${profile.preferences.music ? "checked" : ""} /> Musik</label>
+            <label><input type="checkbox" data-profile-pref="animations" ${profile.preferences.animations ? "checked" : ""} /> Animationen</label>
+            <label><input type="checkbox" data-profile-pref="notifications" ${profile.preferences.notifications ? "checked" : ""} /> Benachrichtigungen</label>
+          </div>
+          <button class="feature-action" type="button" data-feature-action="save-profile">Profil speichern</button>
+          <button type="button" data-feature-action="open-profile-login">Account wechseln / PIN</button>
+        </article>
+      </div>
+    `
+  );
+}
+
+function saveProfileFromFeature() {
+  const user = activeUser();
+  const root = els.featureContent;
+  const field = (name) => root.querySelector(`[data-profile-field="${name}"]`)?.value || "";
+  const displayName = sanitizeProfileText(field("displayName"), 32);
+  if (displayName.length < 3) {
+    showToast("Der Anzeigename braucht mindestens 3 Zeichen.", "error");
+    return;
+  }
+  user.name = displayName;
+  user.profile = normalizeUserProfile({
+    ...user.profile,
+    displayName,
+    avatar: field("avatar"),
+    favoriteClubId: sanitizeProfileText(field("favoriteClubId"), 48),
+    favoriteNationId: sanitizeProfileText(field("favoriteNationId"), 48),
+    bio: field("bio"),
+    motto: field("motto"),
+    language: field("language"),
+    visibility: field("visibility"),
+    preferredFormation: field("preferredFormation"),
+    preferences: {
+      sound: Boolean(root.querySelector('[data-profile-pref="sound"]')?.checked),
+      music: Boolean(root.querySelector('[data-profile-pref="music"]')?.checked),
+      animations: Boolean(root.querySelector('[data-profile-pref="animations"]')?.checked),
+      notifications: Boolean(root.querySelector('[data-profile-pref="notifications"]')?.checked),
+    },
+    updatedAt: new Date().toISOString(),
+  }, user);
+  state.formation = user.profile.preferredFormation;
+  saveState();
+  updateAccountUi();
+  renderProfileFeature();
+  showToast("Profil gespeichert.", "success");
+}
+
 function messageTile(title, text) {
   return `<article class="message-row"><h3>${title}</h3><p>${text}</p></article>`;
 }
@@ -1946,7 +2080,7 @@ function friendTile(name, league, lp) {
 
 function renderCardPhoto(card, className = "card-photo") {
   const photo = playerPhoto(card);
-  return photo ? `<img class="${className}" src="${escapeAttr(photo)}" alt="${escapeAttr(card.name)} Profilbild" loading="lazy" onerror="this.onerror=null;this.src='${PLAYER_IMAGE_PLACEHOLDER}'" />` : "";
+  return photo ? `<img class="${className}" src="${escapeAttr(photo)}" alt="${escapeAttr(safeCardName(card))} Profilbild" loading="lazy" onerror="this.onerror=null;this.src='${PLAYER_IMAGE_SILHOUETTE}'" />` : "";
 }
 
 function refreshCardManagementFeature() {
@@ -1964,10 +2098,16 @@ function miniCard(card, selectable, context = "") {
   const club = getClub(card.club);
   const level = model.level;
   const proReady = model.owned ? fusionPartnerFor(card) : false;
+  const isFusionContext = context === "fusion";
   const cardId = escapeAttr(card.id);
   const sourceId = escapeAttr(sourceCardId(card));
+  const cardAction = selectable && model.owned
+    ? `data-feature-action="toggle-card" data-card="${cardId}"`
+    : isFusionContext && model.owned
+      ? `data-feature-action="card-details" data-card="${cardId}" tabindex="0" role="button" aria-label="${escapeAttr(safeCardName(card))} Details oeffnen"`
+      : "";
   return `
-    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""}" ${selectable && model.owned ? `data-feature-action="toggle-card" data-card="${cardId}"` : ""}>
+    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""} ${isFusionContext ? "is-clickable" : ""}" ${cardAction}>
       <div class="card-top">
         <div class="rating">${model.overall}</div>
         <span class="card-position">${escapeHtml(model.position)}</span>
@@ -1976,16 +2116,16 @@ function miniCard(card, selectable, context = "") {
       ${proBadge(card)}
       <span class="series-badge series-${escapeAttr(cardSeries(card))}">${escapeHtml(model.rarity)} | ${escapeHtml(cardSeriesLabel(card.series))}</span>
       ${renderCardPhoto(card)}
-      <div class="card-name">${escapeHtml(card.name)}</div>
+      <div class="card-name" title="${escapeAttr(safeCardName(card))}">${escapeHtml(safeCardName(card))}</div>
       <div class="card-meta-row"><span>${escapeHtml(model.flag)}</span><span>${escapeHtml(model.nation)}</span><span>${escapeHtml(model.category)}</span></div>
-      <div class="card-progress"><span>${model.starsText} | Level ${level}/${model.maxLevel} | XP ${model.xp}</span><i style="--level-progress:${Math.min(100, Math.round(level / model.maxLevel * 100))}%"></i></div>
+      <div class="card-progress"><span>${model.starsText} | Level ${level}/${model.levelCap} | XP ${model.xp}</span><i style="--level-progress:${Math.min(100, Math.round(level / model.levelCap * 100))}%"></i></div>
       ${model.owned ? renderCardStats(card) : `<div class="missing-card-lock">Nicht erhalten</div>`}
       <div class="card-ownership"><span>${model.owned ? "Besitz" : "Katalog"}</span><span>Duplikate ${model.duplicateCount}</span></div>
       ${context === "collection" ? `
         <div class="card-actions">
           <button type="button" data-feature-action="card-details" data-card="${sourceId}">Details</button>
           <button type="button" data-feature-action="toggle-favorite" data-card="${sourceId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
-          <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= CARD_MAX_LEVEL ? "disabled" : ""}>Level +10</button>
+          <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= model.levelCap ? "disabled" : ""}>Leveln</button>
           <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${proReady ? "" : "disabled"}>Evolution</button>
         </div>
       ` : ""}
@@ -2001,11 +2141,18 @@ function cardViewModel(card) {
   const model = CARD_SYSTEM?.normalizeCardRecord
     ? CARD_SYSTEM.normalizeCardRecord({ ...card, ...reference, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1) }, { rating })
     : { ...card, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1), overall: rating(reference), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: "Deutschland", flag: "DE", level: cardLevel(reference), stars: 1, maxLevel: CARD_MAX_LEVEL, xp: 0 };
-  const stars = Math.max(1, Math.min(5, Number(model.stars) || 1));
+  applyCardProgressFields(model);
+  const stars = cardStars(model);
+  const upgrade = model.owned ? starUpgradeInfo(reference) : { availableDuplicates: 0, duplicatesRequired: CARD_PROGRESSION.starDuplicateCosts[stars] || 0 };
   return {
     ...model,
+    name: safeCardName(model),
     favorite: Boolean(reference.favorite),
-    starsText: "S".repeat(stars).replace(/S/g, "*"),
+    levelCap: cardLevelCap(model),
+    xpToNext: model.xpToNextLevel,
+    duplicateCount: Math.max(0, upgrade.availableDuplicates),
+    duplicatesRequired: upgrade.duplicatesRequired,
+    starsText: "★".repeat(stars) + "☆".repeat(Math.max(0, CARD_PROGRESSION.maxStars - stars)),
   };
 }
 
@@ -2034,8 +2181,13 @@ function showCardDetails(cardId) {
   }
   const model = cardViewModel(card);
   const club = getClub(card.club);
+  const ownedCard = state.deck.find((item) => item.id === card.id) || owned;
+  const starInfo = ownedCard ? starUpgradeInfo(ownedCard) : null;
+  const proReady = ownedCard ? fusionPartnerFor(ownedCard) : null;
+  const nowProgression = calculateCardProgression(card, model.level, model.stars);
+  const nextProgression = calculateCardProgression(card, Math.min(model.level + 1, model.levelCap), model.stars);
   openDialog(
-    `${card.name} | ${model.position}`,
+    `${safeCardName(card)} | ${model.position}`,
     "",
   );
   els.appDialogMessage.innerHTML = `
@@ -2055,17 +2207,30 @@ function showCardDetails(cardId) {
           <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
           <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
           <dt>Overall</dt><dd>${model.overall}</dd>
-          <dt>Level</dt><dd>${model.level}/${model.maxLevel}</dd>
+          <dt>Level</dt><dd>${model.level}/${model.levelCap} (Endlevel ${CARD_MAX_LEVEL})</dd>
           <dt>Sterne</dt><dd>${model.starsText}</dd>
-          <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || "MAX"}</dd>
+          <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || (model.level >= model.levelCap && model.levelCap < CARD_MAX_LEVEL ? "Sternaufstieg erforderlich" : "MAX")}</dd>
           <dt>Duplikate</dt><dd>${model.duplicateCount}</dd>
+          <dt>Bildquelle</dt><dd>${escapeHtml(resolvePlayerImage(card).source)}</dd>
           <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
         </dl>
+        <div class="card-detail-xp" aria-label="XP Fortschritt">
+          <span style="--xp-progress:${model.xpToNext ? Math.min(100, Math.round(model.xp / model.xpToNext * 100)) : 100}%"></span>
+        </div>
         ${model.owned ? renderCardStats(card) : `<p class="muted">Diese Karte ist noch nicht in deiner Sammlung. Werte und Rahmen werden im Katalog angezeigt.</p>`}
         <div class="future-development">
           <strong>Zukuenftige Entwicklung</strong>
-          <p>Naechste Ausbaustufe: ${model.level >= model.maxLevel ? "Max-Level dieser Sternstufe erreicht" : `Level ${model.level + 1}`}. Sterne erweitern das Max-Level bis 100.</p>
+          <p>Naechste Ausbaustufe: ${model.level >= model.levelCap ? "Sternaufstieg erforderlich" : `Level ${model.level + 1}`}. Sterne erweitern das Max-Level bis 100.</p>
+          <p>Wertebonus aktuell: +${nowProgression.statBonus}. Naechstes Level: +${nextProgression.statBonus}.</p>
         </div>
+        ${model.owned ? `
+          <div class="card-detail-actions">
+            <button type="button" data-feature-action="level-card" data-card="${escapeAttr(ownedCard.id)}" ${model.level >= model.levelCap ? "disabled" : ""}>Leveln</button>
+            <button type="button" data-feature-action="star-card" data-card="${escapeAttr(ownedCard.id)}" ${!starInfo || !starInfo.canUpgrade ? "disabled" : ""}>Stern erhoehen (${starInfo ? `${starInfo.availableDuplicates}/${starInfo.duplicatesRequired}` : "0/0"})</button>
+            <button type="button" data-feature-action="pro-card" data-card="${escapeAttr(ownedCard.id)}" ${proReady ? "" : "disabled"}>Evolution</button>
+          </div>
+          <p class="muted">Sternkosten: 1->2 = 1, 2->3 = 2, 3->4 = 3, 4->5 = 5 Duplikate. Evolution benoetigt zwei gleiche Level-100-Karten.</p>
+        ` : ""}
       </div>
     </div>
   `;
@@ -2143,17 +2308,39 @@ function handleFeatureClick(event) {
   } else if (action === "level-card") {
     levelCard(target.dataset.card);
     recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
+    saveState();
     render();
     refreshCardManagementFeature();
+    if (!els.appDialog.classList.contains("is-hidden")) showCardDetails(target.dataset.card);
   } else if (action === "level-card-small") {
     levelCard(target.dataset.card, 1);
     recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
+    saveState();
     render();
     refreshCardManagementFeature();
+    if (!els.appDialog.classList.contains("is-hidden")) showCardDetails(target.dataset.card);
+  } else if (action === "star-card") {
+    const card = state.deck.find((item) => item.id === target.dataset.card);
+    const info = starUpgradeInfo(card);
+    if (!card || !window.confirm(`${safeCardName(card)} auf ${info.nextStars} Sterne entwickeln? Verbrauch: ${info.duplicatesRequired} Duplikat(e).`)) return;
+    if (raiseCardStars(target.dataset.card)) {
+      recordGameEvent("card_star_upgraded", { id: `star-${target.dataset.card}-${Date.now()}` });
+      saveState();
+      render();
+      refreshCardManagementFeature();
+      showCardDetails(target.dataset.card);
+    }
   } else if (action === "pro-card") {
+    const card = state.deck.find((item) => item.id === target.dataset.card);
+    const partner = fusionPartnerFor(card);
+    if (!card || !partner || !window.confirm(`${safeCardName(card)} mit ${safeCardName(partner)} zur Evolution fusionieren? Die Partnerkarte wird verbraucht.`)) return;
     fuseCardToPro(target.dataset.card);
+    saveState();
     render();
     refreshCardManagementFeature();
+    showCardDetails(target.dataset.card);
+  } else if (action === "save-profile") {
+    saveProfileFromFeature();
   } else if (action === "buy-scout-ticket") {
     spendCoins(75);
     addGeneratedCard(state.teamClassIndex, state.teamClassIndex + 1);
@@ -2204,6 +2391,8 @@ function handleFeatureClick(event) {
   } else if (action === "open-profile") {
     closeFeaturePanel();
     navigateTo("profile");
+  } else if (action === "open-profile-login") {
+    openLoginPanel("Account wechseln oder PIN bearbeiten.");
   } else if (action === "open-admin") {
     closeFeaturePanel();
     navigateTo("admin");
@@ -3124,10 +3313,10 @@ function renderLoginPanel() {
     .map((user) => `<option value="${escapeAttr(user.id)}" ${user.id === state.activeUserId ? "selected" : ""}>${escapeHtml(user.name)} - ${escapeHtml(user.role)}${user.locked ? " - gesperrt" : ""}</option>`)
     .join("");
   const user = activeUser();
-  els.loginActiveName.textContent = user.name;
+  els.loginActiveName.textContent = userDisplayName(user);
   els.loginActiveRole.textContent = user.role;
-  els.loginActiveAvatar.textContent = userInitials(user.name);
-  els.profileNameInput.value = user.name;
+  els.loginActiveAvatar.textContent = userInitials(userDisplayName(user));
+  els.profileNameInput.value = userDisplayName(user);
   els.profileEmailInput.value = user.email;
   els.profilePinInput.value = user.pin;
   els.loginPin.value = "";
@@ -3165,7 +3354,9 @@ function handleLoginSubmit(event) {
 function handleProfileSubmit(event) {
   event.preventDefault();
   const user = activeUser();
-  user.name = (els.profileNameInput.value || user.name).trim();
+  const displayName = sanitizeProfileText(els.profileNameInput.value || userDisplayName(user), 32);
+  user.name = displayName;
+  user.profile = normalizeUserProfile({ ...user.profile, displayName, updatedAt: new Date().toISOString() }, user);
   user.email = normalizeEmail(els.profileEmailInput.value, user.name);
   user.pin = normalizePin(els.profilePinInput.value, user.role);
   els.loginStatus.textContent = "Profil gespeichert.";
@@ -3404,15 +3595,20 @@ function renderAdminPlayersModule() {
   const players = GAME_CARDS.slice(0, 80);
   return `
     <h3>Spieler-Verwaltung</h3>
-    <p>Spieler und Karten bleiben getrennt. Harte Loeschungen sind vorbereitet gesperrt; vorhandene Datensaetze werden deaktivierbar verwaltet.</p>
-    ${renderPhase9Table(["Spieler", "Verein", "Liga", "Position", "Bild", "Status"], players.map((card) => [
-      card.name,
+    <p>Spieler und Karten bleiben getrennt. Bilder werden lokal markiert; ohne Backend sind Uploads nur als gespeicherte Pfade/Metadaten vorbereitet.</p>
+    ${renderPhase9Table(["Spieler", "Verein", "Liga", "Position", "Bildstatus", "Typ", "Quelle", "Lizenz/Fallback"], players.map((card) => {
+      const image = resolvePlayerImage(card);
+      return [
+      safeCardName(card),
       getClub(card.club).name,
       card.league,
       card.pos,
-      card.image && card.image !== PLAYER_IMAGE_PLACEHOLDER ? "vorhanden" : "fehlt",
-      "aktiv",
-    ]))}
+      image.fallback ? "Silhouette aktiv" : "freigegeben",
+      card.imageType || (image.fallback ? "fallback" : "licensed"),
+      image.source,
+      card.imageLicense || image.reason || "lokale Metadaten",
+    ];
+    }))}
   `;
 }
 
@@ -3915,6 +4111,7 @@ function activeUser() {
     state.activeUserId = normalizeActiveUserId(state.activeUserId, state.adminUsers);
     user = state.adminUsers.find((item) => item.id === state.activeUserId) || state.adminUsers[0];
   }
+  user.profile = normalizeUserProfile(user.profile, user);
   return user;
 }
 
@@ -4017,14 +4214,20 @@ function verifyPin(user, pin) {
 
 function updateAccountUi() {
   const user = activeUser();
-  const initials = userInitials(user.name);
-  els.headerUserName.textContent = user.name;
-  els.headerUserRole.textContent = "LEVEL 25";
-  els.headerAvatar.textContent = initials;
-  els.adminHeaderName.textContent = user.name;
+  const displayName = userDisplayName(user);
+  const initials = userInitials(displayName);
+  const accountLevel = Math.max(1, Math.floor(profileStats().xp / 1000) + 1);
+  els.headerUserName.textContent = displayName;
+  els.headerUserRole.textContent = `LEVEL ${accountLevel}`;
+  if (user.profile.avatar) {
+    els.headerAvatar.innerHTML = `<img src="${escapeAttr(user.profile.avatar)}" alt="${escapeAttr(displayName)} Avatar" onerror="this.remove();this.parentElement.textContent='${escapeAttr(initials)}'" />`;
+  } else {
+    els.headerAvatar.textContent = initials;
+  }
+  els.adminHeaderName.textContent = displayName;
   els.adminHeaderRole.textContent = user.role;
   els.adminHeaderAvatar.textContent = initials;
-  els.loginActiveName.textContent = user.name;
+  els.loginActiveName.textContent = displayName;
   els.loginActiveRole.textContent = user.role;
   els.loginActiveAvatar.textContent = initials;
   els.openAdmin.hidden = !canOpenAdmin(user);
@@ -4961,6 +5164,7 @@ function createInitialState() {
     boosterInventory: [],
     boosterTransactions: [],
     boosterOpenings: [],
+    cardProgressTransactions: [],
     freePacks: {},
     rewardPools: defaultRewardPools(),
     adminData: createDefaultAdminData(),
@@ -5010,6 +5214,7 @@ function normalizeState(saved) {
     boosterInventory: normalizeBoosterInventory(saved.boosterInventory),
     boosterTransactions: normalizeBoosterTransactions(saved.boosterTransactions),
     boosterOpenings: normalizeBoosterOpenings(saved.boosterOpenings),
+    cardProgressTransactions: Array.isArray(saved.cardProgressTransactions) ? saved.cardProgressTransactions.slice(0, 80) : fresh.cardProgressTransactions,
     freePacks: normalizeFreePacks(saved.freePacks),
     rewardPools: normalizeRewardPools(saved.rewardPools),
     adminData: normalizeAdminData(saved.adminData),
@@ -6072,7 +6277,59 @@ function normalizeAdminUser(user) {
     pin: String(user.pin || defaultPinForRole(role)),
     locked: Boolean(user.locked),
     wallet: normalizeWallet(user.wallet),
+    profile: normalizeUserProfile(user.profile, { id, name: ownerName || user.name, role }),
   };
+}
+
+function normalizeUserProfile(profile = {}, user = {}) {
+  const now = new Date().toISOString();
+  const displayName = sanitizeProfileText(profile.displayName || user.name || "GoernaldoBerlin", 32) || "GoernaldoBerlin";
+  const formation = normalizeFormationKey(profile.preferredFormation || DEFAULT_FORMATION);
+  return {
+    profileId: profile.profileId || `profile-${user.id || "local"}`,
+    userId: profile.userId || user.id || "",
+    displayName,
+    avatar: sanitizeAvatar(profile.avatar || ""),
+    favoriteClubId: profile.favoriteClubId || "Werder Bremen",
+    favoriteNationId: profile.favoriteNationId || "Deutschland",
+    bio: sanitizeProfileText(profile.bio || "", 180),
+    motto: sanitizeProfileText(profile.motto || "", 72),
+    language: ["de", "en"].includes(profile.language) ? profile.language : "de",
+    visibility: ["private", "friends", "public"].includes(profile.visibility) ? profile.visibility : "private",
+    preferences: {
+      sound: profile.preferences?.sound !== false,
+      music: profile.preferences?.music !== false,
+      animations: profile.preferences?.animations !== false,
+      notifications: profile.preferences?.notifications !== false,
+    },
+    preferredFormation: formation,
+    createdAt: profile.createdAt || now,
+    updatedAt: profile.updatedAt || now,
+  };
+}
+
+function sanitizeProfileText(value, maxLength) {
+  return String(value || "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function sanitizeAvatar(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (/^(https?:|data:image\/|assets\/)/.test(text)) return text.slice(0, 240);
+  return "";
+}
+
+function userDisplayName(user = activeUser()) {
+  user.profile = normalizeUserProfile(user.profile, user);
+  return user.profile.displayName || user.name;
+}
+
+function userAvatarMarkup(user = activeUser(), className = "admin-avatar") {
+  user.profile = normalizeUserProfile(user.profile, user);
+  const avatar = user.profile.avatar;
+  return avatar
+    ? `<img class="${className}" src="${escapeAttr(avatar)}" alt="${escapeAttr(userDisplayName(user))} Avatar" onerror="this.replaceWith(document.createTextNode('${escapeAttr(userInitials(userDisplayName(user)))}'))" />`
+    : `<div class="${className}">${escapeHtml(userInitials(userDisplayName(user)))}</div>`;
 }
 
 function normalizeAdminRole(role) {
@@ -8114,12 +8371,26 @@ function playerPhoto(card) {
   return resolvePlayerImage(card).src;
 }
 
+function safeCardName(card) {
+  return String(card?.name || card?.playerName || "").trim() || "Unbekannter Spieler";
+}
+
+function isApprovedImage(card, kind) {
+  if (!card || card.forceSilhouette) return false;
+  const type = String(card.imageType || "").toLowerCase();
+  if (PLAYER_IMAGE_BLOCKED_TYPES.includes(type)) return false;
+  if (card.imageApproved === false || ["rejected", "blocked", "unsuitable"].includes(card.imageStatus)) return false;
+  if (kind === "manual") return Boolean(card.imageApproved || card.imageManuallyVerified || card.imageStatus === "approved");
+  if (kind === "licensed") return Boolean(card.imageApproved || card.imageManuallyVerified || card.imageLicense || ["cached", "remote_allowed", "approved"].includes(card.imageStatus));
+  return false;
+}
+
 function resolvePlayerImage(card) {
-  if (card.manualImagePath) return { src: card.manualImagePath, source: "manual" };
-  if (card.localImagePath && card.imageStatus === "cached") return { src: card.localImagePath, source: "cache" };
-  if (card.imageUrl && card.imageStatus === "remote_allowed") return { src: card.imageUrl, source: "remote" };
-  if (card.photo) return { src: card.photo, source: "legacy" };
-  return { src: PLAYER_IMAGE_PLACEHOLDER, source: "placeholder" };
+  if (card?.manualImagePath && isApprovedImage(card, "manual")) return { src: card.manualImagePath, source: "manual", fallback: false };
+  if (card?.localImagePath && isApprovedImage(card, "licensed")) return { src: card.localImagePath, source: "licensed-cache", fallback: false };
+  if (card?.imageUrl && isApprovedImage(card, "licensed")) return { src: card.imageUrl, source: "licensed-remote", fallback: false };
+  if (card?.photo && isApprovedImage({ ...card, imageType: card.imageType || "licensed" }, "licensed")) return { src: card.photo, source: "legacy-approved", fallback: false };
+  return { src: PLAYER_IMAGE_SILHOUETTE, source: "silhouette", fallback: true, reason: card?.imageFallbackReason || "Kein freigegebenes oder lizenziertes Spielerbild vorhanden." };
 }
 
 function renderPlayerListPhoto(card) {
@@ -8153,15 +8424,21 @@ function normalizeCard(card) {
     imageStatus: normalized.imageStatus || "placeholder",
     imageUpdatedAt: normalized.imageUpdatedAt || "",
     imageLicense: normalized.imageLicense || "",
+    imageType: normalized.imageType || (normalized.imageLicense ? "licensed" : ""),
+    imageApproved: normalized.imageApproved === false ? false : normalized.imageApproved === true ? true : "",
+    forceSilhouette: Boolean(normalized.forceSilhouette),
+    imageFallbackReason: normalized.imageFallbackReason || "",
     imageAuthor: normalized.imageAuthor || "",
     imageAttributionUrl: normalized.imageAttributionUrl || "",
     imageMatchConfidence: Number(normalized.imageMatchConfidence) || 0,
     imageManuallyVerified: Boolean(normalized.imageManuallyVerified),
     sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
     series: normalizeCardSeries(normalized.series),
-    level: normalizeCardLevel(card.level),
-    stars: Math.max(1, Number(card.stars) || CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) || 1),
-    xp: Math.max(0, Number(card.xp) || 0),
+    level: normalizeCardLevel(card.currentLevel ?? card.level),
+    stars: normalizeCardStars(card.currentStars ?? card.stars ?? CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) ?? 1),
+    xp: Math.max(0, Number(card.currentXp ?? card.xp) || 0),
+    totalXp: Math.max(0, Number(card.totalXp) || Number(card.xp) || 0),
+    lastLeveledAt: normalized.lastLeveledAt || "",
     status: normalized.status || "active",
     owned: true,
     ownedCount: Math.max(1, Number(normalized.ownedCount) || 1),
@@ -8170,7 +8447,7 @@ function normalizeCard(card) {
     proStars: normalizeProStars(card.proStars),
     proQuality: normalizeProStars(card.proStars) ? normalizeProQuality(card.proQuality) : "",
   };
-  return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating }) : base;
+  return applyCardProgressFields(CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating }) : base);
 }
 
 function normalizeClassIndex(value) {
@@ -8209,12 +8486,74 @@ function normalizeCardLevel(level) {
   return clamp(Math.round(Number(level) || 1), 1, CARD_MAX_LEVEL);
 }
 
+function normalizeCardStars(stars) {
+  return clamp(Math.round(Number(stars) || 1), 1, CARD_PROGRESSION.maxStars);
+}
+
+function xpForNextLevel(level) {
+  const normalized = normalizeCardLevel(level);
+  if (normalized >= CARD_MAX_LEVEL) return 0;
+  return CARD_PROGRESSION.xpBase + (normalized - 1) * CARD_PROGRESSION.xpStep;
+}
+
+function cardStars(card) {
+  card.stars = normalizeCardStars(card.currentStars ?? card.stars);
+  card.currentStars = card.stars;
+  return card.stars;
+}
+
+function cardLevelCap(card) {
+  return CARD_PROGRESSION.starLevelCaps[cardStars(card)] || CARD_MAX_LEVEL;
+}
+
+function duplicateCardsFor(card) {
+  if (!card) return [];
+  const key = cardFusionBaseKey(card);
+  return state.deck.filter((candidate) => candidate.id !== card.id && cardFusionBaseKey(candidate) === key);
+}
+
+function starUpgradeInfo(card) {
+  if (!card) return { canUpgrade: false, atMax: true, duplicatesRequired: 0, availableDuplicates: 0 };
+  const stars = cardStars(card);
+  const availableDuplicates = duplicateCardsFor(card).length;
+  const duplicatesRequired = CARD_PROGRESSION.starDuplicateCosts[stars] || 0;
+  return {
+    canUpgrade: stars < CARD_PROGRESSION.maxStars && availableDuplicates >= duplicatesRequired,
+    atMax: stars >= CARD_PROGRESSION.maxStars,
+    stars,
+    nextStars: Math.min(CARD_PROGRESSION.maxStars, stars + 1),
+    duplicatesRequired,
+    availableDuplicates,
+    materialsRequired: [],
+  };
+}
+
+function applyCardProgressFields(card) {
+  const level = normalizeCardLevel(card.currentLevel ?? card.level);
+  const stars = normalizeCardStars(card.currentStars ?? card.stars);
+  card.level = level;
+  card.currentLevel = level;
+  card.stars = stars;
+  card.currentStars = stars;
+  card.maxStars = CARD_PROGRESSION.maxStars;
+  card.maxLevel = CARD_MAX_LEVEL;
+  card.levelCap = CARD_PROGRESSION.starLevelCaps[stars] || CARD_MAX_LEVEL;
+  card.currentXp = Math.max(0, Number(card.currentXp ?? card.xp) || 0);
+  card.xp = card.currentXp;
+  card.totalXp = Math.max(0, Number(card.totalXp) || card.currentXp);
+  card.xpToNextLevel = level >= CARD_MAX_LEVEL || level >= card.levelCap ? 0 : xpForNextLevel(level);
+  card.starProgress = Math.max(0, Number(card.starProgress) || 0);
+  card.duplicatesRequired = CARD_PROGRESSION.starDuplicateCosts[stars] || 0;
+  card.materialsRequired = Array.isArray(card.materialsRequired) ? card.materialsRequired : [];
+  return card;
+}
+
 function normalizeProStars(stars) {
   return clamp(Math.round(Number(stars) || 0), 0, PRO_MAX_STARS);
 }
 
 function cardLevel(card) {
-  card.level = normalizeCardLevel(card.level);
+  applyCardProgressFields(card);
   return card.level;
 }
 
@@ -8244,12 +8583,80 @@ function fusionPartnerFor(card) {
   )) || null;
 }
 
+function calculateCardProgression(card, level = cardLevel(card), stars = cardStars(card)) {
+  const safeLevel = normalizeCardLevel(level);
+  const safeStars = normalizeCardStars(stars);
+  const levelBonus = Math.floor((safeLevel - 1) / 10);
+  const starBonus = (safeStars - 1) * 2;
+  const quality = proStars(card) ? normalizeProQuality(card.proQuality) : "";
+  const proBonus = proStars(card) * (quality === "bronze" ? 1 : quality === "silver" ? 2 : 4);
+  return {
+    level: safeLevel,
+    stars: safeStars,
+    statBonus: levelBonus + starBonus + proBonus + cardSeriesBonus(card),
+    levelCap: CARD_PROGRESSION.starLevelCaps[safeStars] || CARD_MAX_LEVEL,
+  };
+}
+
+function addCardXp(card, xpAmount) {
+  applyCardProgressFields(card);
+  const xpGain = Math.max(0, Math.round(Number(xpAmount) || 0));
+  card.totalXp += xpGain;
+  card.currentXp += xpGain;
+  const beforeLevel = card.currentLevel;
+  const cap = cardLevelCap(card);
+  while (card.currentLevel < cap) {
+    const needed = xpForNextLevel(card.currentLevel);
+    if (!needed || card.currentXp < needed) break;
+    card.currentXp -= needed;
+    card.currentLevel += 1;
+  }
+  card.level = card.currentLevel;
+  card.xp = card.currentXp;
+  card.lastLeveledAt = new Date().toISOString();
+  applyCardProgressFields(card);
+  return { beforeLevel, afterLevel: card.currentLevel, cap, capped: card.currentLevel >= cap && cap < CARD_MAX_LEVEL };
+}
+
 function levelCard(cardId, amount = 10) {
   const card = state.deck.find((item) => item.id === cardId);
   if (!card) return;
-  const before = cardLevel(card);
-  card.level = Math.min(CARD_MAX_LEVEL, before + Math.max(1, Number(amount) || 10));
-  state.log = [`${card.name}: Level ${before} -> ${card.level}.`, ...state.log].slice(0, 8);
+  const xpGain = amount === 1 ? xpForNextLevel(cardLevel(card)) : CARD_PROGRESSION.levelButtonXp;
+  const result = addCardXp(card, xpGain);
+  const capHint = result.capped ? " Sternaufstieg erforderlich." : "";
+  state.cardProgressTransactions = [
+    { id: `card-xp-${card.id}-${Date.now()}`, type: "level", cardId: card.id, xp: xpGain, beforeLevel: result.beforeLevel, afterLevel: result.afterLevel, time: new Date().toISOString() },
+    ...(state.cardProgressTransactions || []),
+  ].slice(0, 80);
+  state.log = [`${safeCardName(card)}: Level ${result.beforeLevel} -> ${result.afterLevel}.${capHint}`, ...state.log].slice(0, 8);
+}
+
+function raiseCardStars(cardId) {
+  const card = state.deck.find((item) => item.id === cardId);
+  if (!card) return false;
+  const info = starUpgradeInfo(card);
+  if (info.atMax) {
+    showToast("Diese Karte hat bereits 5 Sterne.", "error");
+    return false;
+  }
+  if (!info.canUpgrade) {
+    showToast(`Es fehlen Duplikate: ${info.availableDuplicates}/${info.duplicatesRequired}.`, "error");
+    return false;
+  }
+  const consumed = duplicateCardsFor(card).slice(0, info.duplicatesRequired);
+  const before = cardStars(card);
+  card.stars = info.nextStars;
+  card.currentStars = info.nextStars;
+  applyCardProgressFields(card);
+  const consumedIds = consumed.map((item) => item.id);
+  state.deck = state.deck.filter((item) => !consumedIds.includes(item.id));
+  state.selected = state.selected.filter((id) => !consumedIds.includes(id));
+  state.cardProgressTransactions = [
+    { id: `card-star-${card.id}-${Date.now()}`, type: "star", cardId: card.id, consumedIds, beforeStars: before, afterStars: info.nextStars, time: new Date().toISOString() },
+    ...(state.cardProgressTransactions || []),
+  ].slice(0, 80);
+  state.log = [`${safeCardName(card)}: ${before} -> ${info.nextStars} Sterne, Levelgrenze ${card.levelCap}.`, ...state.log].slice(0, 8);
+  return true;
 }
 
 function fuseCardToPro(cardId) {
@@ -8265,12 +8672,19 @@ function fuseCardToPro(cardId) {
   card.proStars = nextStars;
   card.proQuality = quality;
   card.level = 1;
+  card.currentLevel = 1;
+  card.currentXp = 0;
+  card.xp = 0;
   state.deck = state.deck.filter((item) => item.id !== consumed.id);
   if (state.selected.includes(consumed.id) && !state.selected.includes(card.id)) {
     state.selected = [card.id, ...state.selected].slice(0, MATCH_CARD_COUNT);
   }
   state.selected = state.selected.filter((id) => id !== consumed.id);
-  state.log = [`Evolution: ${card.name} erhaelt ${proStarsText(nextStars, quality)} und startet wieder bei Level 1.`, ...state.log].slice(0, 8);
+  state.cardProgressTransactions = [
+    { id: `card-pro-${card.id}-${Date.now()}`, type: "pro", cardId: card.id, consumedIds: [consumed.id], proStars: nextStars, quality, time: new Date().toISOString() },
+    ...(state.cardProgressTransactions || []),
+  ].slice(0, 80);
+  state.log = [`Evolution: ${safeCardName(card)} erhaelt ${proStarsText(nextStars, quality)} und startet wieder bei Level 1.`, ...state.log].slice(0, 8);
 }
 
 function goldStars(count) {
@@ -8307,10 +8721,7 @@ function proBadge(card) {
 }
 
 function cardProgressBonus(card) {
-  const levelBonus = Math.floor((cardLevel(card) - 1) / 20);
-  const quality = proStars(card) ? normalizeProQuality(card.proQuality) : "";
-  const proBonus = proStars(card) * (quality === "bronze" ? 1 : quality === "silver" ? 2 : 4);
-  return levelBonus + proBonus + cardSeriesBonus(card);
+  return calculateCardProgression(card).statBonus;
 }
 
 function renderHeaderClubCrest() {

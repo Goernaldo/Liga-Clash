@@ -1,7 +1,7 @@
 # Liga Clash - League System
 
-Stand: 2026-07-11  
-Status: Phase 8 umgesetzt und getestet
+Stand: 2026-07-12  
+Status: Phase 8 umgesetzt, Kernfunktionen nachgebessert und getestet
 
 ## Dateien
 
@@ -24,14 +24,14 @@ Betroffene Hauptfunktionen:
 
 ## Ligastufen
 
-| Liga | Teilnehmer | Aufstieg | Abstieg |
-| --- | ---: | ---: | ---: |
-| 1. Liga | 18 | 0 | 3 |
-| 2. Liga | 18 | 3 | 3 |
-| 3. Liga | 20 | 3 | 4 |
-| Unterste Liga | 25 | 4 | 0 |
+| Liga | Kurz | Stufe | Teilnehmer | Aufstieg | Abstieg |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1. Liga | L1 | 1 | 18 | 0 | 3 |
+| 2. Liga | L2 | 2 | 18 | 3 | 3 |
+| 3. Liga | L3 | 3 | 20 | 3 | 4 |
+| Rookie-Liga | RL | 4 | 25 | 4 | 0 |
 
-Die Konfiguration liegt zentral in `LEAGUE_PHASE_CONFIG`.
+Die Konfiguration liegt zentral in `LEAGUE_PHASE_CONFIG`. Jede Liga besitzt zusaetzlich Anzeige-Metadaten wie `shortName`, `level`, `tier`, `logo`, `description`, `order`, `active` und `rewards`.
 
 ## Ligawoche
 
@@ -59,6 +59,9 @@ Felder:
 - CPU-Gegner fuellen die Liga bis zur konfigurierten Teilnehmerzahl.
 - Pro Woche gibt es 10 Spieler-Ligaspiele.
 - CPU-vs-CPU-Spiele werden gespeichert und nicht bei jedem Laden neu berechnet.
+- Teilnehmer besitzen sichtbare Metadaten wie `displayName`, `deckStrength`, `formation`, `difficulty`, `avatar`/`logo` und Tabellenwerte.
+- Die Spieleroberflaeche zeigt Teilnehmerstatus, Deckstaerke, Formation und Aufstiegs-/Abstiegszone.
+- Das Admin Center zeigt fuer die aktuelle Woche Teilnehmer, CPU-Gegner, freie Plaetze und eine Spielplan-Vorschau.
 
 ## Tabelle
 
@@ -92,3 +95,4 @@ Regeln:
 - Keine serverseitige Fairness-Pruefung.
 - Wochenlogik nutzt Clientzeit.
 - Wochenabschluss ist lokal und manuell ueber UI ausloesbar, sobald die Ligaspiele vollstaendig sind.
+- Teilnehmer der aktiven Ligawoche werden im Admin Center aktuell nur angezeigt. Direktes Bearbeiten aktiver Wochen ist absichtlich geschuetzt, damit keine laufende Tabelle beschaedigt wird.

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 640" role="img" aria-label="Neutrale Fussballspieler-Silhouette">
+  <defs>
+    <linearGradient id="body" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#253238"/>
+      <stop offset="0.48" stop-color="#11191d"/>
+      <stop offset="1" stop-color="#05080a"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" x2="1">
+      <stop offset="0" stop-color="#71ff2b" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#d9ffe6" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#19b7ff" stop-opacity="0.65"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.38 0 0 0 0 1 0 0 0 0 0.12 0 0 0 .7 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <path d="M104 610c10-118 24-193 42-225 19-32 54-56 105-72h10c51 16 86 40 105 72 18 32 32 107 42 225H104Z" fill="url(#body)" filter="url(#glow)"/>
+    <path d="M168 608c6-72 14-122 24-151 12-36 33-61 64-75 31 14 52 39 64 75 10 29 18 79 24 151" stroke="url(#rim)" stroke-width="5" opacity=".78"/>
+    <path d="M256 292c-55 0-98-46-98-105 0-61 43-107 98-107s98 46 98 107c0 59-43 105-98 105Z" fill="url(#body)" filter="url(#glow)"/>
+    <path d="M186 185c8-49 36-78 70-78s62 29 70 78" stroke="url(#rim)" stroke-width="5" opacity=".7"/>
+    <path d="M135 422c42 22 82 33 121 33s79-11 121-33" stroke="#9bff72" stroke-width="4" opacity=".32"/>
+    <path d="M109 610h294" stroke="#e7f5f0" stroke-width="3" opacity=".18"/>
+  </g>
+</svg>

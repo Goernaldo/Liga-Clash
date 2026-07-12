@@ -100,3 +100,7 @@ Noch nicht vollstaendig:
 - vollstaendige Tabelle mit Auf-/Abstieg ueber mehrere Wochen
 - Belohnungen fuer Wochenplatzierung
 - Online-Ranglisten
+
+## Aktualisierung 12.07.2026
+
+Die aktive Phase-8-Liga nutzt inzwischen die zentrale `LEAGUE_PHASE_CONFIG` mit `1. Liga`, `2. Liga`, `3. Liga` und `Rookie-Liga`. Die Spieleransicht zeigt Teilnehmerstatus, Deckstaerke, Formation und Zonen. Das Admin Center zeigt die aktuelle Ligawoche mit Teilnehmern, CPU-Gegnern, freien Plaetzen und Spielplan-Vorschau. Details stehen im Root-Dokument `LEAGUE_SYSTEM.md`.
