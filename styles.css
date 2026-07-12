@@ -587,6 +587,17 @@ button {
   letter-spacing: 0.22em;
 }
 
+.overlay-logo.has-image-logo {
+  padding-bottom: 10px;
+}
+
+.overlay-logo.has-image-logo img {
+  width: min(360px, 28vw);
+  max-height: 92px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px rgba(118, 255, 72, 0.34));
+}
+
 .wallet {
   justify-content: end;
   gap: 10px;
@@ -651,11 +662,11 @@ button {
 .menu-tile,
 .play-tile,
 .daily-bonus {
-  --tile-shape: polygon(4% 0, 100% 0, 100% 88%, 96% 100%, 0 100%, 0 12%);
+  --tile-shape: polygon(3% 0, 97% 0, 100% 8%, 100% 92%, 97% 100%, 3% 100%, 0 92%, 0 8%);
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(117, 255, 72, 0.54);
-  border-radius: 0;
+  border-radius: 8px;
   background: rgba(5, 10, 8, 0.86);
   box-shadow: inset 0 0 46px rgba(99, 255, 63, 0.08), 0 18px 44px rgba(0, 0, 0, 0.38);
   text-align: left;
@@ -690,7 +701,10 @@ button {
 .home-overlay .menu-tile::after,
 .home-overlay .play-tile::after,
 .home-overlay .daily-bonus::after {
-  display: none;
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
 }
 
 .home-overlay .menu-tile::before,
@@ -1184,6 +1198,75 @@ button {
   box-shadow: 0 0 24px rgba(92, 255, 58, 0.12), 0 16px 36px rgba(0, 0, 0, 0.35);
 }
 
+.project-status-strip {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 290px);
+  gap: 16px;
+  align-items: center;
+  width: min(1452px, 100%);
+  margin: 16px auto 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(120, 255, 73, 0.28);
+  background:
+    radial-gradient(circle at 12% 50%, rgba(120, 255, 73, 0.16), transparent 44%),
+    linear-gradient(90deg, rgba(4, 10, 9, 0.96), rgba(10, 17, 18, 0.78));
+  color: #f4fff0;
+  box-shadow: 0 0 28px rgba(92, 255, 58, 0.14), 0 16px 38px rgba(0, 0, 0, 0.38);
+}
+
+.project-status-strip strong,
+.project-status-strip span {
+  display: block;
+}
+
+.project-status-strip strong {
+  color: #93ff45;
+  font-size: 0.88rem;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.project-status-strip span {
+  margin-top: 4px;
+  color: #aeb8b6;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.project-status-meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  gap: 10px;
+  align-items: center;
+}
+
+.project-status-meter i {
+  display: block;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.11);
+}
+
+.project-status-meter i::before {
+  content: "";
+  display: block;
+  width: var(--project-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #55d90f, #d9ff60);
+  box-shadow: 0 0 14px rgba(118, 255, 72, 0.42);
+}
+
+.project-status-meter b {
+  color: #d8ff76;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
 .menu-event-strip > div:first-child strong,
 .menu-event-strip > div:first-child span {
   display: block;
@@ -1318,6 +1401,11 @@ button {
   display: none;
 }
 
+.quick-icons .admin-shortcut {
+  font-size: 0.74rem;
+  letter-spacing: 0;
+}
+
 .bottom-nav span {
   font-size: 0.82rem;
 }
@@ -1401,6 +1489,39 @@ button {
 
 .daily-bonus b {
   display: none;
+}
+
+.platzpass-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  background:
+    radial-gradient(circle at 82% 24%, rgba(255, 214, 72, 0.2), transparent 34%),
+    linear-gradient(135deg, rgba(109, 255, 64, 0.12), rgba(5, 10, 12, 0.94));
+}
+
+.platzpass-rewards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.platzpass-rewards article {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(118, 255, 72, 0.22);
+  border-radius: 8px;
+  background: rgba(5, 10, 12, 0.72);
+}
+
+.premium-locked {
+  color: rgba(235, 242, 238, 0.48);
+}
+
+.premium-open {
+  color: #ffd95a;
 }
 
 .daily-bonus.claimed {
@@ -1516,6 +1637,10 @@ button {
   padding: 22px;
 }
 
+.app-dialog.card-detail-dialog .app-dialog-window {
+  width: min(1040px, calc(100vw - 32px));
+}
+
 .app-dialog-window h2 {
   margin: 0 0 8px;
 }
@@ -1533,6 +1658,16 @@ button {
 @keyframes hudSpin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes battleStripPulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035), 0 0 18px rgba(118, 255, 72, 0.1);
+  }
+  50% {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.055), 0 0 30px rgba(118, 255, 72, 0.22);
   }
 }
 
@@ -1796,8 +1931,9 @@ button {
   display: grid;
   grid-template-columns: 252px minmax(0, 1fr);
   width: 100%;
-  max-height: none;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -1812,7 +1948,9 @@ button {
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 20px;
-  min-height: 100vh;
+  min-height: 0;
+  max-height: 100vh;
+  overflow: hidden;
   padding: 16px 10px 24px;
   border-right: 1px solid rgba(120, 255, 57, 0.14);
   background:
@@ -1871,6 +2009,11 @@ button {
   display: grid;
   align-content: start;
   gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-color: rgba(118, 255, 50, 0.55) rgba(255, 255, 255, 0.06);
+  scrollbar-width: thin;
 }
 
 .admin-nav button,
@@ -3600,7 +3743,7 @@ button {
 }
 
 .pack-reveal-panel {
-  width: min(1180px, 100%);
+  width: min(1040px, 100%);
   max-height: min(760px, calc(100vh - 48px));
   overflow: auto;
   padding: 18px;
@@ -3645,8 +3788,9 @@ button {
 
 .pack-reveal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 168px));
+  justify-content: center;
+  gap: 12px;
 }
 
 .pack-reveal-card {
@@ -3657,10 +3801,11 @@ button {
   position: relative;
   display: grid;
   align-content: end;
-  min-height: 292px;
+  width: min(100%, 168px);
+  min-height: 254px;
   aspect-ratio: 250 / 430;
   overflow: hidden;
-  padding: 44px 14px 24px;
+  padding: 38px 10px 18px;
   border-radius: 4px;
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.42)),
@@ -3688,12 +3833,12 @@ button {
 .pack-reveal-card-top strong {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   background: var(--gold);
   color: #17140e;
-  font-size: 1.16rem;
+  font-size: 1rem;
   font-weight: 1000;
 }
 
@@ -3709,8 +3854,8 @@ button {
 }
 
 .pack-reveal-card-top img {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
   padding: 4px;
   border-radius: 8px;
@@ -3749,7 +3894,7 @@ button {
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.5);
   color: #f7f4ea;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 950;
 }
 
@@ -4291,6 +4436,11 @@ button {
   gap: 12px;
 }
 
+.fusion-card-grid {
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  align-items: start;
+}
+
 .mini-card,
 .player-card {
   --card-tier-color: var(--gold);
@@ -4323,6 +4473,16 @@ button {
 .mini-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.42), 0 0 24px color-mix(in srgb, var(--card-tier-color) 34%, transparent);
+}
+
+.mini-card.is-clickable {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mini-card.is-clickable:focus-visible {
+  outline: 2px solid var(--card-tier-color);
+  outline-offset: 3px;
 }
 
 .mini-card.selected {
@@ -4635,18 +4795,114 @@ h2 {
 }
 
 .pitch {
+  --field-art: url("assets/fields/stadium.svg");
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  min-height: 360px;
+  min-height: 430px;
   overflow: hidden;
   padding: 18px;
   border: 2px solid rgba(243, 244, 239, 0.72);
   border-radius: 8px;
   background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.2)),
+    var(--field-art),
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 9%, transparent 9% 18%),
     linear-gradient(135deg, var(--grass), var(--grass-2));
+  background-size: 100% 100%, cover, auto, auto;
+  background-position: center;
+}
+
+.pitch[data-field-theme="hall"] {
+  --field-art: url("assets/fields/hall.svg");
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.2)),
+    var(--field-art),
+    radial-gradient(circle at 50% 0, rgba(255, 255, 255, 0.18), transparent 30%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 11%, transparent 11% 22%),
+    linear-gradient(135deg, #12333a, #102329);
+  background-size: 100% 100%, cover, auto, auto, auto;
+}
+
+.pitch[data-field-theme="small"] {
+  --field-art: url("assets/fields/small.svg");
+  border-color: rgba(182, 255, 126, 0.8);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.16)),
+    var(--field-art),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.055) 0 8%, transparent 8% 16%),
+    linear-gradient(135deg, #205d28, #11391b);
+  background-size: 100% 100%, cover, auto, auto;
+}
+
+.pitch[data-field-theme="roof"] {
+  --field-art: url("assets/fields/roof.svg");
+  background:
+    var(--field-art),
+    linear-gradient(180deg, rgba(20, 24, 30, 0.56), transparent 24%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 10%, transparent 10% 20%),
+    linear-gradient(135deg, #22313a, #142028);
+  background-size: cover, auto, auto, auto;
+}
+
+.pitch[data-field-theme="night"] {
+  --field-art: url("assets/fields/night.svg");
+  background:
+    var(--field-art),
+    radial-gradient(circle at 20% 0, rgba(109, 210, 255, 0.22), transparent 26%),
+    radial-gradient(circle at 82% 8%, rgba(128, 255, 70, 0.18), transparent 24%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 9%, transparent 9% 18%),
+    linear-gradient(135deg, #061609, #071923);
+  background-size: cover, auto, auto, auto, auto;
+}
+
+.pitch-battle-strip {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(118, 255, 72, 0.26);
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(87, 255, 44, 0.1), rgba(2, 8, 10, 0.92)),
+    rgba(3, 8, 10, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035), 0 0 24px rgba(118, 255, 72, 0.12);
+  animation: battleStripPulse 2.8s ease-in-out infinite;
+}
+
+.field-battle-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(3, 8, 10, 0.72);
+  color: #ecf5ee;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.field-battle-head span {
+  color: var(--gold);
+}
+
+.field-battle-board {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  margin-top: 0;
+  pointer-events: auto;
+}
+
+.field-battle-board button,
+.field-battle-board .manual-card-choice {
+  pointer-events: auto;
 }
 
 .pitch-line.center {
@@ -4669,10 +4925,103 @@ h2 {
 
 .zone {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
   align-content: space-between;
-  min-height: 324px;
+  min-height: 246px;
+  opacity: 0.92;
+}
+
+.field-team-side {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  bottom: 14px;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  width: min(128px, 20%);
+  pointer-events: none;
+}
+
+.field-team-home {
+  left: 14px;
+}
+
+.field-team-away {
+  right: 14px;
+}
+
+.field-team-side > span {
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(5, 10, 12, 0.72);
+  color: #eaffdf;
+  font-size: 0.66rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.field-team-away > span {
+  justify-self: end;
+}
+
+.field-team-cards {
+  display: grid;
+  gap: 6px;
+}
+
+.field-team-card {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  background: rgba(4, 9, 12, 0.68);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.26);
+}
+
+.field-team-card.home {
+  border-color: rgba(118, 255, 72, 0.28);
+}
+
+.field-team-card.away {
+  border-color: rgba(76, 190, 255, 0.28);
+}
+
+.field-team-card.is-hidden-card {
+  grid-template-columns: 1fr auto;
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0 2px, transparent 2px 9px),
+    rgba(4, 9, 12, 0.78);
+  color: rgba(236, 255, 228, 0.76);
+}
+
+.field-team-card img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.field-team-card b,
+.field-team-card em {
+  color: #f4fff0;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.field-team-empty {
+  padding: 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.42);
+  color: rgba(236, 255, 228, 0.72);
+  font-size: 0.68rem;
+  font-weight: 900;
 }
 
 .zone > span {
@@ -4852,6 +5201,22 @@ h2 {
   background: rgba(7, 12, 13, 0.52);
 }
 
+.field-battle-board .battle-round {
+  max-height: 100%;
+  overflow: auto;
+  backdrop-filter: blur(3px);
+}
+
+.field-battle-board .battle-round:not(:last-of-type) {
+  display: none;
+}
+
+.field-battle-board .manual-pick h3,
+.field-battle-board .manual-pick p,
+.field-battle-board .manual-pick .battle-explain {
+  display: block;
+}
+
 .battle-round.won {
   border-color: rgba(113, 255, 72, 0.42);
   box-shadow: inset 0 0 18px rgba(84, 210, 42, 0.08);
@@ -4898,8 +5263,14 @@ h2 {
 
 .manual-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
+}
+
+.field-battle-board .manual-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  max-height: 250px;
+  overflow: auto;
 }
 
 .manual-card-choice {
@@ -5076,6 +5447,62 @@ h2 {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: rgba(16, 22, 23, 0.7);
+}
+
+.battle-mini-card {
+  position: relative;
+  display: grid;
+  align-content: end;
+  width: min(170px, 100%);
+  min-height: 292px;
+  aspect-ratio: 250 / 430;
+  justify-self: center;
+  overflow: hidden;
+  padding: 40px 10px 18px;
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.72)),
+    url("assets/cards/player-card-classes.png");
+  background-size: 100% 100%, 500% 300%;
+  background-position: center, var(--card-bg-x) var(--card-bg-y);
+}
+
+.battle-mini-photo {
+  position: absolute;
+  inset: 46px 10px 78px;
+  width: calc(100% - 20px);
+  height: calc(100% - 124px);
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.86;
+  -webkit-mask-image: linear-gradient(180deg, #000 0 68%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0 68%, transparent 100%);
+}
+
+.battle-mini-card b,
+.battle-mini-card small,
+.battle-mini-card strong {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+.battle-mini-card b {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.battle-mini-card strong {
+  display: block;
+  min-height: 36px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.62);
+  text-align: center;
+  white-space: normal;
 }
 
 .battle-side small {
@@ -5335,15 +5762,22 @@ h2 {
 }
 
 .card-name {
-  margin: 138px 0 8px;
+  margin: 126px 0 8px;
   padding: 6px 8px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.48);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.58));
   color: #f7f5ed;
-  font-size: 0.98rem;
+  font-size: clamp(0.74rem, 0.9vw, 0.98rem);
   font-weight: 950;
+  line-height: 1.05;
   text-align: center;
+  overflow-wrap: anywhere;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .stats {
@@ -5404,22 +5838,142 @@ h2 {
 
 .card-detail-layout {
   display: grid;
-  grid-template-columns: minmax(190px, 260px) minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: minmax(280px, 370px) minmax(360px, 1fr);
+  gap: 22px;
   align-items: start;
-  max-width: min(860px, calc(100vw - 54px));
+  max-width: min(990px, calc(100vw - 54px));
 }
 
 .card-detail-preview .mini-card {
   width: 100%;
-  max-width: 260px;
+  max-width: 360px;
   margin: 0 auto;
 }
 
 .card-detail-data {
   display: grid;
   gap: 12px;
+  min-width: 320px;
+}
+
+.card-detail-list {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.42fr) minmax(190px, 1fr);
+  gap: 7px 12px;
+}
+
+.card-detail-list dt {
+  color: #9fb1ae;
+  font-weight: 900;
+}
+
+.card-detail-list dd {
   min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #f4fff0;
+  font-weight: 900;
+}
+
+.card-detail-list dd img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.card-detail-xp {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.card-detail-xp span {
+  display: block;
+  width: var(--xp-progress);
+  height: 100%;
+  background: linear-gradient(90deg, #72ff2c, #d8ff7a);
+  box-shadow: 0 0 12px rgba(114, 255, 44, 0.45);
+}
+
+.card-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-detail-actions button,
+.profile-form-card button {
+  min-height: 40px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(280px, 1fr);
+  gap: 14px;
+}
+
+.profile-form-card {
+  grid-column: 1 / -1;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(155, 183, 181, 0.22);
+  border-radius: 6px;
+  background: rgba(4, 8, 10, 0.82);
+  color: var(--text);
+  padding: 10px;
+}
+
+.profile-form textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+.profile-summary-card .admin-avatar,
+#headerAvatar img {
+  object-fit: cover;
+}
+
+.profile-summary-card {
+  overflow: hidden;
+}
+
+.profile-banner {
+  min-height: 124px;
+  margin: -16px -16px 14px;
+  border-bottom: 1px solid rgba(118, 255, 72, 0.24);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.7)),
+    var(--profile-banner) center / cover;
+}
+
+.profile-frame-gold {
+  border-color: rgba(255, 220, 92, 0.5);
+}
+
+.profile-frame-elite {
+  box-shadow: inset 0 0 0 1px rgba(255, 218, 92, 0.34), 0 0 28px rgba(255, 218, 92, 0.12);
 }
 
 .card-detail-header {
@@ -5469,7 +6023,7 @@ h2 {
 }
 
 .card-detail-list {
-  grid-template-columns: minmax(92px, 0.72fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(120px, 0.42fr) minmax(190px, 1fr);
 }
 
 .card-detail-list dt,
@@ -5490,8 +6044,9 @@ h2 {
   display: inline-flex;
   gap: 7px;
   align-items: center;
-  justify-content: flex-end;
-  text-align: right;
+  justify-content: flex-start;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .card-detail-list dd img {
@@ -5568,6 +6123,7 @@ tr.player-row {
   .overlay-topbar,
   .overlay-grid,
   .menu-event-strip,
+  .project-status-strip,
   .overlay-footer {
     grid-template-columns: 1fr;
   }
@@ -5645,6 +6201,14 @@ tr.player-row {
   }
 
   .card-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .card-detail-data {
+    min-width: 0;
+  }
+
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
@@ -5795,6 +6359,10 @@ tr.player-row {
     max-width: calc(100vw - 36px);
   }
 
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+
   .daily-bonus::after {
     position: static;
     margin-top: 12px;
@@ -5830,6 +6398,27 @@ tr.player-row {
   .pitch {
     grid-template-columns: 1fr;
     min-height: auto;
+    padding-top: 92px;
+  }
+
+  .field-team-side {
+    top: 10px;
+    bottom: auto;
+    width: calc(50% - 20px);
+  }
+
+  .field-team-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .field-team-card {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 42px;
+  }
+
+  .field-team-card em {
+    display: none;
   }
 
   .pitch-line.center,

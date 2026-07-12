@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#1f7a32"/>
+      <stop offset="1" stop-color="#0d3b1d"/>
+    </linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1200" height="720" fill="url(#g)"/>
+  <g opacity=".18">
+    <rect x="0" width="120" height="720" fill="#fff"/>
+    <rect x="240" width="120" height="720" fill="#fff"/>
+    <rect x="480" width="120" height="720" fill="#fff"/>
+    <rect x="720" width="120" height="720" fill="#fff"/>
+    <rect x="960" width="120" height="720" fill="#fff"/>
+  </g>
+  <g fill="none" stroke="#eaffdf" stroke-width="9" opacity=".58" filter="url(#glow)">
+    <rect x="36" y="36" width="1128" height="648" rx="18"/>
+    <line x1="600" y1="36" x2="600" y2="684"/>
+    <circle cx="600" cy="360" r="92"/>
+    <rect x="36" y="205" width="168" height="310"/>
+    <rect x="996" y="205" width="168" height="310"/>
+    <rect x="36" y="285" width="62" height="150"/>
+    <rect x="1102" y="285" width="62" height="150"/>
+  </g>
+</svg>

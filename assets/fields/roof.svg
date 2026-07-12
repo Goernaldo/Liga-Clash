@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="roof" x1="0" x2="0" y1="0" y2="1">
+      <stop stop-color="#2a3540"/>
+      <stop offset=".42" stop-color="#14232a"/>
+      <stop offset="1" stop-color="#163f26"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="720" fill="url(#roof)"/>
+  <g opacity=".2" fill="#fff">
+    <polygon points="0,0 1200,0 1000,122 200,122"/>
+    <rect x="110" y="0" width="28" height="720"/>
+    <rect x="1062" y="0" width="28" height="720"/>
+  </g>
+  <g fill="none" stroke="#e9fff0" stroke-width="8" opacity=".52">
+    <rect x="48" y="96" width="1104" height="570" rx="16"/>
+    <line x1="600" y1="96" x2="600" y2="666"/>
+    <circle cx="600" cy="381" r="86"/>
+    <rect x="48" y="252" width="158" height="258"/>
+    <rect x="994" y="252" width="158" height="258"/>
+  </g>
+</svg>

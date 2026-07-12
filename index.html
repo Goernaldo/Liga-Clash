@@ -615,10 +615,13 @@
             </section>
 
             <section class="admin-card admin-reward-pools">
-              <h3>Preis-Pool: Schnelles KI-Spiel</h3>
-              <p>Bis zu 5 moegliche Belohnungen fuer schnelle Offline-Spiele einstellen.</p>
+              <h3>Preis-Pools</h3>
+              <p>Belohnungen fuer schnelle Offline-Spiele und das Draft-Board einstellen.</p>
+              <h4>Schnelles KI-Spiel</h4>
               <div id="quickRewardPoolList" class="admin-reward-pool-list"></div>
-              <button id="saveQuickRewardPool" type="button">Preis-Pool speichern</button>
+              <h4>Draft-Board</h4>
+              <div id="draftRewardPoolList" class="admin-reward-pool-list"></div>
+              <button id="saveQuickRewardPool" type="button">Preis-Pools speichern</button>
             </section>
 
             <section id="adminPhase9Panel" class="admin-card admin-phase9-panel">
@@ -670,6 +673,14 @@
           <div class="pitch" aria-label="Spielfeld">
             <div class="pitch-line center"></div>
             <div class="pitch-circle"></div>
+            <div class="field-team-side field-team-home">
+              <span>Heimteam</span>
+              <div id="homeFieldCards" class="field-team-cards"></div>
+            </div>
+            <div class="field-team-side field-team-away">
+              <span>Gastteam</span>
+              <div id="awayFieldCards" class="field-team-cards"></div>
+            </div>
             <div class="zone zone-attack">
               <span>Angriff</span>
               <div id="attackSlot" class="lineup-slot"></div>
@@ -686,6 +697,14 @@
               <span>Torwart</span>
               <div id="keeperSlot" class="lineup-slot"></div>
             </div>
+          </div>
+
+          <div class="pitch-battle-strip">
+            <div class="field-battle-head">
+              <strong>Battle-Zone</strong>
+              <span id="roundTag">Runde 0/5</span>
+            </div>
+            <div id="battleBoard" class="battle-board field-battle-board"></div>
           </div>
 
           <div class="controls">
@@ -705,6 +724,16 @@
                 <option value="easy">Leicht</option>
                 <option value="normal" selected>Normal</option>
                 <option value="hard">Schwer</option>
+              </select>
+            </label>
+            <label class="difficulty-select">
+              Spielfeld
+              <select id="fieldTheme">
+                <option value="stadium">Stadion</option>
+                <option value="hall">Halle</option>
+                <option value="small">Kleinfeld</option>
+                <option value="roof">Dach</option>
+                <option value="night">Nachtplatz</option>
               </select>
             </label>
             <button id="playMatch" class="primary-button" type="button">Match starten</button>
@@ -727,13 +756,6 @@
               <span id="resultTag">Bereit</span>
             </div>
             <ol id="matchLog" class="match-log"></ol>
-          </div>
-          <div class="panel-block">
-            <div class="panel-title">
-              <h2>Battle-Zone</h2>
-              <span id="roundTag">Runde 0/5</span>
-            </div>
-            <div id="battleBoard" class="battle-board"></div>
           </div>
           <div id="matchSummary" class="panel-block match-summary"></div>
         </aside>

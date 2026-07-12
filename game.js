@@ -71,12 +71,12 @@ const ADMIN_ROLES = ["Owner", "Admin", "Moderator", "Tester", "User"];
 const ADMIN_MODULES = [
   "dashboard", "users", "roles", "players", "cards", "clubs", "nations", "leagues",
   "boosters", "droprates", "missions", "news", "events", "shop", "platzpass",
-  "design", "texts", "version", "status", "import", "export", "backups", "logs", "settings",
+  "draftboard", "design", "texts", "version", "status", "import", "export", "backups", "logs", "settings",
   "transfers", "editor",
 ];
 const ADMIN_PERMISSION_MATRIX = {
-  Owner: ["admin.open", "admin.manage", "users.manage", "roles.manage", "wallet.grant", "economy.test", "data.reset", "import.write", "export.read", "backup.manage", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage"],
-  Admin: ["admin.open", "users.view", "wallet.grant", "economy.test", "export.read", "backup.create", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage"],
+  Owner: ["admin.open", "admin.manage", "users.manage", "roles.manage", "wallet.grant", "economy.test", "data.reset", "import.write", "export.read", "backup.manage", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage", "draftboard.manage"],
+  Admin: ["admin.open", "users.view", "wallet.grant", "economy.test", "export.read", "backup.create", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage", "draftboard.manage"],
   Moderator: ["admin.open", "users.view", "logs.read", "content.manage", "events.manage", "missions.view"],
   Tester: ["admin.open", "logs.read", "export.read", "preview.use"],
   User: [],
@@ -97,6 +97,7 @@ const ADMIN_MODULE_PERMISSIONS = {
   events: "events.manage",
   shop: "shop.manage",
   platzpass: "project.manage",
+  draftboard: "draftboard.manage",
   design: "project.manage",
   texts: "project.manage",
   version: "project.manage",
@@ -453,8 +454,8 @@ const MATCH_CARD_COUNT = 9;
 const MATCH_ROUNDS = 5;
 
 const MATCH_BALANCE = {
-  randomMin: -4,
-  randomMax: 6,
+  randomMin: -2,
+  randomMax: 3,
   tacticBonus: 4,
   formationBonus: 3,
   levelBonusPerStep: 0.22,
@@ -469,10 +470,12 @@ const MATCH_BALANCE = {
 };
 
 const CPU_DIFFICULTIES = {
-  easy: { label: "Leicht", classOffset: -2, decisionSkill: 0.62, deckBonus: -7 },
-  normal: { label: "Normal", classOffset: 0, decisionSkill: 0.86, deckBonus: 0 },
-  hard: { label: "Schwer", classOffset: 1, decisionSkill: 1, deckBonus: 6 },
+  easy: { label: "Leicht", classOffset: -2, decisionSkill: 0.56, deckBonus: -8 },
+  normal: { label: "Normal", classOffset: -1, decisionSkill: 0.72, deckBonus: -4 },
+  hard: { label: "Schwer", classOffset: 0, decisionSkill: 0.9, deckBonus: 2 },
 };
+
+const FIELD_THEMES = ["stadium", "hall", "small", "roof", "night"];
 
 const LEAGUE_PHASE_CONFIG = [
   { id: "league-1", name: "1. Liga", shortName: "L1", level: 1, tier: 1, participantCount: 18, size: 18, promotionPlaces: 0, promote: 0, relegationPlaces: 3, relegate: 3, logo: "L1", description: "Hoechste Liga im lokalen Liga-Clash-System.", order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
@@ -591,7 +594,10 @@ const els = {
   defenseSlot: document.querySelector("#defenseSlot"),
   keeperSlot: document.querySelector("#keeperSlot"),
   cpuDifficulty: document.querySelector("#cpuDifficulty"),
+  fieldTheme: document.querySelector("#fieldTheme"),
   battleBoard: document.querySelector("#battleBoard"),
+  homeFieldCards: document.querySelector("#homeFieldCards"),
+  awayFieldCards: document.querySelector("#awayFieldCards"),
   roundTag: document.querySelector("#roundTag"),
   matchSummary: document.querySelector("#matchSummary"),
 };
@@ -602,6 +608,44 @@ let currentOpponent = createOpponent();
 let pendingDeckCardId = "";
 
 document.body.classList.add("menu-open");
+normalizeHomeMenuControls();
+
+function normalizeHomeMenuControls() {
+  const adminButton = document.querySelector("#openAdmin");
+  if (adminButton) {
+    adminButton.classList.add("admin-shortcut");
+    adminButton.textContent = "ADM";
+  }
+  const bottomHome = document.querySelector(".bottom-nav [data-action='home']");
+  if (bottomHome) {
+    bottomHome.dataset.action = "platzpass";
+    bottomHome.innerHTML = "PP<span>PLATZPASS</span>";
+  }
+  const leagueTile = document.querySelector(".menu-tile.league");
+  if (leagueTile) {
+    leagueTile.dataset.action = "career";
+    const title = leagueTile.querySelector("strong");
+    const subtitle = leagueTile.querySelector("em");
+    if (title) title.textContent = "KARRIERE & TRAINING";
+    if (subtitle) subtitle.textContent = "OFFLINE & MISSIONEN";
+  }
+  const adminNav = document.querySelector(".admin-nav");
+  if (adminNav && !adminNav.querySelector('[data-admin-section="draftboard"]')) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.adminSection = "draftboard";
+    button.innerHTML = "DB <span>Draft-Board</span>";
+    const anchor = adminNav.querySelector('[data-admin-section="settings"]');
+    adminNav.insertBefore(button, anchor || null);
+  }
+  if (!document.querySelector(".project-status-strip")) {
+    const strip = document.createElement("section");
+    strip.className = "project-status-strip";
+    strip.setAttribute("aria-label", "Projektstatus");
+    const eventStrip = document.querySelector(".menu-event-strip");
+    eventStrip?.insertAdjacentElement("beforebegin", strip);
+  }
+}
 
 document.querySelectorAll(".tactic-button").forEach((button) => {
   button.addEventListener("click", () => {
@@ -629,6 +673,11 @@ document.querySelectorAll(".formation-button").forEach((button) => {
 els.cpuDifficulty?.addEventListener("change", () => {
   state.cpuDifficulty = normalizeCpuDifficulty(els.cpuDifficulty.value);
   currentOpponent = createOpponent();
+  render();
+});
+
+els.fieldTheme?.addEventListener("change", () => {
+  state.fieldTheme = normalizeFieldTheme(els.fieldTheme.value);
   render();
 });
 
@@ -802,7 +851,7 @@ handleRouteFromHash();
 
 function normalizeRoute(action) {
   return {
-    play: "career",
+    play: "match",
     missions: "league",
     profile: "profile",
     settings: "settings",
@@ -852,6 +901,13 @@ function applyRoute(route) {
   if (route === "career") {
     closeLoginPanel();
     closeAdminCenter();
+    openFeature("career");
+    return;
+  }
+  if (route === "match") {
+    closeFeaturePanel();
+    closeLoginPanel();
+    closeAdminCenter();
     handlePlayTileTap();
     return;
   }
@@ -867,7 +923,7 @@ function updateMainNavigation(route) {
     const buttonRoute = normalizeRoute(button.dataset.action);
     const isActive =
       buttonRoute === activeRoute ||
-      (activeRoute === "career" && button.dataset.action === "play") ||
+      (activeRoute === "match" && button.dataset.action === "play") ||
       (activeRoute === "league" && button.dataset.action === "missions");
     button.classList.toggle("active", isActive);
     if (isActive) button.setAttribute("aria-current", "page");
@@ -899,6 +955,7 @@ function openDialog(title, message) {
   if (!els.appDialog) return;
   els.appDialogTitle.textContent = title;
   els.appDialogMessage.textContent = message;
+  els.appDialog.classList.remove("card-detail-dialog");
   els.appDialog.classList.remove("is-hidden");
   els.appDialogClose?.focus();
 }
@@ -928,7 +985,7 @@ function handlePlayTileTap() {
   vibrate([24, 30, 18]);
   setTimeout(() => {
     els.startFromOverlay.classList.remove("is-tapping");
-    openFeature("career");
+    showGame("match");
   }, 190);
 }
 
@@ -944,6 +1001,7 @@ function openFeature(action) {
     booster: renderBoosterFeature,
     fusion: renderFusionFeature,
     career: renderCareerFeature,
+    platzpass: renderPlatzpassFeature,
     collection: renderCollectionFeature,
     league: renderLeagueFeature,
     draft: renderDraftBoardFeature,
@@ -1008,6 +1066,52 @@ function renderBoosterFeature() {
   );
 }
 
+function renderPlatzpassFeature() {
+  state.platzPass = normalizePlatzPassState(state.platzPass);
+  const config = state.adminData?.platzpass || createDefaultAdminData().platzpass;
+  const active = config.active !== false;
+  const price = Math.max(0, Number(config.price ?? 950) || 950);
+  const progressTarget = Math.max(1, Number(config.xpPerLevel) || 1000);
+  const progress = clamp(Math.round(state.platzPass.xp / progressTarget * 100), 0, 100);
+  const rewards = [
+    { level: 1, free: "500 Credits", premium: "Bronze Pack" },
+    { level: 5, free: "1 Gratis Pack", premium: "Silber Pack" },
+    { level: 10, free: "750 Credits", premium: "Gold Pack" },
+    { level: 20, free: "2 Diamanten", premium: "Elite Chance" },
+  ];
+  setFeature(
+    config.name || "Liga Clash PlatzPass",
+    active ? "Saisonpass" : "Saisonpass vorbereitet",
+    `
+      <section class="feature-card platzpass-hero ${state.platzPass.owned ? "is-owned" : ""}">
+        <div>
+          <h3>${escapeHtml(config.name || "Liga Clash PlatzPass")}</h3>
+          <p>Verdiene XP ueber Matches, Karriere und Missionen. Premium-Belohnungen werden nach Kauf freigeschaltet.</p>
+          <div class="pill-row">
+            <span>Level ${state.platzPass.level}/${Number(config.maxLevel) || 100}</span>
+            <span>${state.platzPass.xp}/${progressTarget} XP</span>
+            <span>${state.platzPass.owned ? "Premium aktiv" : `${formatNumber(price)} Credits`}</span>
+          </div>
+          <div class="card-detail-xp"><span style="--xp-progress:${progress}%"></span></div>
+        </div>
+        <button type="button" data-feature-action="buy-platzpass" ${state.platzPass.owned || !active || state.coins < price ? "disabled" : ""}>${state.platzPass.owned ? "Gekauft" : "PlatzPass kaufen"}</button>
+      </section>
+      <section class="feature-card">
+        <h3>Belohnungspfad</h3>
+        <div class="platzpass-rewards">
+          ${rewards.map((reward) => `
+            <article>
+              <strong>Level ${reward.level}</strong>
+              <span>Gratis: ${escapeHtml(reward.free)}</span>
+              <span class="${state.platzPass.owned ? "premium-open" : "premium-locked"}">Premium: ${escapeHtml(reward.premium)}</span>
+            </article>
+          `).join("")}
+        </div>
+      </section>
+    `
+  );
+}
+
 function renderFusionFeature() {
   const sortedCards = [...state.deck].sort((a, b) => {
     const readyCompare = Number(Boolean(fusionPartnerFor(b))) - Number(Boolean(fusionPartnerFor(a)));
@@ -1035,7 +1139,7 @@ function renderFusionFeature() {
           <span>Level 99 fusioniert nicht</span>
         </div>
       </div>
-      <div class="mini-deck">
+      <div class="mini-deck fusion-card-grid">
         ${sortedCards.length ? sortedCards.map((card) => miniCard(card, false, "fusion")).join("") : emptyOwnedFilterMessage()}
       </div>
     `
@@ -1052,8 +1156,9 @@ function packTile(pack) {
   const dropValidation = validateBoosterForOpening(normalized);
   const availability = boosterAvailability(normalized);
   const disabled = !hasFreePack && (amount < cost || !dropValidation.ok || !availability.ok);
-  const packArt = image
-    ? `<img class="pack-shot" src="${image}" alt="${name}" />`
+  const packImageUrl = getPackImageUrl(normalized);
+  const packArt = packImageUrl
+    ? `<img class="pack-shot" src="${escapeAttr(packImageUrl)}" alt="${escapeAttr(name)}" />`
     : `<div class="pack-shot pack-shot-placeholder ${tier}"><span>${name}</span></div>`;
   return `
     <article class="feature-card pack-card pack-${tier} ${hasFreePack ? "has-free-pack" : ""}" data-feature-action="pack-tap">
@@ -1085,8 +1190,9 @@ function unopenedBoosterInventory() {
 
 function boosterInventoryTile(item) {
   const pack = normalizeBoosterPack(state.boosterPacks.find((entry) => entry.id === item.boosterId) || defaultBoosterPacks().find((entry) => entry.id === item.boosterId) || {});
-  const packArt = pack.image
-    ? `<img src="${pack.image}" alt="${escapeAttr(pack.name)}" />`
+  const packImageUrl = getPackImageUrl(pack);
+  const packArt = packImageUrl
+    ? `<img src="${escapeAttr(packImageUrl)}" alt="${escapeAttr(pack.name)}" />`
     : `<span>${escapeHtml(pack.name)}</span>`;
   return `
     <article class="booster-inventory-item pack-${escapeAttr(pack.tier)}">
@@ -1393,7 +1499,7 @@ function renderDeckSlot(deck, slot, gridArea) {
   return `
     <article class="deck-slot ${card ? "is-filled" : "is-empty"} ${card && !valid ? "is-invalid" : ""}" style="grid-area:${escapeAttr(gridArea)}" data-deck-slot="${escapeAttr(slot.id)}" data-slot-category="${escapeAttr(slot.category)}" data-drop-target="active">
       <header><span>${escapeHtml(slot.label)}</span><b>${escapeHtml(deckCategoryLabel(slot.category))}</b></header>
-      ${card ? miniCard(card, false, "") : `<div class="empty-deck-slot">Karte waehlen<br><small>${escapeHtml(deckCategoryLabel(slot.category))}</small></div>`}
+      ${card ? miniCard(card, false, "deck") : `<div class="empty-deck-slot">Karte waehlen<br><small>${escapeHtml(deckCategoryLabel(slot.category))}</small></div>`}
       <div class="slot-actions">
         <button type="button" data-feature-action="deck-assign-slot" data-slot="${escapeAttr(slot.id)}">${card ? "Ersetzen" : "Setzen"}</button>
         <button type="button" data-feature-action="deck-clear-slot" data-slot="${escapeAttr(slot.id)}" ${card ? "" : "disabled"}>Entfernen</button>
@@ -1417,7 +1523,7 @@ function renderBenchSlots(deck) {
     return `
       <article class="deck-slot bench-slot ${card ? "is-filled" : "is-empty"}" data-bench-slot="${index}" data-drop-target="bench">
         <header><span>Bank ${index + 1}</span><b>Flexibel</b></header>
-        ${card ? miniCard(card, false, "") : `<div class="empty-deck-slot">Ersatzkarte<br><small>beliebige Kategorie</small></div>`}
+        ${card ? miniCard(card, false, "deck") : `<div class="empty-deck-slot">Ersatzkarte<br><small>beliebige Kategorie</small></div>`}
         <div class="slot-actions">
           <button type="button" data-feature-action="deck-assign-bench" data-bench="${index}">${card ? "Ersetzen" : "Setzen"}</button>
           <button type="button" data-feature-action="deck-clear-bench" data-bench="${index}" ${card ? "" : "disabled"}>Entfernen</button>
@@ -1433,7 +1539,7 @@ function deckPickerCard(card) {
   const unavailable = used.has(card.id);
   return `
     <article class="deck-picker-card ${selected ? "is-selected" : ""} ${unavailable ? "is-used" : ""}" draggable="${unavailable ? "false" : "true"}" data-drag-card="${escapeAttr(card.id)}">
-      ${miniCard(card, false, "")}
+      ${miniCard(card, false, "deck")}
       <button type="button" data-feature-action="deck-pick-card" data-card="${escapeAttr(card.id)}" ${unavailable ? "disabled" : ""}>${unavailable ? "Im Deck" : "Waehlen"}</button>
     </article>
   `;
@@ -1496,6 +1602,7 @@ function ownedCardFilters(scope) {
   const categories = cardOptionValues(source, "category", "Alle Kategorien");
   const rarities = ["Alle Seltenheiten", ...teamClasses];
   const nations = cardOptionValues(source, "nation", "Alle Nationen");
+  const seriesOptions = ["Alle Serien", ...CARD_SERIES.map((series) => series.label)];
   const leagueOptions = [{ value: "Alle Ligen", label: "Alle Ligen" }, ...leagues.map((league) => ({ value: league, label: league }))];
   const clubOptions = [{ value: "Alle Vereine", label: "Alle Vereine" }, ...clubs.map((club) => ({ value: club, label: club }))];
   const positionOptions = [{ value: "Alle Positionen", label: "Alle Positionen" }, ...positions.map((position) => ({ value: position, label: position }))];
@@ -1571,14 +1678,41 @@ function ownedCardFilters(scope) {
       </select>
     </label>
     <label class="owned-filter">
+      Serie
+      <select data-feature-filter="${scope}" data-filter-type="series">
+        ${seriesOptions.map((value) => `<option value="${escapeAttr(value)}" ${value === filters.series ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      PRO
+      <select data-feature-filter="${scope}" data-filter-type="proStatus">
+        ${["Alle", "Nur PRO", "Ohne PRO"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.proStatus ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Fusion
+      <select data-feature-filter="${scope}" data-filter-type="fusion">
+        ${["Alle", "Fusion moeglich", "Keine Fusion"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.fusion ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
+      Duplikate
+      <select data-feature-filter="${scope}" data-filter-type="duplicates">
+        ${["Alle", "Nur Duplikate", "Ohne Duplikate"].map((value) => `<option value="${escapeAttr(value)}" ${value === filters.duplicates ? "selected" : ""}>${escapeHtml(value)}</option>`).join("")}
+      </select>
+    </label>
+    <label class="owned-filter">
       Sortieren
       <select data-feature-filter="${scope}" data-filter-type="sort">
         ${[
           ["name", "Name"],
-          ["overall", "Overall"],
+          ["overall", "Gesamtstaerke absteigend"],
+          ["overall-asc", "Gesamtstaerke aufsteigend"],
           ["rarity", "Seltenheit"],
-          ["level", "Level"],
+          ["level", "Level absteigend"],
+          ["level-asc", "Level aufsteigend"],
           ["stars", "Sterne"],
+          ["duplicates", "Duplikate"],
           ["club", "Verein"],
           ["nation", "Nation"],
           ["position", "Position"],
@@ -1666,8 +1800,31 @@ function positionSortValue(position) {
 function filteredOwnedCards(scope) {
   const filters = ownedFilterState(scope);
   const records = cardCollectionRecords(scope === "collection");
-  const filtered = CARD_SYSTEM?.filterRecords ? CARD_SYSTEM.filterRecords(records, filters) : records;
-  return CARD_SYSTEM?.sortRecords ? CARD_SYSTEM.sortRecords(filtered, filters.sort) : filtered.sort((a, b) => rating(b) - rating(a));
+  let filtered = CARD_SYSTEM?.filterRecords ? CARD_SYSTEM.filterRecords(records, filters) : records;
+  filtered = filtered.filter((card) => {
+    const seriesLabel = cardSeriesLabel(card.series);
+    const pro = proStars(card) > 0;
+    const canFuse = Boolean(fusionPartnerFor(state.deck.find((owned) => owned.id === card.id) || card));
+    const duplicates = Math.max(0, Number(card.duplicateCount) || duplicateCardsFor(card).length);
+    return (filters.series === "Alle Serien" || filters.series === seriesLabel)
+      && (filters.proStatus === "Alle" || (filters.proStatus === "Nur PRO" ? pro : !pro))
+      && (filters.fusion === "Alle" || (filters.fusion === "Fusion moeglich" ? canFuse : !canFuse))
+      && (filters.duplicates === "Alle" || (filters.duplicates === "Nur Duplikate" ? duplicates > 0 : duplicates === 0));
+  });
+  return sortCardsForCollection(filtered, filters.sort);
+}
+
+function sortCardsForCollection(cards, sort) {
+  const sorted = [...cards];
+  const key = sort || "overall";
+  sorted.sort((a, b) => {
+    if (key === "overall-asc") return rating(a) - rating(b);
+    if (key === "level-asc") return cardLevel(a) - cardLevel(b) || rating(b) - rating(a);
+    if (key === "duplicates") return duplicateCardsFor(b).length - duplicateCardsFor(a).length || rating(b) - rating(a);
+    if (CARD_SYSTEM?.sortRecords) return CARD_SYSTEM.sortRecords([a, b], key)[0] === a ? -1 : 1;
+    return rating(b) - rating(a);
+  });
+  return sorted;
 }
 
 function virtualCardWindow(cards) {
@@ -1700,6 +1857,7 @@ function emptyOwnedFilterMessage(scope = "collection") {
 }
 
 function renderShopFeature() {
+  const adminOffers = (state.adminData?.shopOffers || []).filter((offer) => offer.active !== false);
   setFeature(
     "Shop",
     "Muenzen & Items",
@@ -1723,9 +1881,69 @@ function renderShopFeature() {
           <strong>400 Coins</strong>
           <button type="button" data-feature-action="buy-gold-scout" ${state.coins < 400 ? "disabled" : ""}>Kaufen</button>
         </article>
+        ${adminOffers.map((offer) => renderAdminShopOfferTile(offer)).join("")}
       </div>
     `
   );
+}
+
+function renderAdminShopOfferTile(offer) {
+  const currency = offer.currency === "gems" ? "Diamanten" : "Coins";
+  const balance = offer.currency === "gems" ? state.gems : state.coins;
+  return `
+    <article class="feature-card shop-offer-card">
+      <h3>${escapeHtml(offer.name)}</h3>
+      <p>${escapeHtml(offer.content || "Admin-Angebot")}</p>
+      <strong>${formatNumber(offer.price)} ${currency}</strong>
+      <button type="button" data-feature-action="buy-admin-offer" data-offer-id="${escapeAttr(offer.id)}" ${balance < offer.price ? "disabled" : ""}>Kaufen</button>
+    </article>
+  `;
+}
+
+function buyAdminShopOffer(target) {
+  const offer = (state.adminData?.shopOffers || []).find((item) => item.id === target.dataset.offerId);
+  if (!offer || offer.active === false) {
+    showToast("Dieses Shop-Angebot ist nicht verfuegbar.", "error");
+    return;
+  }
+  const price = Math.max(0, Number(offer.price) || 0);
+  const currency = offer.currency === "gems" ? "gems" : "coins";
+  if (currency === "gems" && state.gems < price) {
+    showToast("Nicht genug Diamanten.", "error");
+    return;
+  }
+  if (currency === "coins" && state.coins < price) {
+    showToast("Nicht genug Credits.", "error");
+    return;
+  }
+  const fromCoins = state.coins;
+  if (currency === "gems") state.gems -= price;
+  else state.coins -= price;
+  const rewardText = applyAdminOfferReward(offer);
+  state.log = [`Shop-Angebot gekauft: ${offer.name}. ${rewardText}`, ...state.log].slice(0, 8);
+  saveState();
+  render();
+  animateCoinChange(fromCoins, state.coins, target);
+  showToast(`${offer.name} gekauft.`, "success");
+  renderShopFeature();
+}
+
+function applyAdminOfferReward(offer) {
+  const text = `${offer.name || ""} ${offer.content || ""}`.toLowerCase();
+  if (text.includes("diamant") || text.includes("gem")) {
+    state.gems += 25;
+    return "+25 Diamanten.";
+  }
+  if (text.includes("pack") || text.includes("booster")) {
+    grantFreePack(state.boosterPacks[0]?.id || "pack-bronze", 1);
+    return "+1 Gratis Booster.";
+  }
+  if (text.includes("karte") || text.includes("scout") || text.includes("spieler")) {
+    const card = addGeneratedCard(state.teamClassIndex, state.teamClassIndex + 2);
+    return `Karte ${safeCardName(card)}.`;
+  }
+  state.coins += 1000;
+  return "+1.000 Credits.";
 }
 
 function renderNewsFeature() {
@@ -1951,6 +2169,8 @@ function renderSettingsFeature() {
 }
 
 function profileStats() {
+  const user = activeUser();
+  user.stats = normalizeUserStats(user.stats);
   const matches = Array.isArray(state.matchHistory) ? state.matchHistory : [];
   const wins = matches.filter((match) => match.result === "win" || match.winner === "player").length + (Number(state.record?.win) || 0);
   const losses = matches.filter((match) => match.result === "loss" || match.winner === "cpu").length + (Number(state.record?.loss) || 0);
@@ -1959,15 +2179,18 @@ function profileStats() {
   const missionCompleted = Array.isArray(state.claimedMissions) ? state.claimedMissions.length : 0;
   const xp = matches.length * 120 + packsOpened * 40 + state.deck.length * 10 + missionCompleted * 80;
   return {
-    matches: matches.length,
-    wins,
-    losses,
+    matches: Math.max(matches.length, user.stats.matchesPlayed),
+    wins: Math.max(wins, user.stats.matchesWon),
+    losses: Math.max(losses, user.stats.matchesLost),
     roundsWon: matches.reduce((sum, match) => sum + (Number(match.playerRounds) || Number(match.roundsWon) || 0), 0),
     highestLeague: leagues[Math.max(0, Number(state.leagueIndex) || 0)] || leagues[0],
     currentLeague: leagues[state.leagueIndex] || leagues[0],
-    packsOpened,
+    packsOpened: Math.max(packsOpened, user.stats.packsOpened),
     cardsReceived: state.deck.length,
-    collectionCount: new Set(state.deck.map(sourceCardId)).size,
+    collectionCount: Math.max(new Set(state.deck.map(sourceCardId)).size, user.stats.cardsCollected),
+    cardsFused: user.stats.cardsFused,
+    highestCardLevel: Math.max(user.stats.highestCardLevel, state.deck.reduce((max, card) => Math.max(max, cardLevel(card)), 1)),
+    leaguePromotions: user.stats.leaguePromotions,
     rarestCard: rarest ? `${safeCardName(rarest)} (${teamClasses[normalizeClassIndex(rarest.cls)]})` : "Keine Karte",
     missionCompleted,
     jackpots: Array.isArray(state.rewardBoards) ? state.rewardBoards.filter((board) => board.jackpot).length : 0,
@@ -1980,22 +2203,25 @@ function renderProfileFeature() {
   const profile = normalizeUserProfile(user.profile, user);
   const stats = profileStats();
   const accountLevel = Math.max(1, Math.floor(stats.xp / 1000) + 1);
+  const winRate = stats.wins + stats.losses > 0 ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100) : 0;
   setFeature(
     "Profil",
     "Account & Einstellungen",
     `
       <div class="profile-grid">
-        <article class="feature-card profile-summary-card">
+        <article class="feature-card profile-summary-card profile-frame-${escapeAttr(profile.frame)}">
+          <div class="profile-banner" style="--profile-banner:url('${escapeAttr(profile.banner || "assets/tiles/tile-play.png")}')"></div>
           <div class="login-active-user">
             ${userAvatarMarkup(user)}
             <div>
               <strong>${escapeHtml(profile.displayName)}</strong>
-              <span>${escapeHtml(user.id)} | Level ${accountLevel}</span>
+              <span>${escapeHtml(user.role)} | Level ${accountLevel}</span>
             </div>
           </div>
-          <div class="pill-row"><span>${escapeHtml(user.role)}</span><span>${escapeHtml(stats.currentLeague)}</span><span>${formatNumber(stats.xp)} XP</span></div>
-          <p>${profile.motto ? escapeHtml(profile.motto) : "Kein Motto gespeichert."}</p>
+          <div class="pill-row"><span>${escapeHtml(profile.title || "Kein Titel")}</span><span>${escapeHtml(profile.favoriteClub)}</span><span>${formatNumber(stats.xp)} XP</span></div>
+          <p>${profile.favoritePlayer ? `Lieblingsspieler: ${escapeHtml(profile.favoritePlayer)}` : "Noch kein Lieblingsspieler gespeichert."}</p>
           <p class="muted">${profile.bio ? escapeHtml(profile.bio) : "Noch keine Profilbeschreibung."}</p>
+          <p class="muted">Erstellt: ${escapeHtml(formatDateShort(profile.createdAt))} | Letzter Login: ${escapeHtml(formatDateShort(profile.lastLoginAt))}</p>
         </article>
         <article class="feature-card">
           <h3>Statistiken</h3>
@@ -2003,9 +2229,12 @@ function renderProfileFeature() {
             <article><b>${stats.matches}</b><span>Matches</span></article>
             <article><b>${stats.wins}</b><span>Siege</span></article>
             <article><b>${stats.losses}</b><span>Niederlagen</span></article>
-            <article><b>${stats.roundsWon}</b><span>Runden</span></article>
+            <article><b>${winRate}%</b><span>Siegquote</span></article>
             <article><b>${stats.packsOpened}</b><span>Packs</span></article>
             <article><b>${stats.collectionCount}</b><span>Sammlung</span></article>
+            <article><b>${stats.cardsFused}</b><span>Fusionen</span></article>
+            <article><b>${stats.highestCardLevel}</b><span>Top-Level</span></article>
+            <article><b>${stats.leaguePromotions}</b><span>Aufstiege</span></article>
           </div>
           <p class="muted">Seltenste Karte: ${escapeHtml(stats.rarestCard)}. Missionen: ${stats.missionCompleted}. Jackpots: ${stats.jackpots}.</p>
         </article>
@@ -2013,11 +2242,15 @@ function renderProfileFeature() {
           <h3>Profil bearbeiten</h3>
           <div class="profile-form">
             <label>Anzeigename<input data-profile-field="displayName" maxlength="32" value="${escapeAttr(profile.displayName)}" /></label>
+            <label>E-Mail<input data-profile-field="email" type="email" value="${escapeAttr(profile.email || user.email)}" /></label>
             <label>Avatar URL oder Assetpfad<input data-profile-field="avatar" value="${escapeAttr(profile.avatar)}" placeholder="assets/..." /></label>
-            <label>Lieblingsverein<input data-profile-field="favoriteClubId" value="${escapeAttr(profile.favoriteClubId)}" /></label>
-            <label>Lieblingsnation<input data-profile-field="favoriteNationId" value="${escapeAttr(profile.favoriteNationId)}" /></label>
-            <label>Motto<input data-profile-field="motto" maxlength="72" value="${escapeAttr(profile.motto)}" /></label>
-            <label>Bio<textarea data-profile-field="bio" maxlength="180">${escapeHtml(profile.bio)}</textarea></label>
+            <label>Banner URL oder Assetpfad<input data-profile-field="banner" value="${escapeAttr(profile.banner)}" placeholder="assets/tiles/tile-play.png" /></label>
+            <label>Lieblingsverein<input data-profile-field="favoriteClub" value="${escapeAttr(profile.favoriteClub)}" /></label>
+            <label>Lieblingsspieler<input data-profile-field="favoritePlayer" value="${escapeAttr(profile.favoritePlayer)}" /></label>
+            <label>Profil-Titel<input data-profile-field="title" maxlength="42" value="${escapeAttr(profile.title)}" /></label>
+            <label>Profilrahmen<select data-profile-field="frame">${["standard", "green", "gold", "elite"].map((frame) => `<option value="${frame}" ${frame === profile.frame ? "selected" : ""}>${frame}</option>`).join("")}</select></label>
+            <label>Bio<textarea data-profile-field="bio" maxlength="260">${escapeHtml(profile.bio)}</textarea></label>
+            <label>PIN<input data-profile-field="pin" type="text" inputmode="numeric" value="${escapeAttr(user.pin)}" /></label>
             <label>Sprache<select data-profile-field="language"><option value="de" ${profile.language === "de" ? "selected" : ""}>Deutsch</option><option value="en" ${profile.language === "en" ? "selected" : ""}>English</option></select></label>
             <label>Sichtbarkeit<select data-profile-field="visibility"><option value="private" ${profile.visibility === "private" ? "selected" : ""}>Privat</option><option value="friends" ${profile.visibility === "friends" ? "selected" : ""}>Freunde</option><option value="public" ${profile.visibility === "public" ? "selected" : ""}>Oeffentlich</option></select></label>
             <label>Formation<select data-profile-field="preferredFormation">${Object.values(FORMATIONS).filter((formation) => formation.active !== false).map((formation) => `<option value="${escapeAttr(formation.id)}" ${formation.id === profile.preferredFormation ? "selected" : ""}>${escapeHtml(formation.label || formation.name || formation.id)}</option>`).join("")}</select></label>
@@ -2044,14 +2277,22 @@ function saveProfileFromFeature() {
     return;
   }
   user.name = displayName;
+  user.email = normalizeEmail(field("email"), displayName);
+  const pin = field("pin").trim();
+  if (pin) user.pin = normalizePin(pin, user.role);
   user.profile = normalizeUserProfile({
     ...user.profile,
     displayName,
+    email: user.email,
     avatar: field("avatar"),
-    favoriteClubId: sanitizeProfileText(field("favoriteClubId"), 48),
-    favoriteNationId: sanitizeProfileText(field("favoriteNationId"), 48),
+    banner: field("banner"),
+    favoriteClub: sanitizeProfileText(field("favoriteClub"), 64),
+    favoritePlayer: sanitizeProfileText(field("favoritePlayer"), 64),
+    title: sanitizeProfileText(field("title"), 42),
+    frame: field("frame"),
     bio: field("bio"),
-    motto: field("motto"),
+    favoriteClubId: sanitizeProfileText(field("favoriteClub"), 64),
+    motto: sanitizeProfileText(field("title"), 42),
     language: field("language"),
     visibility: field("visibility"),
     preferredFormation: field("preferredFormation"),
@@ -2099,15 +2340,16 @@ function miniCard(card, selectable, context = "") {
   const level = model.level;
   const proReady = model.owned ? fusionPartnerFor(card) : false;
   const isFusionContext = context === "fusion";
+  const isClickableContext = ["fusion", "collection", "deck"].includes(context);
   const cardId = escapeAttr(card.id);
   const sourceId = escapeAttr(sourceCardId(card));
   const cardAction = selectable && model.owned
     ? `data-feature-action="toggle-card" data-card="${cardId}"`
-    : isFusionContext && model.owned
+    : isClickableContext
       ? `data-feature-action="card-details" data-card="${cardId}" tabindex="0" role="button" aria-label="${escapeAttr(safeCardName(card))} Details oeffnen"`
       : "";
   return `
-    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""} ${isFusionContext ? "is-clickable" : ""}" ${cardAction}>
+    <article class="mini-card card-tier-${tier} ${selected ? "selected" : ""} ${model.owned ? "is-owned" : "is-missing"} ${model.favorite ? "is-favorite" : ""} ${isClickableContext ? "is-clickable" : ""}" ${cardAction}>
       <div class="card-top">
         <div class="rating">${model.overall}</div>
         <span class="card-position">${escapeHtml(model.position)}</span>
@@ -2184,12 +2426,14 @@ function showCardDetails(cardId) {
   const ownedCard = state.deck.find((item) => item.id === card.id) || owned;
   const starInfo = ownedCard ? starUpgradeInfo(ownedCard) : null;
   const proReady = ownedCard ? fusionPartnerFor(ownedCard) : null;
+  const inActiveDeck = ownedCard ? deckIds(state.activeDeck).includes(ownedCard.id) : false;
   const nowProgression = calculateCardProgression(card, model.level, model.stars);
   const nextProgression = calculateCardProgression(card, Math.min(model.level + 1, model.levelCap), model.stars);
   openDialog(
     `${safeCardName(card)} | ${model.position}`,
     "",
   );
+  els.appDialog?.classList.add("card-detail-dialog");
   els.appDialogMessage.innerHTML = `
     <div class="card-detail-layout">
       <div class="card-detail-preview">
@@ -2206,11 +2450,16 @@ function showCardDetails(cardId) {
           <dt>Karten-ID</dt><dd>${escapeHtml(model.cardId)}</dd>
           <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
           <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
+          <dt>Liga</dt><dd>${escapeHtml(card.league || club.league)}</dd>
+          <dt>Kartenserie</dt><dd>${escapeHtml(cardSeriesLabel(card.series))}</dd>
           <dt>Overall</dt><dd>${model.overall}</dd>
           <dt>Level</dt><dd>${model.level}/${model.levelCap} (Endlevel ${CARD_MAX_LEVEL})</dd>
           <dt>Sterne</dt><dd>${model.starsText}</dd>
           <dt>XP</dt><dd>${model.xp} / ${model.xpToNext || (model.level >= model.levelCap && model.levelCap < CARD_MAX_LEVEL ? "Sternaufstieg erforderlich" : "MAX")}</dd>
           <dt>Duplikate</dt><dd>${model.duplicateCount}</dd>
+          <dt>PRO-Status</dt><dd>${proStars(card) ? escapeHtml(proStarsText(proStars(card), card.proQuality)) : "Keine Evolution"}</dd>
+          <dt>Favorit</dt><dd>${model.favorite ? "Ja" : "Nein"}</dd>
+          <dt>Erhalten</dt><dd>${escapeHtml(card.obtainedAt ? formatDateShort(card.obtainedAt) : "Nicht gespeichert")}</dd>
           <dt>Bildquelle</dt><dd>${escapeHtml(resolvePlayerImage(card).source)}</dd>
           <dt>Status</dt><dd>${escapeHtml(model.status)}</dd>
         </dl>
@@ -2225,9 +2474,13 @@ function showCardDetails(cardId) {
         </div>
         ${model.owned ? `
           <div class="card-detail-actions">
+            <button type="button" data-feature-action="toggle-favorite-detail" data-card="${escapeAttr(ownedCard.id)}">${model.favorite ? "Favorit entfernen" : "Als Favorit markieren"}</button>
             <button type="button" data-feature-action="level-card" data-card="${escapeAttr(ownedCard.id)}" ${model.level >= model.levelCap ? "disabled" : ""}>Leveln</button>
             <button type="button" data-feature-action="star-card" data-card="${escapeAttr(ownedCard.id)}" ${!starInfo || !starInfo.canUpgrade ? "disabled" : ""}>Stern erhoehen (${starInfo ? `${starInfo.availableDuplicates}/${starInfo.duplicatesRequired}` : "0/0"})</button>
             <button type="button" data-feature-action="pro-card" data-card="${escapeAttr(ownedCard.id)}" ${proReady ? "" : "disabled"}>Evolution</button>
+            <button type="button" data-feature-action="${inActiveDeck ? "detail-remove-deck" : "detail-add-deck"}" data-card="${escapeAttr(ownedCard.id)}">${inActiveDeck ? "Aus Deck entfernen" : "Zum Deck hinzufuegen"}</button>
+            <button type="button" data-feature-action="open-fusion-from-detail" data-card="${escapeAttr(ownedCard.id)}" ${proReady || model.duplicateCount > 0 ? "" : "disabled"}>Zur Fusion</button>
+            <button type="button" data-feature-action="close-card-detail">Schliessen</button>
           </div>
           <p class="muted">Sternkosten: 1->2 = 1, 2->3 = 2, 3->4 = 3, 4->5 = 5 Duplikate. Evolution benoetigt zwei gleiche Level-100-Karten.</p>
         ` : ""}
@@ -2303,18 +2556,21 @@ function handleFeatureClick(event) {
   } else if (action === "toggle-favorite") {
     toggleFavoriteCard(target.dataset.card);
     renderCollectionFeature();
+  } else if (action === "toggle-favorite-detail") {
+    toggleFavoriteCard(target.dataset.card);
+    showCardDetails(target.dataset.card);
   } else if (action === "card-details") {
     showCardDetails(target.dataset.card);
   } else if (action === "level-card") {
     levelCard(target.dataset.card);
-    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
+    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}`, cardId: target.dataset.card });
     saveState();
     render();
     refreshCardManagementFeature();
     if (!els.appDialog.classList.contains("is-hidden")) showCardDetails(target.dataset.card);
   } else if (action === "level-card-small") {
     levelCard(target.dataset.card, 1);
-    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}` });
+    recordGameEvent("card_leveled", { id: `level-${target.dataset.card}-${Date.now()}`, cardId: target.dataset.card });
     saveState();
     render();
     refreshCardManagementFeature();
@@ -2335,30 +2591,69 @@ function handleFeatureClick(event) {
     const partner = fusionPartnerFor(card);
     if (!card || !partner || !window.confirm(`${safeCardName(card)} mit ${safeCardName(partner)} zur Evolution fusionieren? Die Partnerkarte wird verbraucht.`)) return;
     fuseCardToPro(target.dataset.card);
+    recordGameEvent("card_fused", { id: `pro-${target.dataset.card}-${Date.now()}` });
     saveState();
     render();
     refreshCardManagementFeature();
     showCardDetails(target.dataset.card);
+  } else if (action === "detail-add-deck") {
+    addCardToActiveDeckFromDetails(target.dataset.card);
+    showCardDetails(target.dataset.card);
+  } else if (action === "detail-remove-deck") {
+    removeCardFromActiveDeck(target.dataset.card);
+    showCardDetails(target.dataset.card);
+  } else if (action === "open-fusion-from-detail") {
+    closeDialog();
+    openFeature("fusion");
+  } else if (action === "close-card-detail") {
+    closeDialog();
   } else if (action === "save-profile") {
     saveProfileFromFeature();
   } else if (action === "buy-scout-ticket") {
-    spendCoins(75);
-    addGeneratedCard(state.teamClassIndex, state.teamClassIndex + 1);
+    if (!spendCoins(75)) return;
+    const card = addGeneratedCard(state.teamClassIndex, state.teamClassIndex + 1);
     recordGameEvent("credits_earned", { id: `shop-spend-${Date.now()}`, amount: 0 });
+    showToast(`Scout gezogen: ${safeCardName(card)}.`, "success");
     render();
     renderShopFeature();
   } else if (action === "buy-coins") {
+    if (state.gems < 25) {
+      showToast("Nicht genug Diamanten.", "error");
+      return;
+    }
     state.gems -= 25;
     const fromCoins = state.coins;
     state.coins += 1000;
+    saveState();
     render();
     animateCoinChange(fromCoins, state.coins, target);
     renderShopFeature();
   } else if (action === "buy-gold-scout") {
-    spendCoins(400);
-    addGeneratedCard(5, 10);
+    if (!spendCoins(400)) return;
+    const card = addGeneratedCard(5, 10);
+    showToast(`Gold Scout: ${safeCardName(card)} erhalten.`, "success");
     render();
     renderShopFeature();
+  } else if (action === "buy-admin-offer") {
+    buyAdminShopOffer(target);
+  } else if (action === "buy-platzpass") {
+    const price = Math.max(0, Number(state.adminData?.platzpass?.price ?? 950) || 950);
+    if (state.platzPass?.owned) {
+      showToast("PlatzPass ist bereits aktiv.", "success");
+      return;
+    }
+    if (state.coins < price) {
+      showToast("Nicht genug Credits fuer den PlatzPass.", "error");
+      return;
+    }
+    const fromCoins = state.coins;
+    state.coins -= price;
+    state.platzPass = { ...normalizePlatzPassState(state.platzPass), owned: true };
+    state.log = [`PlatzPass gekauft: ${state.adminData?.platzpass?.name || "Liga Clash PlatzPass"}.`, ...state.log].slice(0, 8);
+    saveState();
+    render();
+    animateCoinChange(fromCoins, state.coins, target);
+    renderPlatzpassFeature();
   } else if (action === "event-cup") {
     const fromCoins = state.coins;
     state.coins += 180;
@@ -2526,6 +2821,61 @@ function clearDeckBench(index) {
   renderDeckFeature();
 }
 
+function addCardToActiveDeckFromDetails(cardId) {
+  const card = state.deck.find((item) => item.id === cardId);
+  if (!card) {
+    showToast("Karte nicht gefunden.", "error");
+    return false;
+  }
+  if (deckUsedIds().has(card.id)) {
+    showToast("Diese Karte ist bereits im Deck.", "error");
+    return false;
+  }
+  const formation = FORMATIONS[state.activeDeck.formationId] || FORMATIONS[DEFAULT_FORMATION];
+  const matchingSlot = (formation.slots || []).find((slot) => !state.activeDeck.activeSlots?.[slot.id] && deckCardCategory(card) === slot.category);
+  if (matchingSlot) {
+    state.activeDeck.activeSlots[matchingSlot.id] = card.id;
+  } else {
+    const benchIndex = (state.activeDeck.bench || []).findIndex((item) => !item);
+    if (benchIndex < 0) {
+      showToast("Kein freier Deck- oder Bankplatz verfuegbar.", "error");
+      return false;
+    }
+    state.activeDeck.bench[benchIndex] = card.id;
+  }
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  showToast(`${safeCardName(card)} wurde dem Deck hinzugefuegt.`, "success");
+  return true;
+}
+
+function removeCardFromActiveDeck(cardId) {
+  let removed = false;
+  Object.keys(state.activeDeck.activeSlots || {}).forEach((slotId) => {
+    if (state.activeDeck.activeSlots[slotId] === cardId) {
+      state.activeDeck.activeSlots[slotId] = "";
+      removed = true;
+    }
+  });
+  state.activeDeck.bench = (state.activeDeck.bench || []).map((item) => {
+    if (item === cardId) {
+      removed = true;
+      return "";
+    }
+    return item;
+  });
+  if (!removed) {
+    showToast("Diese Karte ist nicht im aktiven Deck.", "error");
+    return false;
+  }
+  syncActiveDeckSelection();
+  saveState();
+  render();
+  showToast("Karte wurde aus dem Deck entfernt.", "success");
+  return true;
+}
+
 function autoFillActiveDeck() {
   const filled = DECK_SYSTEM?.autoCompleteDeck?.(state.deck, state.activeDeck.formationId, deckSystemHelpers());
   if (!filled) return;
@@ -2650,18 +3000,29 @@ function buyPack(target) {
   const transaction = recordBoosterTransaction(pack, cost, currency, balanceBefore, balanceAfter, "success", "");
   const inventoryItem = createBoosterInventoryItem(pack.id, isFree ? "free" : "purchase", transaction.id);
   state.boosterInventory.push(inventoryItem);
-  state.log = [`Booster gesichert: ${pack.name}.`, ...state.log].slice(0, 8);
+  state.log = [`Booster gekauft: ${pack.name}. Oeffnung startet.`, ...state.log].slice(0, 8);
   saveState();
 
   target.disabled = true;
-  cardNode?.classList.add("is-previewing");
+  cardNode?.classList.add("is-previewing", "is-opening");
   playUiSound("pack");
+  vibrate([18, 28, 22, 36, 42]);
   setTimeout(() => {
+    const result = openBoosterInventoryItem(inventoryItem);
     processingBoosterActions.delete(`buy:${packId}`);
+    cardNode?.classList.remove("is-opening");
+    if (!result.ok) {
+      showToast(result.error || "Booster konnte nicht geoeffnet werden.", "error");
+      target.disabled = false;
+      render();
+      renderBoosterFeature();
+      return;
+    }
     render();
     renderBoosterFeature();
-    showToast(isFree ? "Gratis-Booster liegt im Inventar." : "Booster gekauft und gespeichert.", "success");
-  }, 420);
+    showToast(isFree ? "Gratis-Booster geoeffnet." : "Booster gekauft und geoeffnet.", "success");
+    showPackReveal(result.cards, result.pack, result.opening);
+  }, 760);
 }
 
 function openOwnedBooster(target) {
@@ -3206,6 +3567,11 @@ function showPackReveal(cards, pack = null, opening = null) {
       if (action.dataset.revealAction === "next") updateReveal(revealedCount + 1);
       return;
     }
+    const cardNode = event.target.closest("[data-reveal-card]");
+    if (cardNode?.classList.contains("is-revealed")) {
+      showCardDetails(cardNode.dataset.revealCard);
+      return;
+    }
     if (event.target === reveal) closeReveal();
   });
 }
@@ -3215,7 +3581,7 @@ function renderPackRevealCard(card, index = 0) {
   const club = getClub(card.club);
   const rare = tier >= 8 ? " rare-hit" : "";
   return `
-    <article class="pack-reveal-card card-tier-${tier}${rare}" style="--reveal-delay:${index * 90}ms">
+    <article class="pack-reveal-card card-tier-${tier}${rare}" data-reveal-card="${escapeAttr(card.id)}" style="--reveal-delay:${index * 90}ms">
       <button type="button" class="pack-card-cover" data-reveal-action="next">Karte aufdecken</button>
       <div class="pack-reveal-card-top">
         <strong>${rating(card)}</strong>
@@ -3342,6 +3708,7 @@ function handleLoginSubmit(event) {
   }
   syncActiveUserWallet();
   state.activeUserId = user.id;
+  user.profile = normalizeUserProfile({ ...user.profile, lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, user);
   loadActiveUserWallet();
   els.loginStatus.textContent = `Eingeloggt als ${user.name} (${user.role}).`;
   updateAccountUi();
@@ -3476,6 +3843,7 @@ function adminSectionTitle(section) {
     nations: "Nationen-Verwaltung",
     leagues: "Ligen-Verwaltung",
     boosters: "Booster-Verwaltung",
+    draftboard: "Draft-Board",
     droprates: "Dropchancen",
     missions: "Missionen",
     news: "News",
@@ -3566,6 +3934,7 @@ function renderAdminPhase9Module(section = currentAdminSection()) {
     news: renderAdminNewsModule,
     shop: renderAdminShopModule,
     platzpass: renderAdminPlatzpassModule,
+    draftboard: renderAdminDraftBoardModule,
     design: renderAdminDesignModule,
     texts: renderAdminTextsModule,
     version: renderAdminVersionModule,
@@ -3675,7 +4044,7 @@ function renderAdminDropRatesModule() {
   const validation = validateAdminData();
   return `
     <h3>Dropchancen-Verwaltung</h3>
-    <p>Speichern ist nur erlaubt, wenn die Dropchancen im Klassenbereich exakt 100% ergeben.</p>
+    <p>Dropchancen werden beim Speichern automatisch auf 100% im ausgewaehlten Klassenbereich angepasst.</p>
     ${renderPhase9Table(["Booster", "Klassen", "Summe", "Pool", "Kartenpool"], state.boosterPacks.map((pack) => {
       const normalized = normalizeBoosterPack(pack);
       return [
@@ -3738,7 +4107,18 @@ function renderAdminPlatzpassModule() {
   return `
     <h3>Platzpass-Vorbereitung</h3>
     <p>Vorbereitetes Modul ohne Echtgeld, Kaufstatus oder Premium-Aktivierung.</p>
-    ${renderKeyValueForm("platzpass", pass, ["seasonId", "name", "startDate", "endDate", "maxLevel", "xpPerLevel", "active"])}
+    ${renderKeyValueForm("platzpass", pass, ["seasonId", "name", "startDate", "endDate", "maxLevel", "xpPerLevel", "price", "active"])}
+  `;
+}
+
+function renderAdminDraftBoardModule() {
+  return `
+    <h3>Draft-Board Belohnungen</h3>
+    <p>Typ <b>Karte</b> erzeugt zufaellige Spieler-Karten passend zur eingestellten Klasse. Typ <b>Stufenkarte</b> ist die Reset-Karte des Boards.</p>
+    <div class="admin-reward-pool-list standalone-draft-pool">
+      ${renderRewardPoolRowsMarkup("draft", normalizeRewardPool(state.rewardPools?.draft, 8))}
+    </div>
+    <button type="button" data-phase9-action="save-draftboard">Draft-Board speichern</button>
   `;
 }
 
@@ -3881,6 +4261,12 @@ function handleAdminPhase9Action(event) {
     if (!requireAdminPermission("backup.create")) return;
     createAdminBackup("Manuelles Phase-9-Backup", ["events", "boosters", "adminData", "leagueSystem", "missionSystem"]);
     setAdminStatus("Backup wurde erstellt.");
+  } else if (action === "save-draftboard") {
+    if (!requireAdminPermission("draftboard.manage")) return;
+    state.rewardPools = state.rewardPools || {};
+    state.rewardPools.draft = readRewardPoolRowsFromRoot(document.querySelector(".standalone-draft-pool"));
+    logAdminAction("draftboard", "save", "rewardPools.draft", null, state.rewardPools.draft);
+    setAdminStatus("Draft-Board Belohnungen gespeichert.");
   }
   renderAdminDashboard();
   renderAdminPhase9Module(currentAdminSection());
@@ -3957,14 +4343,24 @@ function grantAdminWallet() {
 }
 
 function renderAdminRewardPools() {
-  const list = document.querySelector("#quickRewardPoolList");
+  renderRewardPoolEditor("quick", document.querySelector("#quickRewardPoolList"), 5);
+  renderRewardPoolEditor("draft", document.querySelector("#draftRewardPoolList"), 8);
+}
+
+function renderRewardPoolEditor(poolKey, list, size) {
   if (!list) return;
-  const rewards = normalizeQuickRewardPool(state.rewardPools?.quick);
+  const rewards = normalizeRewardPool(state.rewardPools?.[poolKey], size);
+  list.innerHTML = renderRewardPoolRowsMarkup(poolKey, rewards);
+  syncRewardPoolPackSelects(list, rewards);
+}
+
+function renderRewardPoolRowsMarkup(poolKey, rewards) {
+  const rewardTypes = poolKey === "draft" ? ["coins", "gems", "xp", "freePack", "card", "tierCard"] : ["coins", "gems", "xp", "freePack", "card"];
   const packOptions = state.boosterPacks
     .map((pack) => `<option value="${escapeAttr(pack.id)}">${escapeHtml(pack.name)}</option>`)
     .join("");
-  list.innerHTML = rewards.map((reward, index) => `
-    <article class="reward-pool-row" data-reward-index="${index}">
+  return rewards.map((reward, index) => `
+    <article class="reward-pool-row" data-reward-pool="${escapeAttr(poolKey)}" data-reward-index="${index}">
       <label>Aktiv
         <select data-reward-field="active">
           <option value="true" ${reward.active ? "selected" : ""}>Ja</option>
@@ -3973,7 +4369,7 @@ function renderAdminRewardPools() {
       </label>
       <label>Typ
         <select data-reward-field="type">
-          ${["coins", "gems", "xp", "freePack", "card"].map((type) => `<option value="${type}" ${reward.type === type ? "selected" : ""}>${rewardTypeLabel(type)}</option>`).join("")}
+          ${rewardTypes.map((type) => `<option value="${type}" ${reward.type === type ? "selected" : ""}>${rewardTypeLabel(type)}</option>`).join("")}
         </select>
       </label>
       <label>Menge<input data-reward-field="amount" type="number" min="1" step="1" value="${reward.amount}" /></label>
@@ -3988,17 +4384,31 @@ function renderAdminRewardPools() {
       </label>
     </article>
   `).join("");
+}
+
+function syncRewardPoolPackSelects(root, rewards) {
   rewards.forEach((reward, index) => {
-    const row = list.querySelector(`[data-reward-index="${index}"]`);
+    const row = root.querySelector(`[data-reward-index="${index}"]`);
     const packSelect = row?.querySelector('[data-reward-field="packId"]');
     if (packSelect) packSelect.value = reward.packId;
   });
 }
 
 function saveQuickRewardPool() {
-  const rows = [...document.querySelectorAll("#quickRewardPoolList [data-reward-index]")];
   state.rewardPools = state.rewardPools || {};
-  state.rewardPools.quick = rows.map((row) => ({
+  state.rewardPools.quick = readRewardPoolRows("quickRewardPoolList");
+  state.rewardPools.draft = readRewardPoolRows("draftRewardPoolList");
+  renderAdminRewardPools();
+  setAdminStatus("Preis-Pools fuer Schnelles KI-Spiel und Draft-Board gespeichert.");
+  saveState();
+}
+
+function readRewardPoolRows(listId) {
+  return readRewardPoolRowsFromRoot(document.querySelector(`#${listId}`));
+}
+
+function readRewardPoolRowsFromRoot(root) {
+  return [...(root?.querySelectorAll("[data-reward-index]") || [])].map((row) => ({
     active: row.querySelector('[data-reward-field="active"]').value === "true",
     type: row.querySelector('[data-reward-field="type"]').value,
     amount: Math.max(1, Number(row.querySelector('[data-reward-field="amount"]').value) || 1),
@@ -4006,9 +4416,6 @@ function saveQuickRewardPool() {
     packId: row.querySelector('[data-reward-field="packId"]').value || "pack-bronze",
     classIndex: normalizeClassIndex(row.querySelector('[data-reward-field="classIndex"]').value),
   }));
-  renderAdminRewardPools();
-  setAdminStatus("Preis-Pool fuer Schnelles KI-Spiel gespeichert.");
-  saveState();
 }
 
 function handleAdminUserAction(event) {
@@ -4298,6 +4705,7 @@ function renderAdminBoosters() {
           <label>Von<select data-pack-field="minClass">${minClassOptions}</select></label>
           <label>Bis<select data-pack-field="maxClass">${maxClassOptions}</select></label>
           <label>Karten<input data-pack-field="cardCount" type="number" min="1" max="20" step="1" value="${pack.cardCount}" /></label>
+          <label>Kauflimit<input data-pack-field="purchaseLimit" type="number" min="0" step="1" value="${pack.purchaseLimit || 0}" /><small>0 = keine Beschraenkung</small></label>
           <label>Pool<select data-pack-field="pool">${poolOptions}</select></label>
           <label>Positionen<select data-pack-field="positions">${positionOptions}</select></label>
           <label>Bild<select data-pack-field="image">${imageOptions}</select></label>
@@ -4307,7 +4715,7 @@ function renderAdminBoosters() {
             ${dropRateInputs}
           </fieldset>
           <label class="wide">Beschreibung<textarea data-pack-field="description" rows="2">${escapeHtml(pack.description)}</textarea></label>
-          <span>${pack.active ? "Aktiv" : "Deaktiviert"} | ${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | ${teamClasses[pack.minClass]} bis ${teamClasses[pack.maxClass]} | ${escapeHtml(packPoolLabel(pack.pool))} | ${escapeHtml(packPositionLabel(pack.positions))}${pack.imageSource === "admin-upload" ? " | eigenes Bild" : ""}</span>
+          <span>${pack.active ? "Aktiv" : "Deaktiviert"} | ${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | Limit ${pack.purchaseLimit || 0 ? pack.purchaseLimit : "keins"} | ${teamClasses[pack.minClass]} bis ${teamClasses[pack.maxClass]} | ${escapeHtml(packPoolLabel(pack.pool))} | ${escapeHtml(packPositionLabel(pack.positions))}${pack.imageSource === "admin-upload" ? " | eigenes Bild" : ""}</span>
         </div>
         <div class="admin-booster-actions">
           <button type="button" data-pack-action="save">Speichern</button>
@@ -4333,6 +4741,7 @@ function createAdminBooster() {
     minClass,
     maxClass,
     cardCount: normalizePackCardCount(els.adminBoosterCardCount.value),
+    purchaseLimit: 0,
     pool: normalizePackPool(els.adminBoosterPool.value),
     positions: packPositionsFromOption(els.adminBoosterPositions.value),
     dropRates: defaultDropRates(minClass, maxClass),
@@ -4380,22 +4789,19 @@ function handleAdminBoosterAction(event) {
     pack.minClass = minClass;
     pack.maxClass = maxClass;
     pack.cardCount = normalizePackCardCount(row.querySelector('[data-pack-field="cardCount"]').value);
+    pack.purchaseLimit = Math.max(0, Math.round(Number(row.querySelector('[data-pack-field="purchaseLimit"]')?.value) || 0));
+    pack.limitConfigured = true;
     pack.pool = normalizePackPool(row.querySelector('[data-pack-field="pool"]').value);
     pack.positions = packPositionsFromOption(row.querySelector('[data-pack-field="positions"]').value);
     const dropRates = readDropRates(row, minClass, maxClass, { strict: true });
     const sum = dropRateSum(dropRates, minClass, maxClass);
-    if (Math.abs(sum - 100) > 0.01) {
-      setAdminStatus(`Dropchancen muessen 100% ergeben. Aktuell: ${sum.toFixed(1)}%.`);
-      showToast("Dropchancen nicht gespeichert.", "error");
-      return;
-    }
-    pack.dropRates = dropRates;
+    pack.dropRates = rebalanceDropRates(dropRates, minClass, maxClass, pack.id);
     pack.image = row.querySelector('[data-pack-field="image"]').value;
     pack.imageSource = pack.image && pack.image.startsWith("pack-img-") ? "admin-upload" : pack.image ? "asset" : "placeholder";
-    pack.tier = packTierFromImage(getPackImageUrl(pack));
+    pack.tier = packTierFromImage(pack.image || getPackImageUrl(pack));
     pack.description = row.querySelector('[data-pack-field="description"]').value.trim() || pack.description;
     logAdminAction("boosters", "save", pack.id, before, pack);
-    setAdminStatus(`${pack.name} wurde gespeichert.`);
+    setAdminStatus(`${pack.name} wurde gespeichert.${Math.abs(sum - 100) > 0.01 ? ` Dropchancen wurden von ${sum.toFixed(1)}% auf 100% normalisiert.` : ""}`);
   } else if (button.dataset.packAction === "toggle") {
     if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Aktivieren von Boostern.")) return;
     const before = safeAdminSnapshot(pack);
@@ -4407,6 +4813,7 @@ function handleAdminBoosterAction(event) {
     if (!window.confirm(`${pack.name} wirklich entfernen? Ein Backup wird erstellt.`)) return;
     createAdminBackup(`Booster geloescht: ${pack.name}`, ["boosterPacks"]);
     logAdminAction("boosters", "delete", pack.id, pack, null);
+    state.deletedBoosterPackIds = [...new Set([...(state.deletedBoosterPackIds || []), pack.id])];
     state.boosterPacks = state.boosterPacks.filter((item) => item.id !== pack.id);
     setAdminStatus(`${pack.name} wurde geloescht.`);
   }
@@ -4818,6 +5225,7 @@ function handleAdminNav(button) {
     roles: { selector: ".admin-phase9-panel", message: "Rollenmatrix geoeffnet." },
     export: { selector: ".admin-phase9-panel", message: "Datenexport geoeffnet." },
     backups: { selector: ".admin-phase9-panel", message: "Backups geoeffnet." },
+    draftboard: { selector: ".admin-phase9-panel", message: "Draft-Board Belohnungen geoeffnet." },
   };
 
   const action = actions[section];
@@ -4866,6 +5274,7 @@ function setAdminContentView(section) {
     roles: [".admin-phase9-panel"],
     export: [".admin-phase9-panel"],
     backups: [".admin-phase9-panel"],
+    draftboard: [".admin-phase9-panel"],
   };
   const visibleSelectors = new Set(viewMap[section] || []);
   document.querySelectorAll("[data-admin-view]").forEach((item) => {
@@ -5061,6 +5470,7 @@ function createDefaultAdminData() {
       endDate: "",
       maxLevel: 100,
       xpPerLevel: 1000,
+      price: 950,
       active: false,
       preparedOnly: true,
     },
@@ -5090,6 +5500,16 @@ function normalizeAdminData(data) {
     backups: Array.isArray(adminData.backups) ? adminData.backups.slice(0, 10) : fresh.backups,
     auditLog: Array.isArray(adminData.auditLog) ? adminData.auditLog.slice(0, 80) : fresh.auditLog,
     validationReports: Array.isArray(adminData.validationReports) ? adminData.validationReports.slice(0, 20) : fresh.validationReports,
+  };
+}
+
+function normalizePlatzPassState(pass) {
+  const source = pass && typeof pass === "object" ? pass : {};
+  return {
+    owned: Boolean(source.owned),
+    level: clamp(Math.round(Number(source.level) || 1), 1, 100),
+    xp: Math.max(0, Math.round(Number(source.xp) || 0)),
+    premiumClaimed: Array.isArray(source.premiumClaimed) ? source.premiumClaimed.filter(Boolean).slice(0, 100) : [],
   };
 }
 
@@ -5152,6 +5572,8 @@ function createInitialState() {
     selected: deckIds(createStarterActiveDeck(baseCards)),
     formation: DEFAULT_FORMATION,
     cpuDifficulty: "normal",
+    fieldTheme: "stadium",
+    deletedBoosterPackIds: [],
     activeMatch: null,
     matchHistory: [],
     pendingRewardBoard: null,
@@ -5166,6 +5588,7 @@ function createInitialState() {
     boosterOpenings: [],
     cardProgressTransactions: [],
     freePacks: {},
+    platzPass: { owned: false, level: 1, xp: 0, premiumClaimed: [] },
     rewardPools: defaultRewardPools(),
     adminData: createDefaultAdminData(),
     adminUsers: defaultAdminUsers(),
@@ -5199,6 +5622,7 @@ function normalizeState(saved) {
     teamClassIndex: normalizeClassIndex(saved.teamClassIndex ?? fresh.teamClassIndex),
     formation: migratedActiveDeck.formationId,
     cpuDifficulty: normalizeCpuDifficulty(saved.cpuDifficulty),
+    fieldTheme: normalizeFieldTheme(saved.fieldTheme),
     activeMatch: normalizeStoredMatch(saved.activeMatch),
     matchHistory: normalizeMatchHistory(saved.matchHistory),
     pendingRewardBoard: normalizePendingRewardBoard(saved.pendingRewardBoard),
@@ -5210,12 +5634,14 @@ function normalizeState(saved) {
     record: { ...fresh.record, ...(saved.record || {}) },
     events: migratedEvents,
     selectedAdminEventId: migratedEvents.some((event) => event.id === saved.selectedAdminEventId) ? saved.selectedAdminEventId : migratedEvents[0]?.id || null,
-    boosterPacks: mergeDefaultBoosterPacks(saved.boosterPacks && saved.boosterPacks.length ? saved.boosterPacks : fresh.boosterPacks),
+    deletedBoosterPackIds: Array.isArray(saved.deletedBoosterPackIds) ? saved.deletedBoosterPackIds.filter(Boolean) : fresh.deletedBoosterPackIds,
+    boosterPacks: mergeDefaultBoosterPacks(saved.boosterPacks && saved.boosterPacks.length ? saved.boosterPacks : fresh.boosterPacks, saved.deletedBoosterPackIds),
     boosterInventory: normalizeBoosterInventory(saved.boosterInventory),
     boosterTransactions: normalizeBoosterTransactions(saved.boosterTransactions),
     boosterOpenings: normalizeBoosterOpenings(saved.boosterOpenings),
     cardProgressTransactions: Array.isArray(saved.cardProgressTransactions) ? saved.cardProgressTransactions.slice(0, 80) : fresh.cardProgressTransactions,
     freePacks: normalizeFreePacks(saved.freePacks),
+    platzPass: normalizePlatzPassState(saved.platzPass),
     rewardPools: normalizeRewardPools(saved.rewardPools),
     adminData: normalizeAdminData(saved.adminData),
     adminUsers: migratedUsers,
@@ -5849,6 +6275,7 @@ function recordGameEvent(type, payload = {}) {
   if (state.missionSystem.processedEvents.includes(uniqueKey)) return;
   state.missionSystem.processedEvents.push(uniqueKey);
   state.missionSystem.processedEvents = state.missionSystem.processedEvents.slice(-500);
+  updateActiveUserStats(type, payload);
   [...state.missionSystem.daily, ...state.missionSystem.weekly].forEach((mission) => {
     if (!mission.active || mission.claimed || mission.status === "expired") return;
     const increment = missionIncrement(mission.targetType, type, payload);
@@ -5882,6 +6309,29 @@ function missionIncrement(targetType, eventType, payload) {
   return 1;
 }
 
+function updateActiveUserStats(type, payload = {}) {
+  const user = activeUser();
+  user.stats = normalizeUserStats(user.stats);
+  if (type === "match_completed" || type === "league_match_completed") {
+    user.stats.matchesPlayed += 1;
+    const match = state.matchHistory?.find((item) => item.id === payload.id) || state.activeMatch;
+    if (match?.result === "loss" || match?.winner === "cpu") user.stats.matchesLost += 1;
+  } else if (type === "match_won" || type === "league_match_won") {
+    user.stats.matchesWon += 1;
+  } else if (type === "booster_opened") {
+    user.stats.packsOpened += 1;
+  } else if (type === "card_received") {
+    user.stats.cardsCollected = Math.max(user.stats.cardsCollected, ownedCardCount());
+  } else if (type === "card_fused" || type === "card_star_upgraded") {
+    user.stats.cardsFused += 1;
+  } else if (type === "card_leveled") {
+    const card = state.deck.find((item) => item.id === payload.cardId || item.id === String(payload.id || "").replace(/^level-/, "").replace(/-\d+$/, ""));
+    user.stats.highestCardLevel = Math.max(user.stats.highestCardLevel, card ? cardLevel(card) : 1);
+  } else if (type === "league_promoted") {
+    user.stats.leaguePromotions += 1;
+  }
+}
+
 function grantMissionReward(reward) {
   if (reward.type === "coins") {
     state.coins += reward.amount;
@@ -5890,6 +6340,8 @@ function grantMissionReward(reward) {
     state.gems += reward.amount;
   } else if (reward.type === "freePack") {
     grantFreePack(reward.packId, reward.amount);
+  } else if (reward.type === "xp") {
+    state.log = [`Draft-XP: ${reward.amount} Karriere-XP erhalten.`, ...state.log].slice(0, 8);
   } else if (reward.type === "card") {
     const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
     state.deck.push(card);
@@ -5912,6 +6364,7 @@ function rewardLabel(reward) {
   if (reward.type === "gems") return `${reward.amount} Diamanten`;
   if (reward.type === "freePack") return `${reward.amount} Gratis-Pack`;
   if (reward.type === "card") return `${classLabel(reward.classIndex)} Karte`;
+  if (reward.type === "tierCard") return `${classLabel(reward.classIndex)} Stufenkarte`;
   return `${reward.amount} Material`;
 }
 
@@ -6039,6 +6492,10 @@ function normalizeCpuDifficulty(value) {
   return CPU_DIFFICULTIES[value] ? value : "normal";
 }
 
+function normalizeFieldTheme(value) {
+  return FIELD_THEMES.includes(value) ? value : "stadium";
+}
+
 function ensureStarterDeckSize(deck) {
   const cards = Array.isArray(deck) ? [...deck] : [];
   const existingIds = new Set(cards.map((card) => card.id));
@@ -6140,6 +6597,9 @@ function normalizePendingRewardBoard(board) {
     rewardTier: board.rewardTier || (board.result === "win" ? "winner" : "consolation"),
     rewarded: Boolean(board.rewarded),
     status: ["ready", "prepared", "completed"].includes(board.status) ? board.status : "prepared",
+    deckStage: board.deckStage || null,
+    resetUnlocked: Boolean(board.resetUnlocked),
+    lastMatchId: board.lastMatchId || board.matchId,
     createdAt: board.createdAt || new Date().toISOString(),
     slots,
     claimedSlots: Array.isArray(board.claimedSlots) ? board.claimedSlots : [],
@@ -6157,6 +6617,7 @@ function normalizeDraftReward(reward) {
     material: reward.material || "",
     label: reward.label || rewardLabel(reward),
     slotId: reward.slotId || "",
+    stageClass: reward.stageClass == null ? null : normalizeClassIndex(reward.stageClass),
   };
 }
 
@@ -6201,6 +6662,16 @@ function defaultRewardPools() {
       { active: true, type: "gems", amount: 1, chance: 8, packId: "pack-bronze", classIndex: 0 },
       { active: true, type: "card", amount: 1, chance: 10, packId: "pack-bronze", classIndex: 1 },
     ],
+    draft: [
+      { active: true, type: "coins", amount: 120, chance: 38, packId: "pack-bronze", classIndex: 0 },
+      { active: true, type: "gems", amount: 10, chance: 10, packId: "pack-bronze", classIndex: 0 },
+      { active: true, type: "freePack", amount: 1, chance: 16, packId: "pack-bronze", classIndex: 0 },
+      { active: true, type: "freePack", amount: 1, chance: 8, packId: "pack-silver", classIndex: 0 },
+      { active: true, type: "card", amount: 1, chance: 18, packId: "pack-bronze", classIndex: 2 },
+      { active: true, type: "card", amount: 1, chance: 8, packId: "pack-bronze", classIndex: 5 },
+      { active: true, type: "tierCard", amount: 1, chance: 2, packId: "pack-gold", classIndex: 7 },
+      { active: false, type: "freePack", amount: 1, chance: 0, packId: "pack-gold", classIndex: 0 },
+    ],
   };
 }
 
@@ -6209,17 +6680,22 @@ function normalizeRewardPools(pools) {
     ...defaultRewardPools(),
     ...(pools || {}),
     quick: normalizeQuickRewardPool(pools?.quick),
+    draft: normalizeRewardPool(pools?.draft, 8),
   };
 }
 
 function normalizeQuickRewardPool(pool) {
-  const fallback = defaultRewardPools().quick;
-  const source = Array.isArray(pool) && pool.length ? pool : fallback;
-  return Array.from({ length: 5 }, (_, index) => {
-    const reward = source[index] || fallback[index] || fallback[0];
+  return normalizeRewardPool(pool, 5, defaultRewardPools().quick);
+}
+
+function normalizeRewardPool(pool, size = 5, fallback = null) {
+  const fallbackRewards = fallback || defaultRewardPools().draft;
+  const source = Array.isArray(pool) && pool.length ? pool : fallbackRewards;
+  return Array.from({ length: size }, (_, index) => {
+    const reward = source[index] || fallbackRewards[index] || fallbackRewards[0];
     return {
       active: reward.active !== false,
-      type: ["coins", "gems", "xp", "freePack", "card"].includes(reward.type) ? reward.type : "coins",
+      type: ["coins", "gems", "xp", "freePack", "card", "tierCard"].includes(reward.type) ? reward.type : "coins",
       amount: Math.max(1, Number(reward.amount) || 1),
       chance: clamp(Number(reward.chance) || 0, 0, 100),
       packId: reward.packId || "pack-bronze",
@@ -6235,14 +6711,15 @@ function rewardTypeLabel(type) {
     xp: "Karriere XP",
     freePack: "Gratis Pack",
     card: "Karte",
+    tierCard: "Stufenkarte",
   }[type] || type;
 }
 
 function defaultCardFilters() {
   const cardDefaults = CARD_SYSTEM?.DEFAULT_FILTERS || {};
   return {
-    collection: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen" },
-    deck: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen", owned: "Besitz" },
+    collection: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen", series: "Alle Serien", proStatus: "Alle", fusion: "Alle", duplicates: "Alle" },
+    deck: { ...cardDefaults, league: "Alle Ligen", club: "Alle Vereine", position: "Alle Positionen", owned: "Besitz", series: "Alle Serien", proStatus: "Alle", fusion: "Alle", duplicates: "Alle" },
   };
 }
 
@@ -6278,6 +6755,7 @@ function normalizeAdminUser(user) {
     locked: Boolean(user.locked),
     wallet: normalizeWallet(user.wallet),
     profile: normalizeUserProfile(user.profile, { id, name: ownerName || user.name, role }),
+    stats: normalizeUserStats(user.stats),
   };
 }
 
@@ -6289,10 +6767,16 @@ function normalizeUserProfile(profile = {}, user = {}) {
     profileId: profile.profileId || `profile-${user.id || "local"}`,
     userId: profile.userId || user.id || "",
     displayName,
+    email: normalizeEmail(profile.email || user.email || "", user.name || displayName),
     avatar: sanitizeAvatar(profile.avatar || ""),
-    favoriteClubId: profile.favoriteClubId || "Werder Bremen",
+    banner: sanitizeAvatar(profile.banner || ""),
+    favoriteClub: sanitizeProfileText(profile.favoriteClub || profile.favoriteClubId || "Werder Bremen", 64),
+    favoritePlayer: sanitizeProfileText(profile.favoritePlayer || "", 64),
+    title: sanitizeProfileText(profile.title || profile.motto || "", 42),
+    frame: ["standard", "green", "gold", "elite"].includes(profile.frame) ? profile.frame : "standard",
+    favoriteClubId: profile.favoriteClubId || profile.favoriteClub || "Werder Bremen",
     favoriteNationId: profile.favoriteNationId || "Deutschland",
-    bio: sanitizeProfileText(profile.bio || "", 180),
+    bio: sanitizeProfileText(profile.bio || "", 260),
     motto: sanitizeProfileText(profile.motto || "", 72),
     language: ["de", "en"].includes(profile.language) ? profile.language : "de",
     visibility: ["private", "friends", "public"].includes(profile.visibility) ? profile.visibility : "private",
@@ -6304,7 +6788,21 @@ function normalizeUserProfile(profile = {}, user = {}) {
     },
     preferredFormation: formation,
     createdAt: profile.createdAt || now,
+    lastLoginAt: profile.lastLoginAt || profile.updatedAt || now,
     updatedAt: profile.updatedAt || now,
+  };
+}
+
+function normalizeUserStats(stats = {}) {
+  return {
+    matchesPlayed: Math.max(0, Number(stats.matchesPlayed) || 0),
+    matchesWon: Math.max(0, Number(stats.matchesWon) || 0),
+    matchesLost: Math.max(0, Number(stats.matchesLost) || 0),
+    packsOpened: Math.max(0, Number(stats.packsOpened) || 0),
+    cardsCollected: Math.max(0, Number(stats.cardsCollected) || 0),
+    cardsFused: Math.max(0, Number(stats.cardsFused) || 0),
+    highestCardLevel: Math.max(1, Number(stats.highestCardLevel) || 1),
+    leaguePromotions: Math.max(0, Number(stats.leaguePromotions) || 0),
   };
 }
 
@@ -6405,7 +6903,7 @@ function defaultBoosterPacks() {
     { id: "pack-mixed", name: "Mixed Pack", cost: 500, currency: "coins", minClass: 3, maxClass: 8, cardCount: 3, description: "Maenner- und Frauenkarten gemeinsam in einem Pack.", image: "assets/packs/silver.png", tier: "mixed", pool: "mixed", active: true },
     { id: "pack-dfb-pokal", name: "DFB-Pokal Pack", cost: 650, currency: "coins", minClass: 3, maxClass: 9, cardCount: 3, description: "Cup-Feeling mit Karten aus allen deutschen Ligen.", image: "assets/packs/bronze.png", tier: "dfb", pool: "dfb-pokal", active: true },
     { id: "pack-totw", name: "Team of the Week Pack", cost: 25, currency: "gems", minClass: 8, maxClass: 10, cardCount: 3, description: "Formstarke Karten ab Episch mit Elite-Chance.", image: "assets/packs/gold.png", tier: "totw", pool: "totw", active: true },
-    requiredById.get("pack-icon") || { id: "pack-icon", name: "Icon Pack", cost: 120, currency: "gems", minClass: 11, maxClass: 11, cardCount: 1, guaranteedClass: 11, description: "Nur Icon-Karten und die staerksten Namen im Spiel.", image: "assets/packs/elite.png", tier: "icon", pool: "icon", active: true, purchaseLimit: 1 },
+    { ...(requiredById.get("pack-icon") || { id: "pack-icon", name: "Icon Pack", cost: 120, currency: "gems", minClass: 11, maxClass: 11, cardCount: 1, guaranteedClass: 11, description: "Nur Icon-Karten und die staerksten Namen im Spiel.", image: "assets/packs/elite.png", tier: "icon", pool: "icon", active: true }), purchaseLimit: 0 },
     { id: "pack-angriff", name: "Angriff Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer Stuermer und Fluegelspieler.", image: "assets/packs/gold.png", tier: "gold", pool: "mixed", positions: ["ST", "MS", "LA", "RA"], active: true },
     { id: "pack-mittelfeld", name: "Mittelfeld Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer zentrale und offensive Mittelfeldspieler.", image: "assets/packs/silver.png", tier: "silver", pool: "mixed", positions: ["ZM", "DM", "OM", "CAM", "LM", "RM"], active: true },
     { id: "pack-abwehr", name: "Abwehr Pack", cost: 850, currency: "coins", minClass: 2, maxClass: 8, cardCount: 2, description: "Gezieltes Pack fuer Innenverteidiger, Aussenverteidiger und Wingbacks.", image: "assets/packs/bronze.png", tier: "bronze", pool: "mixed", positions: ["IV", "CB", "LV", "RV", "LWB", "RWB"], active: true },
@@ -6413,11 +6911,12 @@ function defaultBoosterPacks() {
   ];
 }
 
-function mergeDefaultBoosterPacks(savedPacks) {
-  const normalizedSaved = Array.isArray(savedPacks) ? savedPacks.map(normalizeBoosterPack) : [];
+function mergeDefaultBoosterPacks(savedPacks, deletedPackIds = []) {
+  const deletedIds = new Set(Array.isArray(deletedPackIds) ? deletedPackIds.filter(Boolean) : []);
+  const normalizedSaved = Array.isArray(savedPacks) ? savedPacks.filter((pack) => !deletedIds.has(pack?.id)).map(normalizeBoosterPack) : [];
   const savedIds = new Set(normalizedSaved.map((pack) => pack.id));
   const missingDefaults = defaultBoosterPacks()
-    .filter((pack) => !savedIds.has(pack.id))
+    .filter((pack) => !savedIds.has(pack.id) && !deletedIds.has(pack.id))
     .map(normalizeBoosterPack);
   return [...normalizedSaved, ...missingDefaults];
 }
@@ -6426,20 +6925,14 @@ function normalizeBoosterPack(pack) {
   pack = pack || {};
   const phaseFiveDefault = BOOSTER_SYSTEM?.defaultBoosterConfigs ? BOOSTER_SYSTEM.defaultBoosterConfigs().find((item) => item.id === pack.id) : null;
   const legacyIconPack = pack.name === "Icon Jagd" || (pack.id === "pack-icon" && !pack.pool && pack.name !== "Icon Pack");
-  const defaultBounds = defaultClassBoundsForPack(pack.id);
-  const legacyBounds = legacyClassBoundsForPack(pack.id);
-  const legacyDefaultBounds = defaultBounds && legacyBounds && Number(pack.minClass) === legacyBounds.min && Number(pack.maxClass) === legacyBounds.max;
-  const oldIconEliteBounds = pack.id === "pack-icon" && Number(pack.minClass) === 10 && Number(pack.maxClass) === 10;
-  const usePhaseFiveBounds = phaseFiveDefault && (legacyDefaultBounds || oldIconEliteBounds);
-  const minClass = legacyIconPack ? teamClasses.length - 1 : usePhaseFiveBounds ? phaseFiveDefault.minClass : legacyDefaultBounds ? defaultBounds.min : normalizeClassIndex(pack.minClass ?? phaseFiveDefault?.minClass);
-  const maxClass = legacyIconPack ? teamClasses.length - 1 : usePhaseFiveBounds ? phaseFiveDefault.maxClass : legacyDefaultBounds ? defaultBounds.max : clamp(normalizeClassIndex(pack.maxClass ?? phaseFiveDefault?.maxClass ?? minClass), minClass, teamClasses.length - 1);
+  const minClass = legacyIconPack ? teamClasses.length - 1 : normalizeClassIndex(pack.minClass ?? phaseFiveDefault?.minClass);
+  const maxClass = legacyIconPack ? teamClasses.length - 1 : clamp(normalizeClassIndex(pack.maxClass ?? phaseFiveDefault?.maxClass ?? minClass), minClass, teamClasses.length - 1);
   const image = pack.image || phaseFiveDefault?.image || (pack.id === "pack-elite" || pack.name === "Elite Pack" || legacyIconPack ? "assets/packs/elite.png" : "");
   const migratedName = legacyIconPack ? "Icon Pack" : pack.name || phaseFiveDefault?.name;
-  const legacyCounts = { "pack-bronze": 1, "pack-silver": 2, "pack-gold": 3, "pack-elite": 4 };
   const storedCount = Number(pack.cardCount);
-  const cardCount = phaseFiveDefault && (!Number.isFinite(storedCount) || storedCount === legacyCounts[pack.id])
-    ? phaseFiveDefault.cardCount
-    : normalizePackCardCount(pack.cardCount ?? defaultPackCardCount(pack.id));
+  const cardCount = Number.isFinite(storedCount)
+    ? normalizePackCardCount(storedCount)
+    : normalizePackCardCount(phaseFiveDefault?.cardCount ?? defaultPackCardCount(pack.id));
   const base = {
     id: pack.id || `pack-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: migratedName || "Neuer Booster",
@@ -6459,7 +6952,8 @@ function normalizeBoosterPack(pack) {
     tier: pack.tier || phaseFiveDefault?.tier || packTierFromImage(image),
     startDate: pack.startDate || phaseFiveDefault?.startDate || "",
     endDate: pack.endDate || phaseFiveDefault?.endDate || "",
-    purchaseLimit: Math.max(0, Number(pack.purchaseLimit ?? phaseFiveDefault?.purchaseLimit) || 0),
+    purchaseLimit: pack.limitConfigured ? Math.max(0, Number(pack.purchaseLimit) || 0) : Math.max(0, Number(pack.id === "pack-icon" && Number(pack.purchaseLimit) === 1 ? 0 : pack.purchaseLimit ?? 0) || 0),
+    limitConfigured: Boolean(pack.limitConfigured),
     animation: pack.animation || phaseFiveDefault?.animation || packTierFromImage(image),
     order: Math.max(0, Number(pack.order ?? phaseFiveDefault?.order) || 999),
     imageSource: pack.imageSource || (String(image).startsWith("pack-img-") ? "admin-upload" : image ? "asset" : "placeholder"),
@@ -6536,6 +7030,21 @@ function normalizeDropRates(rates, minClass = 0, maxClass = teamClasses.length -
   if (!Object.values(result).some((value) => value > 0)) {
     return fallback;
   }
+  return result;
+}
+
+function rebalanceDropRates(rates, minClass = 0, maxClass = teamClasses.length - 1, packId = "") {
+  const bounded = normalizeDropRates(rates, minClass, maxClass, packId);
+  const range = teamClasses.map((_, index) => index).filter((index) => index >= minClass && index <= maxClass);
+  const sum = range.reduce((total, index) => total + (Number(bounded[index]) || 0), 0);
+  if (sum <= 0) return defaultDropRates(minClass, maxClass, packId);
+  const result = {};
+  teamClasses.forEach((_, index) => {
+    result[index] = range.includes(index) ? Math.round(((Number(bounded[index]) || 0) / sum) * 1000) / 10 : 0;
+  });
+  const adjustedSum = dropRateSum(result, minClass, maxClass);
+  const last = range[range.length - 1];
+  result[last] = Math.max(0, Math.round((result[last] + (100 - adjustedSum)) * 10) / 10);
   return result;
 }
 
@@ -6678,6 +7187,12 @@ function boosterImageOptions() {
     { value: "assets/packs/silver.png", label: "Silber Pack Bild" },
     { value: "assets/packs/gold.png", label: "Gold Pack Bild" },
     { value: "assets/packs/elite.png", label: "Elite Pack Bild" },
+    { value: "assets/packs/bundesliga.png", label: "Bundesliga Pack Bild" },
+    { value: "assets/packs/frauen-bundesliga.png", label: "Frauen-Bundesliga Pack Bild" },
+    { value: "assets/packs/mixed.png", label: "Mixed Pack Bild" },
+    { value: "assets/packs/dfb-pokal.png", label: "DFB-Pokal Pack Bild" },
+    { value: "assets/packs/totw.png", label: "Team of the Week Pack Bild" },
+    { value: "assets/packs/icon.png", label: "Icon Pack Bild" },
     ...uploaded,
   ];
 }
@@ -6815,11 +7330,15 @@ function render() {
   updateAccountUi();
   state.formation = normalizeFormationKey(state.formation);
   state.cpuDifficulty = normalizeCpuDifficulty(state.cpuDifficulty);
+  state.fieldTheme = normalizeFieldTheme(state.fieldTheme);
   selectedFormation = state.formation;
   document.querySelectorAll(".formation-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.formation === selectedFormation);
   });
   if (els.cpuDifficulty) els.cpuDifficulty.value = state.cpuDifficulty;
+  if (els.fieldTheme) els.fieldTheme.value = state.fieldTheme;
+  document.querySelector(".pitch")?.setAttribute("data-field-theme", state.fieldTheme);
+  renderOverlayLogo();
   const lineup = getLineup();
   const avgClass = Math.round(state.deck.reduce((sum, card) => sum + card.cls, 0) / state.deck.length);
   state.teamClassIndex = Math.max(state.teamClassIndex, avgClass);
@@ -6830,6 +7349,7 @@ function render() {
   els.menuCoins.textContent = formatNumber(state.coins);
   document.querySelector(".wallet .gem + strong").textContent = formatNumber(state.gems);
   renderHeaderClubCrest();
+  renderProjectStatusStrip();
   els.dailyBonus.classList.toggle("claimed", state.dailyClaimed);
   els.dailyBonus.querySelector("em").textContent = state.dailyClaimed ? "ABGEHOLT" : "15:47:32";
   renderMenuEvents();
@@ -6846,6 +7366,7 @@ function render() {
   renderSlot(els.midSlot, lineup.mid);
   renderSlot(els.defenseSlot, lineup.defense);
   renderSlot(els.keeperSlot, lineup.keeper);
+  renderFieldTeamCards(lineup);
   renderDeck();
   renderLog();
   renderBattleBoard();
@@ -6879,6 +7400,40 @@ function renderMenuEvents() {
     `;
 }
 
+function projectCompletionPercent() {
+  const checks = [
+    GAME_CARDS.length >= 120,
+    CLUBS.length >= 56,
+    state.boosterPacks.some((pack) => pack.active),
+    Boolean(state.rewardPools?.draft?.length),
+    Boolean(state.rewardPools?.quick?.length),
+    Boolean(state.leagueSystem?.currentWeek),
+    Boolean(state.missionSystem?.daily?.length),
+    Boolean(state.adminData?.enabled),
+    Boolean(state.adminData?.shopOffers?.length),
+    state.events.some((event) => event.active),
+  ];
+  const base = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  const validationPenalty = Math.min(18, validateAdminData().errors.length * 3);
+  return clamp(base - validationPenalty, 0, 100);
+}
+
+function renderProjectStatusStrip() {
+  const strip = document.querySelector(".project-status-strip");
+  if (!strip) return;
+  const percent = projectCompletionPercent();
+  const project = state.adminData?.project || createDefaultAdminData().project;
+  const missingImages = GAME_CARDS.filter((card) => resolvePlayerImage(card).fallback).length;
+  strip.innerHTML = `
+    <div>
+      <strong>${escapeHtml(project.name || "Liga Clash Games")}</strong>
+      <span>${escapeHtml(project.status || "Alpha")} | ${GAME_CARDS.length} Karten | ${CLUBS.length} Vereine | ${missingImages} Bilder offen</span>
+    </div>
+    <div class="project-status-meter"><i style="--project-progress:${percent}%"></i><b>${percent}%</b></div>
+  `;
+  state.adminData.project.progress = percent;
+}
+
 function eventIcon(event) {
   const text = `${event.title} ${event.type}`.toLowerCase();
   if (text.includes("winter")) return "W";
@@ -6910,6 +7465,56 @@ function renderSlot(slot, card) {
     return;
   }
   cards.forEach((item) => slot.appendChild(createCard(item, true)));
+}
+
+function renderFieldTeamCards(lineup) {
+  if (!els.homeFieldCards || !els.awayFieldCards) return;
+  const homeCards = [lineup.keeper, ...(lineup.defense || []), ...(lineup.mid || []), ...(lineup.attack || [])].filter(Boolean).slice(0, MATCH_CARD_COUNT);
+  const match = state.activeMatch;
+  const revealedCpuIds = new Set((match?.rounds || []).map((round) => round.cpu?.cardId).filter(Boolean));
+  const cpuCards = Array.isArray(match?.cpuCards) ? match.cpuCards.filter((card) => revealedCpuIds.has(card.id)).slice(0, MATCH_CARD_COUNT) : [];
+  const hiddenCpuCount = match?.cpuCards?.length ? Math.max(0, MATCH_CARD_COUNT - cpuCards.length) : 0;
+  els.homeFieldCards.innerHTML = homeCards.length
+    ? homeCards.map((card) => fieldTeamCardChip(card, "home")).join("")
+    : `<span class="field-team-empty">Deck leer</span>`;
+  els.awayFieldCards.innerHTML = cpuCards.length
+    ? `${cpuCards.map((card) => fieldTeamCardChip(card, "away")).join("")}${hiddenCpuCount ? hiddenCpuCards(hiddenCpuCount) : ""}`
+    : hiddenCpuCount ? hiddenCpuCards(Math.min(MATCH_CARD_COUNT, hiddenCpuCount)) : `<span class="field-team-empty">CPU bereit</span>`;
+}
+
+function hiddenCpuCards(count) {
+  return Array.from({ length: count }, (_, index) => `<span class="field-team-card away is-hidden-card"><b>?</b><em>G${index + 1}</em></span>`).join("");
+}
+
+function fieldTeamCardChip(card, side) {
+  const club = getClub(card.club);
+  return `
+    <span class="field-team-card ${side}" title="${escapeAttr(safeCardName(card))}">
+      <img src="${escapeAttr(club.crest)}" alt="" />
+      <b>${rating(card)}</b>
+      <em>${escapeHtml(card.pos)}</em>
+    </span>
+  `;
+}
+
+function currentGameLogo() {
+  const configured = String(state.adminData?.design?.logo || "").trim();
+  return configured || "assets/logo/logo.png";
+}
+
+function renderOverlayLogo() {
+  const logo = document.querySelector(".overlay-logo");
+  if (!logo) return;
+  const src = currentGameLogo();
+  if (src) {
+    logo.classList.add("has-image-logo");
+    logo.innerHTML = `
+      <img src="${escapeAttr(src)}" alt="Liga Clash Games Logo" />
+      <span>${escapeHtml(state.adminData?.design?.slogan || "THE FOOTBALL CARD GAME")}</span>
+    `;
+    return;
+  }
+  logo.classList.remove("has-image-logo");
 }
 
 function renderDeck() {
@@ -7053,11 +7658,31 @@ function manualCardChoice(option, selected) {
 }
 
 function battleSide(label, data, won) {
+  const card = findBattleCard(data.cardId, label === "CPU");
   return `
     <div class="battle-side ${won ? "winner" : ""}">
       <span>${label}</span>
+      ${card ? battleMiniCard(card) : ""}
       <strong>${escapeHtml(data.name)}</strong>
       <em>${escapeHtml(data.pos)} | ${escapeHtml(data.positionText)}</em>
+    </div>
+  `;
+}
+
+function findBattleCard(cardId, cpu = false) {
+  const match = state.activeMatch;
+  if (!cardId || !match) return null;
+  if (cpu) return (match.cpuCards || []).find((card) => card.id === cardId) || null;
+  return state.deck.find((card) => card.id === cardId) || null;
+}
+
+function battleMiniCard(card) {
+  return `
+    <div class="battle-mini-card card-tier-${normalizeClassIndex(card.cls)}">
+      ${renderCardPhoto(card, "battle-mini-photo")}
+      <b>${rating(card)}</b>
+      <small>${escapeHtml(card.pos)}</small>
+      <strong>${escapeHtml(safeCardName(card))}</strong>
     </div>
   `;
 }
@@ -7234,6 +7859,8 @@ function startManualMatch(mode = "league") {
   }
   const startedAt = new Date().toISOString();
   const situations = drawMatchSituations(MATCH_ROUNDS);
+  state.homeScore = 0;
+  state.awayScore = 0;
   state.activeMatch = {
     id: `match-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     playerId: state.activeUserId,
@@ -7804,19 +8431,36 @@ function prepareRewardBoard(match) {
 
 function createDraftBoard(match) {
   const existing = state.pendingRewardBoard;
-  if (existing?.matchId === match.id && Array.isArray(existing.slots) && existing.slots.length === 25) return existing;
   const selectionCount = rewardSelectionsForResult(match.result);
+  if (existing && Array.isArray(existing.slots) && existing.slots.length === 25 && !existing.resetUnlocked) {
+    existing.matchId = match.id;
+    existing.result = match.result;
+    existing.selectionCount = selectionCount;
+    existing.picksRemaining = Math.min(25, Math.max(0, Number(existing.picksRemaining) || 0) + selectionCount);
+    existing.rewardTier = match.result === "win" ? "winner" : "consolation";
+    existing.status = "ready";
+    existing.lastMatchId = match.id;
+    return existing;
+  }
+  if (existing?.matchId === match.id && Array.isArray(existing.slots) && existing.slots.length === 25) return existing;
+  const deckStage = topDeckDraftStage();
+  const slots = Array.from({ length: 25 }, (_, index) => createDraftRewardSlot(match, index, deckStage));
+  const tierIndex = rand(0, slots.length - 1);
+  slots[tierIndex].reward = createDraftTierCardReward(deckStage);
   return {
     id: `draft-${match.id}`,
     matchId: match.id,
+    lastMatchId: match.id,
     result: match.result,
     selectionCount,
     picksRemaining: selectionCount,
     rewardTier: match.result === "win" ? "winner" : "consolation",
     rewarded: false,
     status: "ready",
+    deckStage,
+    resetUnlocked: false,
     createdAt: new Date().toISOString(),
-    slots: Array.from({ length: 25 }, (_, index) => createDraftRewardSlot(match, index)),
+    slots,
     claimedSlots: [],
     claimedRewards: [],
   };
@@ -7826,24 +8470,62 @@ function rewardBoardText(match) {
   return `${match.rewards.selectionCount} Belohnungsauswahlen`;
 }
 
-function createDraftRewardSlot(match, index) {
-  const win = match.result === "win";
-  const roll = rand(1, 100);
-  let reward;
-  if (roll >= (win ? 94 : 98)) {
-    reward = { type: "gems", amount: win ? 25 : 10, label: `${win ? 25 : 10} Diamanten` };
-  } else if (roll >= (win ? 82 : 90)) {
-    reward = { type: "freePack", amount: 1, packId: win ? "pack-silver" : "pack-bronze", label: `1 Gratis ${win ? "Silber" : "Bronze"} Pack` };
-  } else if (roll >= (win ? 68 : 78)) {
-    const classIndex = win ? clamp(state.teamClassIndex + 1, 0, teamClasses.length - 1) : state.teamClassIndex;
-    reward = { type: "card", classIndex, label: `${teamClasses[classIndex]} Karte` };
-  } else if (roll >= 52) {
-    reward = { type: "material", material: "Trainingspunkte", amount: win ? 4 : 2, label: `${win ? 4 : 2} Trainingspunkte` };
-  } else {
-    reward = { type: "coins", amount: win ? rand(80, 180) : rand(35, 95), label: "Credits" };
-    reward.label = `${reward.amount} Credits`;
-  }
+function createDraftRewardSlot(match, index, deckStage = topDeckDraftStage()) {
+  const reward = rollDraftReward(match, deckStage);
   return { id: `slot-${index}`, index, revealed: false, claimed: false, reward };
+}
+
+function topDeckDraftStage() {
+  const cards = activeDeckMatchCards().length ? activeDeckMatchCards() : state.deck.slice(0, MATCH_CARD_COUNT);
+  const top = [...cards].sort((a, b) => rating(b) - rating(a)).slice(0, MATCH_ACTIVE_COUNT);
+  const averageClass = top.reduce((sum, card) => sum + normalizeClassIndex(card.cls), 0) / Math.max(1, top.length);
+  const averageLevel = top.reduce((sum, card) => sum + cardLevel(card), 0) / Math.max(1, top.length);
+  const levelBoost = averageLevel >= 80 ? 2 : averageLevel >= 50 ? 1 : 0;
+  const classIndex = clamp(Math.round(averageClass) + levelBoost, 0, teamClasses.length - 1);
+  return { classIndex, label: `${teamClasses[classIndex]} Draft-Stufe`, averageLevel: Math.round(averageLevel), deckPower: Math.round(top.reduce((sum, card) => sum + rating(card), 0) / Math.max(1, top.length)) };
+}
+
+function rollDraftReward(match, deckStage = topDeckDraftStage()) {
+  const pool = normalizeRewardPool(state.rewardPools?.draft, 8).filter((reward) => reward.active && reward.type !== "tierCard" && reward.chance > 0);
+  const fallback = normalizeRewardPool(defaultRewardPools().draft, 8).filter((reward) => reward.active && reward.type !== "tierCard");
+  const source = pool.length ? pool : fallback;
+  const total = source.reduce((sum, reward) => sum + reward.chance, 0);
+  let roll = Math.random() * Math.max(1, total);
+  let picked = source[source.length - 1];
+  for (const reward of source) {
+    roll -= reward.chance;
+    if (roll <= 0) {
+      picked = reward;
+      break;
+    }
+  }
+  return hydrateDraftReward(picked, match, deckStage);
+}
+
+function hydrateDraftReward(reward, match, deckStage = topDeckDraftStage()) {
+  const win = match.result === "win";
+  const bonusClass = win ? 1 : 0;
+  if (reward.type === "coins") return { ...reward, amount: Math.max(1, reward.amount + (win ? 40 : 0)), label: `${reward.amount + (win ? 40 : 0)} Credits` };
+  if (reward.type === "gems") return { ...reward, label: `${reward.amount} Diamanten` };
+  if (reward.type === "freePack") {
+    const pack = state.boosterPacks.find((item) => item.id === reward.packId) || defaultBoosterPacks().find((item) => item.id === reward.packId);
+    return { ...reward, label: `${reward.amount} Gratis ${pack?.name || "Pack"}` };
+  }
+  if (reward.type === "card") {
+    const classIndex = clamp(Math.max(reward.classIndex, deckStage.classIndex + bonusClass - 2), 0, teamClasses.length - 1);
+    return { ...reward, classIndex, label: `${teamClasses[classIndex]} Karte` };
+  }
+  return { ...reward, label: reward.label || rewardTypeLabel(reward.type) };
+}
+
+function createDraftTierCardReward(deckStage = topDeckDraftStage()) {
+  return {
+    type: "tierCard",
+    amount: 1,
+    classIndex: deckStage.classIndex,
+    stageClass: deckStage.classIndex,
+    label: `${teamClasses[deckStage.classIndex]} Stufenkarte`,
+  };
 }
 
 function renderDraftBoardFeature() {
@@ -7855,15 +8537,21 @@ function renderDraftBoardFeature() {
   const done = board.picksRemaining <= 0 || board.status === "completed";
   setFeature(
     "Draft-Board",
-    `${board.selectionCount} Picks | Match ${board.matchId.slice(0, 16)}`,
+    `${board.picksRemaining} Picks | ${board.deckStage?.label || "Draft-Stufe"}`,
     `
       <section class="feature-card draft-board-shell">
         <div class="feature-section-head">
           <div>
             <h3>Belohnungs-Draft</h3>
-            <p>Waehle deine Felder selbst. Nicht geoeffnete Felder werden nicht vergeben.</p>
+            <p>Das Board bleibt ueber Matches bestehen. Es resettet erst, wenn du die Stufenkarte aus dem Board gezogen hast.</p>
           </div>
           <strong>${board.picksRemaining} Picks uebrig</strong>
+        </div>
+        <div class="pill-row">
+          <span>${escapeHtml(board.deckStage?.label || "Deck-Stufe")}</span>
+          <span>Top-Deck Level ${board.deckStage?.averageLevel || 1}</span>
+          <span>Deckpower ${board.deckStage?.deckPower || 0}</span>
+          <span>${board.resetUnlocked ? "Reset freigegeben" : "Reset gesperrt bis Stufenkarte"}</span>
         </div>
         <div class="draft-board-grid">
           ${board.slots.map((slot) => draftBoardSlot(slot, done)).join("")}
@@ -7871,7 +8559,7 @@ function renderDraftBoardFeature() {
         <div class="draft-reward-log">
           ${(board.claimedRewards || []).length ? board.claimedRewards.map((reward) => `<span>${escapeHtml(reward.label)}</span>`).join("") : "<span>Noch keine Felder gewaehlt.</span>"}
         </div>
-        <button class="feature-action" type="button" data-feature-action="draft-close" ${done ? "" : "disabled"}>${done ? "Fertig" : "Erst alle Picks waehlen"}</button>
+        <button class="feature-action" type="button" data-feature-action="draft-close">${done ? "Fertig" : "Spaeter weiter waehlen"}</button>
       </section>
     `
   );
@@ -7899,9 +8587,13 @@ function claimDraftPick(target) {
   board.claimedSlots = [...new Set([...(board.claimedSlots || []), slot.id])];
   grantDraftReward(slot.reward);
   board.claimedRewards = [...(board.claimedRewards || []), { ...slot.reward, slotId: slot.id }];
-  if (board.picksRemaining <= 0) {
+  if (slot.reward.type === "tierCard") {
+    board.resetUnlocked = true;
     board.status = "completed";
     board.rewarded = true;
+  } else if (board.picksRemaining <= 0) {
+    board.status = "completed";
+    board.rewarded = false;
     const match = state.activeMatch?.id === board.matchId ? state.activeMatch : state.matchHistory.find((item) => item.id === board.matchId);
     if (match?.rewards) match.rewards.claimed = true;
     recordGameEvent("reward_board_completed", { id: board.id });
@@ -7923,6 +8615,12 @@ function grantDraftReward(reward) {
     const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
     state.deck.push(card);
     recordGameEvent("card_received", { id: `draft-card-${card.id}`, count: 1 });
+  } else if (reward.type === "tierCard") {
+    const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    card.series = "totw";
+    state.deck.push(card);
+    recordGameEvent("card_received", { id: `draft-tier-card-${card.id}`, count: 1 });
+    state.log = [`Draft-Stufenkarte erhalten: ${safeCardName(card)} (${teamClasses[normalizeClassIndex(card.cls)]}). Neues Board wird beim naechsten Match moeglich.`, ...state.log].slice(0, 8);
   } else {
     state.log = [`Draft-Material: ${reward.amount} ${reward.material}.`, ...state.log].slice(0, 8);
   }
@@ -8389,6 +9087,7 @@ function resolvePlayerImage(card) {
   if (card?.manualImagePath && isApprovedImage(card, "manual")) return { src: card.manualImagePath, source: "manual", fallback: false };
   if (card?.localImagePath && isApprovedImage(card, "licensed")) return { src: card.localImagePath, source: "licensed-cache", fallback: false };
   if (card?.imageUrl && isApprovedImage(card, "licensed")) return { src: card.imageUrl, source: "licensed-remote", fallback: false };
+  if (card?.image && isApprovedImage({ ...card, imageType: card.imageType || "licensed" }, "licensed")) return { src: card.image, source: "licensed-card-image", fallback: false };
   if (card?.photo && isApprovedImage({ ...card, imageType: card.imageType || "licensed" }, "licensed")) return { src: card.photo, source: "legacy-approved", fallback: false };
   return { src: PLAYER_IMAGE_SILHOUETTE, source: "silhouette", fallback: true, reason: card?.imageFallbackReason || "Kein freigegebenes oder lizenziertes Spielerbild vorhanden." };
 }
@@ -8414,6 +9113,7 @@ function normalizeCard(card) {
     playerId: normalized.playerId || sourceCardId(normalized),
     nation: normalized.nation || "Deutschland",
     flag: normalized.flag || "DE",
+    image: normalized.image || "",
     photo: normalized.photo || "",
     externalIds: normalized.externalIds || {},
     manualImagePath: normalized.manualImagePath || "",
@@ -8620,7 +9320,10 @@ function addCardXp(card, xpAmount) {
 
 function levelCard(cardId, amount = 10) {
   const card = state.deck.find((item) => item.id === cardId);
-  if (!card) return;
+  if (!card) {
+    showToast("Karte zum Leveln nicht gefunden.", "error");
+    return false;
+  }
   const xpGain = amount === 1 ? xpForNextLevel(cardLevel(card)) : CARD_PROGRESSION.levelButtonXp;
   const result = addCardXp(card, xpGain);
   const capHint = result.capped ? " Sternaufstieg erforderlich." : "";
@@ -8629,6 +9332,14 @@ function levelCard(cardId, amount = 10) {
     ...(state.cardProgressTransactions || []),
   ].slice(0, 80);
   state.log = [`${safeCardName(card)}: Level ${result.beforeLevel} -> ${result.afterLevel}.${capHint}`, ...state.log].slice(0, 8);
+  if (result.afterLevel > result.beforeLevel) {
+    showToast(`${safeCardName(card)} ist jetzt Level ${result.afterLevel}.`, "success");
+  } else if (result.capped) {
+    showToast(`${safeCardName(card)} ist am aktuellen Sternlimit. Stern erhoehen, dann weiter leveln.`, "error");
+  } else {
+    showToast(`${safeCardName(card)} hat XP erhalten.`, "success");
+  }
+  return true;
 }
 
 function raiseCardStars(cardId) {
@@ -8644,6 +9355,10 @@ function raiseCardStars(cardId) {
     return false;
   }
   const consumed = duplicateCardsFor(card).slice(0, info.duplicatesRequired);
+  if (consumed.some((item) => item.favorite)) {
+    showToast("Favorisierte Karten werden nicht als Sternmaterial verbraucht. Favorit zuerst entfernen.", "error");
+    return false;
+  }
   const before = cardStars(card);
   card.stars = info.nextStars;
   card.currentStars = info.nextStars;
@@ -8667,6 +9382,10 @@ function fuseCardToPro(cardId) {
     card = partner;
   }
   const consumed = card.id === partner.id ? state.deck.find((item) => item.id === cardId) : partner;
+  if (consumed?.favorite) {
+    showToast("Favorisierte Karten werden nicht fusioniert. Favorit zuerst entfernen.", "error");
+    return;
+  }
   const nextStars = Math.min(PRO_MAX_STARS, proStars(card) + 1);
   const quality = proStars(card) ? normalizeProQuality(card.proQuality) : evolutionQualityFor(card, consumed);
   card.proStars = nextStars;
