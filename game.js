@@ -724,6 +724,11 @@ if (!state.sessionLoggedOut) {
 }
 const processingBoosterActions = new Set();
 let publicGameUnlocked = false;
+const splashState = {
+  progress: 0,
+  ready: false,
+  started: false,
+};
 
 const els = {
   publicSplash: document.querySelector("#publicSplash"),
@@ -1169,19 +1174,27 @@ handleRouteFromHash();
 function initPublicEntry() {
   if (!els.publicSplash || !els.splashProgressBar || !els.splashStartButton || !els.splashStartLabel) return;
   publicGameUnlocked = false;
+  splashState.progress = 0;
+  splashState.ready = false;
+  splashState.started = false;
   els.publicSplash.classList.remove("is-hidden");
   els.communityHub?.classList.add("is-hidden");
   els.homeOverlay?.classList.add("is-hidden");
   els.gameApp?.classList.add("is-hidden");
   document.body.classList.add("public-entry");
-  let progress = 0;
+  els.splashProgressBar.style.width = "0%";
+  els.splashStartLabel.textContent = "Lade Ressourcen... 0 %";
+  els.splashStartButton.disabled = true;
+  els.splashStartButton.classList.remove("is-ready");
   const timer = window.setInterval(() => {
-    progress = Math.min(100, progress + 4);
-    els.splashProgressBar.style.width = `${progress}%`;
-    if (progress >= 100) {
+    splashState.progress = Math.min(100, splashState.progress + 4);
+    els.splashProgressBar.style.width = `${splashState.progress}%`;
+    els.splashStartLabel.textContent = `Lade Ressourcen... ${splashState.progress} %`;
+    if (splashState.progress >= 100) {
       window.clearInterval(timer);
       const mobile = window.matchMedia("(hover: none), (max-width: 720px)").matches;
       els.splashStartLabel.textContent = mobile ? "▶ TIPPEN ZUM STARTEN" : "▶ KLICKEN ZUM STARTEN";
+      splashState.ready = true;
       els.splashStartButton.disabled = false;
       els.splashStartButton.classList.add("is-ready");
     }
@@ -1189,7 +1202,9 @@ function initPublicEntry() {
 }
 
 function openCommunityHub() {
-  if (els.splashStartButton?.disabled) return;
+  if (!splashState.ready || splashState.started || els.splashStartButton?.disabled) return;
+  splashState.started = true;
+  els.splashStartButton.disabled = true;
   els.publicSplash?.classList.add("is-hidden");
   els.communityHub?.classList.remove("is-hidden");
   renderCommunityView("home");
