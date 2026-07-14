@@ -3,11 +3,72 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Liga Clash Games</title>
-    <link rel="stylesheet" href="styles.css?v=core-feature-fix-20260712" />
+    <title>KickOff SuperCard</title>
+    <link rel="icon" type="image/png" href="assets/branding/favicon.png" />
+    <link rel="apple-touch-icon" href="assets/branding/app-icon.png" />
+    <link rel="stylesheet" href="styles.css?v=admin-cleanup-20260714" />
   </head>
   <body>
-    <section id="homeOverlay" class="home-overlay" aria-label="Hauptmenue">
+    <section id="publicSplash" class="public-splash" aria-label="KickOff SuperCard Splashscreen">
+      <div class="public-bg" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <main class="splash-stage">
+        <img class="splash-logo" src="assets/branding/splash.png" alt="KickOff SuperCard Logo" />
+        <p class="splash-season">Season 1</p>
+        <h1>Football Card Game</h1>
+        <div class="splash-card-row" aria-label="Starter Karten Vorschau">
+          <img class="splash-cards-art" src="assets/splash/splash_cards.png" alt="KickOff SuperCard Founders Karten" />
+        </div>
+        <div class="splash-loader" aria-live="polite">
+          <div class="splash-progress"><i id="splashProgressBar"></i></div>
+          <button id="splashStartButton" type="button" disabled>
+            <span id="splashStartLabel">Lade Ressourcen...</span>
+          </button>
+        </div>
+      </main>
+      <aside class="splash-status">
+        <strong>S1 • v0.1 Alpha</strong>
+        <span>Entwicklungsstatus</span>
+        <div class="status-progress"><i style="--status-progress:30%"></i></div>
+        <em>30%</em>
+      </aside>
+    </section>
+
+    <section id="communityHub" class="community-hub is-hidden" aria-label="KickOff SuperCard Community Hub">
+      <div class="community-shell">
+        <header class="community-header">
+          <img src="assets/branding/logo-small.png" alt="KickOff SuperCard Logo" />
+          <div>
+            <p>Season 1</p>
+            <h1>KickOff SuperCard</h1>
+            <span>Football Card Game</span>
+          </div>
+        </header>
+
+        <nav class="community-grid" aria-label="Community Navigation">
+          <button type="button" data-community-view="idea"><b>💡</b><strong>Ideen</strong><span>Vorschlaege einreichen</span></button>
+          <button type="button" data-community-view="bug"><b>🐞</b><strong>Fehler melden</strong><span>Bugs lokal erfassen</span></button>
+          <button type="button" data-community-view="forum"><b>💬</b><strong>Community Forum</strong><span>Beitraege & Kategorien</span></button>
+          <button type="button" data-community-view="tester"><b>🧪</b><strong>Tester werden</strong><span>Builds pruefen</span></button>
+          <button type="button" data-community-view="moderator"><b>🛡</b><strong>Moderator werden</strong><span>Community begleiten</span></button>
+          <button type="button" data-community-view="admin-application"><b>⭐</b><strong>Admin Bewerbung</strong><span>Projektteam Anfrage</span></button>
+          <button type="button" data-community-view="contact"><b>📨</b><strong>Kontakt</strong><span>Nachricht senden</span></button>
+          <button type="button" data-community-view="news"><b>📢</b><strong>News</strong><span>Season Updates</span></button>
+          <button type="button" data-community-view="roadmap"><b>🗺</b><strong>Roadmap</strong><span>Naechste Schritte</span></button>
+          <button type="button" data-community-view="social"><b>👤</b><strong>Entwickler & Social Media</strong><span>GoernaldoBerlin</span></button>
+        </nav>
+
+        <section id="communityPanel" class="community-panel" aria-live="polite">
+          <article class="community-welcome">
+            <h2>Willkommen bei KickOff SuperCard</h2>
+            <p>Der Community Hub ist der oeffentliche Einstieg. Entwickler und berechtigte Tester koennen sich anmelden, alle anderen koennen Ideen senden oder Support-Bereiche oeffnen.</p>
+          </article>
+        </section>
+      </div>
+    </section>
+
+    <section id="homeOverlay" class="home-overlay is-hidden" aria-label="Hauptmenue">
       <div class="stadium-atmosphere" aria-hidden="true">
         <span class="floodlight floodlight-left"></span>
         <span class="floodlight floodlight-right"></span>
@@ -35,9 +96,8 @@
         </div>
 
         <div class="overlay-logo">
-          <b>LIGA CLASH</b>
-          <strong>GAMES</strong>
-          <span>THE FOOTBALL CARD GAME</span>
+          <img src="assets/branding/logo.png" alt="KickOff SuperCard Logo" />
+          <span>Football Card Game</span>
         </div>
 
         <div class="wallet">
@@ -51,6 +111,7 @@
           <button id="openAdmin" type="button" title="Admin Center">⚙</button>
           <button type="button" title="Benachrichtigungen" data-action="notifications">!</button>
           <button type="button" title="Einstellungen" data-action="settings">⚙</button>
+          <button id="logoutButton" type="button" title="Logout">Logout</button>
         </nav>
       </header>
 
@@ -131,6 +192,7 @@
           <i class="bonus-crate"></i>
           <b>CLAIM</b>
         </button>
+        <small class="brand-footer">KickOff SuperCard · Version 0.1 Alpha · © 2026 KickOff SuperCard</small>
       </footer>
     </section>
 
@@ -151,8 +213,8 @@
       <div class="login-window">
         <header class="feature-header">
           <div>
-            <p class="eyebrow">Account</p>
-            <h2>Login & Rechte</h2>
+            <p class="eyebrow">Football Card Game</p>
+            <h2>KickOff SuperCard</h2>
           </div>
           <button id="closeLogin" class="admin-close" type="button">X</button>
         </header>
@@ -203,8 +265,10 @@
 
     <div id="loadingOverlay" class="loading-overlay is-hidden" role="status" aria-live="polite">
       <div class="loading-card">
-        <span></span>
-        <strong>LADE LIGA CLASH</strong>
+        <img src="assets/branding/splash.png" alt="KickOff SuperCard Logo" />
+        <strong>KickOff SuperCard</strong>
+        <em>Football Card Game</em>
+        <span>Loading...</span>
       </div>
     </div>
 
@@ -224,47 +288,22 @@
       <div class="admin-window">
         <aside class="admin-sidebar">
           <div class="admin-brand">
-            <div class="admin-shield">LC</div>
+            <div class="admin-shield">KO</div>
             <div>
-              <strong>LIGA CLASH</strong>
-              <span>GAMES</span>
-              <b>ADMIN CENTER</b>
+              <strong>KickOff SuperCard</strong>
+              <span>Football Card Game</span>
+              <b>Admin Center</b>
             </div>
           </div>
           <nav class="admin-nav" aria-label="Admin Navigation">
-            <button type="button" data-admin-section="dashboard">⌂ <span>Dashboard</span></button>
-            <button type="button" data-admin-section="clubs">▦ <span>Vereine & Ligen</span></button>
-            <button type="button" data-admin-section="import">♟ <span>Spieler Import</span></button>
-            <button type="button" data-admin-section="cards">▣ <span>Spieler & Karten</span></button>
-            <button type="button" data-admin-section="transfers">↻ <span>Transfers & Updates</span></button>
-            <button type="button" data-admin-section="editor">✎ <span>Karten Editor</span></button>
-            <button type="button" data-admin-section="boosters">▤ <span>Booster & Packs</span></button>
-            <button class="active" type="button" data-admin-section="events">▣ <span>Kalender & Events</span></button>
-            <button type="button" data-admin-section="missions">☑ <span>Missionen</span></button>
-            <button type="button" data-admin-section="users">♚ <span>Benutzer & Rechte</span></button>
-            <button type="button" data-admin-section="settings">⚙ <span>Einstellungen</span></button>
-            <button type="button" data-admin-section="logs">☰ <span>Logs</span></button>
-            <button type="button" data-admin-section="droprates">DR <span>Dropchancen</span></button>
-            <button type="button" data-admin-section="players">SP <span>Spieler</span></button>
-            <button type="button" data-admin-section="nations">NA <span>Nationen</span></button>
-            <button type="button" data-admin-section="leagues">LI <span>Ligen</span></button>
-            <button type="button" data-admin-section="news">NE <span>News</span></button>
-            <button type="button" data-admin-section="shop">SH <span>Shop</span></button>
-            <button type="button" data-admin-section="platzpass">PP <span>Platzpass</span></button>
-            <button type="button" data-admin-section="design">DE <span>Design</span></button>
-            <button type="button" data-admin-section="texts">TX <span>Texte</span></button>
-            <button type="button" data-admin-section="version">VE <span>Version</span></button>
-            <button type="button" data-admin-section="status">ST <span>Projektstatus</span></button>
-            <button type="button" data-admin-section="roles">RO <span>Rollen</span></button>
-            <button type="button" data-admin-section="export">EX <span>Export</span></button>
-            <button type="button" data-admin-section="backups">BA <span>Backups</span></button>
+            <button type="button" data-admin-section="dashboard">DB <span>Dashboard</span></button>
           </nav>
           <button id="closeAdmin" class="admin-back" type="button">← Zurueck zum Spiel</button>
         </aside>
 
         <div class="admin-main">
           <header class="admin-header">
-            <div class="admin-top-card"><span>Version</span><strong>0.2.0 ALPHA</strong></div>
+            <div class="admin-top-card"><span>Version</span><strong>0.1 ALPHA</strong></div>
             <div class="admin-top-card"><span>Saison</span><strong>2026/27</strong></div>
             <div class="admin-top-card"><span>Datenbank</span><strong>Online</strong></div>
             <div class="admin-top-card wide"><span>Letzte Synchronisation</span><strong>Heute, 12:45 Uhr</strong></div>
@@ -397,6 +436,10 @@
               <p>Neue Spieler und Kaderdaten importieren</p>
               <div class="admin-db-filters">
                 <label>
+                  Saison auswaehlen
+                  <select id="adminDbSeason"></select>
+                </label>
+                <label>
                   Liga auswaehlen
                   <select id="adminDbLeague"></select>
                 </label>
@@ -415,18 +458,6 @@
               </div>
               <p id="adminDbSummary" class="admin-db-summary">0 Vereine, 0 Karten angezeigt</p>
               <div id="adminClubList" class="admin-club-list"></div>
-            </section>
-
-            <section class="admin-card admin-transfers">
-              <h3>Aktuelle Transfers</h3>
-              <p>Automatisch erkannte Transfers Sommer & Winter</p>
-              <div class="transfer-list">
-                <article><b>Nick Woltemade</b><span>VfB Stuttgart → FC Bayern Muenchen</span><em>Sommer</em></article>
-                <article><b>Maximilian Beier</b><span>TSG Hoffenheim → Borussia Dortmund</span><em>Sommer</em></article>
-                <article><b>Rocco Reitz</b><span>Borussia M'gladbach → Bayer 04 Leverkusen</span><em>Sommer</em></article>
-                <article><b>Tom Rothe</b><span>Union Berlin → SC Freiburg</span><em>Sommer</em></article>
-                <article><b>Luca Netz</b><span>Borussia M'gladbach → Eintracht Frankfurt</span><em>Sommer</em></article>
-              </div>
             </section>
 
             <section class="admin-card admin-quick">
@@ -536,12 +567,16 @@
                     <tr>
                       <th>Spieler</th>
                       <th>Verein</th>
+                      <th>Nr</th>
                       <th>Pos</th>
+                      <th>Nation</th>
                       <th>Liga</th>
                       <th>Klasse</th>
                       <th>Serie</th>
                       <th>Rating</th>
                       <th>Werte</th>
+                      <th>Status</th>
+                      <th>Datenstand</th>
                       <th>Besitz</th>
                     </tr>
                   </thead>
@@ -638,7 +673,7 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">Saison 1 Prototype</p>
-          <h1>Liga Clash Games</h1>
+          <h1>KickOff SuperCard</h1>
         </div>
         <div class="profile-strip" aria-label="Spielerstatus">
           <div>
@@ -795,9 +830,11 @@
       </section>
     </main>
 
-    <script src="data/card-system.js?v=card-system-1"></script>
+    <script src="data/card-system.js?v=card-system-cleanup-20260714"></script>
     <script src="data/deck-system.js?v=deck-system-1"></script>
     <script src="data/booster-system.js?v=booster-system-1"></script>
-    <script src="game.js?v=core-feature-fix-20260712"></script>
+    <script src="data/bundesliga-26-27-squads.js?v=bundesliga-squads-1"></script>
+    <script src="data/season-2026-27.js?v=season-2026-27-1"></script>
+    <script src="game.js?v=admin-cleanup-20260714"></script>
   </body>
 </html>

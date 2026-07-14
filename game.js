@@ -1,12 +1,9 @@
-const teamClasses = [
+﻿const teamClasses = [
   "Gewöhnlich",
   "Ungewöhnlich",
   "Selten",
   "Besonders Selten",
   "Ultra Selten",
-  "Bronze",
-  "Silber",
-  "Gold",
   "Episch",
   "Legendär",
   "Elite",
@@ -14,18 +11,15 @@ const teamClasses = [
 ];
 
 const CARD_CLASS_RANGES = [
-  { min: 50, max: 69 },
-  { min: 70, max: 89 },
-  { min: 90, max: 109 },
-  { min: 110, max: 129 },
-  { min: 130, max: 149 },
-  { min: 150, max: 169 },
-  { min: 170, max: 189 },
-  { min: 190, max: 209 },
-  { min: 210, max: 229 },
-  { min: 230, max: 249 },
-  { min: 250, max: 299 },
-  { min: 300, max: 349 },
+  { id: "common", label: "Gewöhnlich", min: 50, max: 59 },
+  { id: "uncommon", label: "Ungewöhnlich", min: 60, max: 69 },
+  { id: "rare", label: "Selten", min: 70, max: 74 },
+  { id: "super-rare", label: "Besonders selten", min: 75, max: 79 },
+  { id: "ultra-rare", label: "Ultra selten", min: 80, max: 84 },
+  { id: "epic", label: "Episch", min: 85, max: 89 },
+  { id: "legendary", label: "Legendär", min: 90, max: 94 },
+  { id: "elite", label: "Elite", min: 95, max: 99 },
+  { id: "icon", label: "Icon", min: 96, max: 99 },
 ];
 
 const CARD_MAX_LEVEL = 100;
@@ -33,6 +27,35 @@ const PRO_MAX_LEVEL = 100;
 const PRO_MAX_STARS = 5;
 const PLAYER_IMAGE_PLACEHOLDER = "assets/players/placeholder.svg";
 const PLAYER_IMAGE_SILHOUETTE = "assets/players/player-silhouette.svg";
+const BOOSTER_CONFIG_STORAGE_KEY = "liga-clash-booster-config-v1";
+const COMMUNITY_STORAGE_KEYS = {
+  ideas: "kickoff-supercard-ideas-v1",
+  bugs: "kickoff-supercard-bugs-v1",
+  applications: "kickoff-supercard-applications-v1",
+  contacts: "kickoff-supercard-contacts-v1",
+  forum: "kickoff-supercard-forum-v1",
+  news: "kickoff-supercard-community-news-v1",
+  roadmap: "kickoff-supercard-roadmap-v1",
+  settings: "kickoff-supercard-community-settings-v1",
+};
+const COMMUNITY_ITEM_STATUSES = ["Neu", "In Prüfung", "Geplant", "In Entwicklung", "Erledigt", "Abgelehnt"];
+const COMMUNITY_BUG_STATUSES = ["Neu", "Bestätigt", "In Bearbeitung", "Behoben", "Geschlossen"];
+const COMMUNITY_APPLICATION_STATUSES = ["Neu", "In Prüfung", "Warteliste", "Angenommen", "Abgelehnt"];
+const COMMUNITY_FORUM_CATEGORIES = [
+  { id: "announcements", icon: "📢", label: "Ankündigungen" },
+  { id: "ideas", icon: "💡", label: "Ideen & Wünsche" },
+  { id: "bugs", icon: "🐞", label: "Fehler & Bugs" },
+  { id: "general", icon: "💬", label: "Allgemeine Diskussion" },
+];
+const COMMUNITY_FEATURE_DEFAULTS = {
+  ideas: true,
+  forum: true,
+  bugs: true,
+  applications: true,
+  contact: true,
+  news: true,
+  roadmap: true,
+};
 const CARD_PROGRESSION = {
   maxLevel: CARD_MAX_LEVEL,
   maxStars: 5,
@@ -43,10 +66,27 @@ const CARD_PROGRESSION = {
   levelButtonXp: 2600,
   fusionXp: 1800,
 };
-const PLAYER_IMAGE_BLOCKED_TYPES = ["cartoon", "comic", "generated", "ai-generated", "childlike", "dummy", "placeholder-test"];
+const PLAYER_IMAGE_BLOCKED_TYPES = ["cartoon", "comic", "generated", "ai-generated", "childlike", "dummy", "placeholder-temporary"];
 const CARD_SYSTEM = globalThis.LigaClashCardSystem || null;
 const DECK_SYSTEM = globalThis.LigaClashDeckSystem || null;
 const BOOSTER_SYSTEM = globalThis.LigaClashBoosterSystem || null;
+const SEASON_2026_27_DATA = globalThis.LIGA_CLASH_SEASON_2026_27 || null;
+const SEASON_2026_27_STATUS = SEASON_2026_27_DATA?.dataStatus || {
+  season: "2026/27",
+  lastSquadUpdate: "2026-07-13",
+  transferWindowOpen: true,
+  completeness: "partial",
+  finalSeasonSquads: false,
+};
+const CURRENT_SEASON = SEASON_2026_27_STATUS.season || "2026/27";
+const SQUAD_SEASONS = ["2026/27", "2025/26", "2024/25"];
+const HISTORICAL_SEASONS = new Set(SQUAD_SEASONS.filter((season) => season !== CURRENT_SEASON));
+const DB_SEASONS = [
+  { value: CURRENT_SEASON, label: `Aktuelle Saison ${CURRENT_SEASON}` },
+  { value: "2025/26", label: "Saison 2025/26" },
+  { value: "2024/25", label: "Saison 2024/25" },
+  { value: "all", label: "Alle Saisons" },
+];
 
 const CARD_SERIES = [
   { value: "standard", label: "Standard", bonus: 0 },
@@ -70,9 +110,16 @@ const ADMIN_OWNER_ID = "user-owner-goernaldo";
 const ADMIN_ROLES = ["Owner", "Admin", "Moderator", "Tester", "User"];
 const ADMIN_MODULES = [
   "dashboard", "users", "roles", "players", "cards", "clubs", "nations", "leagues",
-  "boosters", "droprates", "missions", "news", "events", "shop", "platzpass",
-  "draftboard", "design", "texts", "version", "status", "import", "export", "backups", "logs", "settings",
-  "transfers", "editor",
+  "boosters", "droprates", "missions", "events", "shop", "datacheck",
+  "draftboard", "design", "version", "export", "backups",
+  "squads", "season-archive",
+  "level-system", "star-system", "fusion", "deck-rules", "match-rules",
+  "season-management", "schedules", "promotion-relegation",
+  "battle-pass", "daily-login",
+  "community-dashboard", "community-ideas", "community-forum", "community-applications", "community-bugs", "community-messages", "community-news", "community-roadmap", "community-settings",
+  "rights", "admin-audit",
+  "data-duplicates",
+  "system-general", "storage",
 ];
 const ADMIN_PERMISSION_MATRIX = {
   Owner: ["admin.open", "admin.manage", "users.manage", "roles.manage", "wallet.grant", "economy.test", "data.reset", "import.write", "export.read", "backup.manage", "logs.read", "project.manage", "content.manage", "game-data.manage", "boosters.manage", "droprates.manage", "events.manage", "missions.manage", "shop.manage", "draftboard.manage"],
@@ -98,6 +145,7 @@ const ADMIN_MODULE_PERMISSIONS = {
   shop: "shop.manage",
   platzpass: "project.manage",
   draftboard: "draftboard.manage",
+  datacheck: "game-data.manage",
   design: "project.manage",
   texts: "project.manage",
   version: "project.manage",
@@ -109,7 +157,171 @@ const ADMIN_MODULE_PERMISSIONS = {
   settings: "project.manage",
   transfers: "game-data.manage",
   editor: "game-data.manage",
+  "clubs-overview": "game-data.manage",
+  teams: "game-data.manage",
+  squads: "game-data.manage",
+  "player-images": "game-data.manage",
+  "player-duplicates": "game-data.manage",
+  "season-archive": "game-data.manage",
+  "cards-overview": "game-data.manage",
+  "card-designs": "project.manage",
+  "card-values": "game-data.manage",
+  "level-system": "game-data.manage",
+  "star-system": "game-data.manage",
+  fusion: "game-data.manage",
+  "deck-rules": "game-data.manage",
+  "match-rules": "game-data.manage",
+  "cpu-opponents": "game-data.manage",
+  "competitions-overview": "events.manage",
+  "season-management": "events.manage",
+  tables: "events.manage",
+  schedules: "events.manage",
+  "promotion-relegation": "events.manage",
+  cups: "events.manage",
+  tournaments: "events.manage",
+  "economy-overview": "shop.manage",
+  currencies: "shop.manage",
+  achievements: "missions.manage",
+  "battle-pass": "project.manage",
+  "daily-login": "shop.manage",
+  "reward-pools": "shop.manage",
+  "community-overview": "content.manage",
+  mailbox: "content.manage",
+  notifications: "content.manage",
+  support: "content.manage",
+  "community-events": "events.manage",
+  reports: "content.manage",
+  "community-dashboard": "content.manage",
+  "community-ideas": "content.manage",
+  "community-forum": "content.manage",
+  "community-applications": "content.manage",
+  "community-bugs": "content.manage",
+  "community-messages": "content.manage",
+  "community-news": "content.manage",
+  "community-roadmap": "content.manage",
+  "community-settings": "content.manage",
+  rights: "roles.manage",
+  bans: "users.manage",
+  "login-history": "logs.read",
+  "admin-audit": "logs.read",
+  "data-overview": "game-data.manage",
+  "data-duplicates": "game-data.manage",
+  "season-mixing": "game-data.manage",
+  migrations: "backup.create",
+  "error-log": "logs.read",
+  "system-general": "project.manage",
+  storage: "project.manage",
+  security: "project.manage",
+  maintenance: "project.manage",
 };
+
+const ADMIN_NAV_GROUPS = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "DB",
+    pages: [{ id: "dashboard", label: "Uebersicht", section: "dashboard" }],
+  },
+  {
+    id: "clubs-players",
+    label: "Vereine & Spieler",
+    icon: "VS",
+    pages: [
+      { id: "clubs", label: "Vereine", section: "clubs" },
+      { id: "players", label: "Spieler", section: "players" },
+      { id: "squads", label: "Kader", section: "squads" },
+      { id: "season-archive", label: "Saisonarchiv", section: "season-archive" },
+    ],
+  },
+  {
+    id: "cards-gameplay",
+    label: "Karten & Gameplay",
+    icon: "KG",
+    pages: [
+      { id: "cards", label: "Karten", section: "cards" },
+      { id: "level-system", label: "Levelsystem", section: "level-system" },
+      { id: "star-system", label: "Sternesystem", section: "star-system" },
+      { id: "fusion", label: "Fusion", section: "fusion" },
+      { id: "deck-rules", label: "Deckregeln", section: "deck-rules" },
+      { id: "match-rules", label: "Matchregeln", section: "match-rules" },
+      { id: "draftboard", label: "Draft Board", section: "draftboard" },
+    ],
+  },
+  {
+    id: "competitions",
+    label: "Wettbewerbe",
+    icon: "WB",
+    pages: [
+      { id: "leagues", label: "Ligen", section: "leagues" },
+      { id: "season-management", label: "Saisons", section: "season-management" },
+      { id: "schedules", label: "Spielplaene", section: "schedules" },
+      { id: "promotion-relegation", label: "Aufstieg & Abstieg", section: "promotion-relegation" },
+      { id: "events", label: "Events", section: "events" },
+    ],
+  },
+  {
+    id: "economy",
+    label: "Belohnungen & Wirtschaft",
+    icon: "BW",
+    pages: [
+      { id: "boosters", label: "Packs", section: "boosters" },
+      { id: "droprates", label: "Packchancen", section: "droprates" },
+      { id: "shop", label: "Shop", section: "shop" },
+      { id: "missions", label: "Missionen", section: "missions" },
+      { id: "battle-pass", label: "Battle Pass", section: "battle-pass" },
+      { id: "daily-login", label: "Daily Login", section: "daily-login" },
+    ],
+  },
+  {
+    id: "community",
+    label: "COMMUNITY",
+    icon: "🌍",
+    pages: [
+      { id: "community-dashboard", label: "Dashboard", section: "community-dashboard" },
+      { id: "community-ideas", label: "Ideen", section: "community-ideas" },
+      { id: "community-forum", label: "Forum", section: "community-forum" },
+      { id: "community-applications", label: "Bewerbungen", section: "community-applications" },
+      { id: "community-bugs", label: "Fehlermeldungen", section: "community-bugs" },
+      { id: "community-messages", label: "Nachrichten", section: "community-messages" },
+      { id: "community-news", label: "News", section: "community-news" },
+      { id: "community-roadmap", label: "Roadmap", section: "community-roadmap" },
+      { id: "community-settings", label: "Community Einstellungen", section: "community-settings" },
+    ],
+  },
+  {
+    id: "users-rights",
+    label: "Benutzer & Rechte",
+    icon: "BR",
+    pages: [
+      { id: "users", label: "Benutzer", section: "users" },
+      { id: "roles", label: "Rollen", section: "roles" },
+      { id: "rights", label: "Rechte", section: "rights" },
+      { id: "admin-audit", label: "Admin-Protokoll", section: "admin-audit" },
+    ],
+  },
+  {
+    id: "data-management",
+    label: "Datenverwaltung",
+    icon: "DV",
+    pages: [
+      { id: "datacheck", label: "Datenpruefung", section: "datacheck" },
+      { id: "duplicates", label: "Duplikate", section: "data-duplicates" },
+      { id: "export", label: "Import/Export", section: "export" },
+      { id: "backups", label: "Backups", section: "backups" },
+    ],
+  },
+  {
+    id: "settings",
+    label: "Einstellungen",
+    icon: "ES",
+    pages: [
+      { id: "system-general", label: "Allgemein", section: "system-general" },
+      { id: "design", label: "Design", section: "design" },
+      { id: "storage", label: "Speicher", section: "storage" },
+      { id: "version", label: "Version", section: "version" },
+    ],
+  },
+];
 
 const POSITION_PACK_GROUPS = [
   { value: "all", label: "Alle Positionen", positions: [] },
@@ -406,21 +618,18 @@ const SEASON_26_27_CARDS = [
   ["union-f-26", "Lisa Heiseler", "ZM", "1. FC Union Berlin Frauen", 4, 70, 76, 62],
   ["stuttgart-f-1", "Mara Alber", "LA", "VfB Stuttgart Frauen", 4, 76, 70, 50],
   ["koeln-f-1", "Nicole Billa", "ST", "1. FC Koeln Frauen", 5, 82, 69, 47],
-].map(([id, name, pos, club, cls, atk, mid, def]) => cardDef(id, name, pos, club, cls, atk, mid, def));
+].map(([id, name, pos, club, cls, atk, mid, def]) => markCurrentSeasonCard(cardDef(id, name, pos, club, cls, atk, mid, def)));
 
-GAME_CARDS.push(...SEASON_26_27_CARDS.filter((card) => !GAME_CARDS.some((existing) => existing.id === card.id)));
+const BUNDESLIGA_26_27_SQUAD_CARDS = Array.isArray(globalThis.LIGA_CLASH_BUNDESLIGA_26_27_SQUADS)
+  ? globalThis.LIGA_CLASH_BUNDESLIGA_26_27_SQUADS.map(normalizeBundesligaSquadCard).filter(Boolean)
+  : [];
 
-const baseCards = [
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "bayern-1")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "ducksch")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "reis")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "doekhi")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "fuehrich")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "guenter")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "stage")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "musiala")),
-  cloneCardForCollection(GAME_CARDS.find((card) => card.id === "kimmich")),
-];
+GAME_CARDS.push(...SEASON_26_27_CARDS.filter((card) => !cardIdentityExists(GAME_CARDS, card)));
+GAME_CARDS.push(...BUNDESLIGA_26_27_SQUAD_CARDS.filter((card) => !cardIdentityExists(GAME_CARDS, card)));
+applyPartOneRosterOverrides(GAME_CARDS);
+const REMOVED_TEMPORARY_PLAYER_COUNT = clearTemporaryPlayerCatalog(GAME_CARDS);
+
+const baseCards = [];
 
 const names = ["Thomas", "Max", "Anna", "Chris", "Kevin", "Tim", "Marco", "Leyla", "Nico", "Sara", "Ben", "Milan", "Noah", "Lina", "David", "Yara", "Omar"];
 const opponents = ["FC Rheinpark", "Union Hafenstadt", "SV Allee 04", "VfB Nordkurve", "SC Bergtal", "Rot-Weiss Zentrum"];
@@ -478,7 +687,7 @@ const CPU_DIFFICULTIES = {
 const FIELD_THEMES = ["stadium", "hall", "small", "roof", "night"];
 
 const LEAGUE_PHASE_CONFIG = [
-  { id: "league-1", name: "1. Liga", shortName: "L1", level: 1, tier: 1, participantCount: 18, size: 18, promotionPlaces: 0, promote: 0, relegationPlaces: 3, relegate: 3, logo: "L1", description: "Hoechste Liga im lokalen Liga-Clash-System.", order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
+  { id: "league-1", name: "1. Liga", shortName: "L1", level: 1, tier: 1, participantCount: 18, size: 18, promotionPlaces: 0, promote: 0, relegationPlaces: 3, relegate: 3, logo: "L1", description: "Hoechste Liga im lokalen KickOff-SuperCard-System.", order: 1, active: true, rewards: { promotion: 1400, stay: 900, relegation: 550 } },
   { id: "league-2", name: "2. Liga", shortName: "L2", level: 2, tier: 2, participantCount: 18, size: 18, promotionPlaces: 3, promote: 3, relegationPlaces: 3, relegate: 3, logo: "L2", description: "Zweite Spielklasse mit Auf- und Abstiegszone.", order: 2, active: true, rewards: { promotion: 1100, stay: 700, relegation: 420 } },
   { id: "league-3", name: "3. Liga", shortName: "L3", level: 3, tier: 3, participantCount: 20, size: 20, promotionPlaces: 3, promote: 3, relegationPlaces: 4, relegate: 4, logo: "L3", description: "Dritte Liga mit groesserem Teilnehmerfeld.", order: 3, active: true, rewards: { promotion: 850, stay: 520, relegation: 320 } },
   { id: "league-bottom", name: "Rookie-Liga", shortName: "RL", level: 4, tier: 4, participantCount: 25, size: 25, promotionPlaces: 4, promote: 4, relegationPlaces: 0, relegate: 0, logo: "RL", description: "Einsteigerliga fuer neue Decks und erste Aufstiege.", order: 4, active: true, rewards: { promotion: 650, stay: 380, relegation: 220 } },
@@ -502,9 +711,27 @@ const WEEKLY_MISSION_CONFIG = [
 ];
 
 const state = loadState();
+applyAdminPlayerImportsToCatalog(state.adminData?.playerImports);
+if (!state.sessionLoggedOut) {
+  applyUserData(state.activeUserId);
+} else {
+  state.deck = [];
+  state.selected = [];
+  state.activeDeck = createStarterActiveDeck([]);
+  state.savedDecks = [state.activeDeck];
+  state.coins = 0;
+  state.gems = 0;
+}
 const processingBoosterActions = new Set();
+let publicGameUnlocked = false;
 
 const els = {
+  publicSplash: document.querySelector("#publicSplash"),
+  splashProgressBar: document.querySelector("#splashProgressBar"),
+  splashStartButton: document.querySelector("#splashStartButton"),
+  splashStartLabel: document.querySelector("#splashStartLabel"),
+  communityHub: document.querySelector("#communityHub"),
+  communityPanel: document.querySelector("#communityPanel"),
   homeOverlay: document.querySelector("#homeOverlay"),
   gameApp: document.querySelector("#gameApp"),
   featurePanel: document.querySelector("#featurePanel"),
@@ -555,6 +782,7 @@ const els = {
   adminDbSummary: document.querySelector("#adminDbSummary"),
   adminClubList: document.querySelector("#adminClubList"),
   adminPlayerRows: document.querySelector("#adminPlayerRows"),
+  adminDbSeason: document.querySelector("#adminDbSeason"),
   adminDbLeague: document.querySelector("#adminDbLeague"),
   adminDbClub: document.querySelector("#adminDbClub"),
   adminDbPlayer: document.querySelector("#adminDbPlayer"),
@@ -630,14 +858,7 @@ function normalizeHomeMenuControls() {
     if (subtitle) subtitle.textContent = "OFFLINE & MISSIONEN";
   }
   const adminNav = document.querySelector(".admin-nav");
-  if (adminNav && !adminNav.querySelector('[data-admin-section="draftboard"]')) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.dataset.adminSection = "draftboard";
-    button.innerHTML = "DB <span>Draft-Board</span>";
-    const anchor = adminNav.querySelector('[data-admin-section="settings"]');
-    adminNav.insertBefore(button, anchor || null);
-  }
+  if (adminNav) renderAdminNavigationShell();
   if (!document.querySelector(".project-status-strip")) {
     const strip = document.createElement("section");
     strip.className = "project-status-strip";
@@ -645,6 +866,77 @@ function normalizeHomeMenuControls() {
     const eventStrip = document.querySelector(".menu-event-strip");
     eventStrip?.insertAdjacentElement("beforebegin", strip);
   }
+}
+
+function adminNavPageBySection(section) {
+  for (const group of ADMIN_NAV_GROUPS) {
+    const page = group.pages.find((item) => item.section === section);
+    if (page) return { group, page };
+  }
+  return { group: ADMIN_NAV_GROUPS[0], page: ADMIN_NAV_GROUPS[0].pages[0] };
+}
+
+function allowedAdminPages(group, user = activeUser()) {
+  return group.pages.filter((page) => canUseAdminModule(page.section, user));
+}
+
+function firstAllowedAdminPageInGroup(group, user = activeUser()) {
+  return allowedAdminPages(group, user)[0] || null;
+}
+
+function firstAllowedAdminGroup(user = activeUser()) {
+  return ADMIN_NAV_GROUPS.find((group) => firstAllowedAdminPageInGroup(group, user)) || ADMIN_NAV_GROUPS[0];
+}
+
+function renderAdminNavigationShell(activeSection = currentAdminSection()) {
+  const adminNav = document.querySelector(".admin-nav");
+  const adminMain = document.querySelector(".admin-main");
+  if (!adminNav || !adminMain) return;
+  const user = activeUser();
+  const active = adminNavPageBySection(activeSection);
+  adminNav.innerHTML = ADMIN_NAV_GROUPS.map((group) => {
+    const firstPage = firstAllowedAdminPageInGroup(group, user);
+    if (!firstPage) return "";
+    const isActive = group.id === active.group.id;
+    return `<button type="button" class="admin-main-nav-button ${isActive ? "active" : ""}" data-admin-group="${escapeAttr(group.id)}" data-admin-section="${escapeAttr(firstPage.section)}" aria-expanded="${isActive ? "true" : "false"}"><b>${escapeHtml(group.icon)}</b><span>${escapeHtml(group.label)}</span></button>`;
+  }).join("");
+
+  if (!adminMain.querySelector(".admin-breadcrumb")) {
+    const breadcrumb = document.createElement("nav");
+    breadcrumb.className = "admin-breadcrumb";
+    breadcrumb.setAttribute("aria-label", "Admin Breadcrumb");
+    adminMain.insertBefore(breadcrumb, adminMain.querySelector(".admin-hero"));
+  }
+  if (!adminMain.querySelector(".admin-subnav")) {
+    const subnav = document.createElement("nav");
+    subnav.className = "admin-subnav";
+    subnav.setAttribute("aria-label", "Admin Untermenue");
+    adminMain.insertBefore(subnav, adminMain.querySelector(".admin-hero"));
+  }
+  renderAdminSubNavigation(active.group.id, active.page.section);
+}
+
+function renderAdminSubNavigation(groupId, activeSection = currentAdminSection()) {
+  const group = ADMIN_NAV_GROUPS.find((item) => item.id === groupId) || firstAllowedAdminGroup();
+  const subnav = document.querySelector(".admin-subnav");
+  if (!subnav) return;
+  const pages = allowedAdminPages(group);
+  subnav.innerHTML = pages.map((page) => `<button type="button" class="${page.section === activeSection ? "active" : ""}" data-admin-group="${escapeAttr(group.id)}" data-admin-section="${escapeAttr(page.section)}">${escapeHtml(page.label)}</button>`).join("");
+  renderAdminBreadcrumb(group.id, activeSection);
+}
+
+function renderAdminBreadcrumb(groupId, activeSection = currentAdminSection()) {
+  const breadcrumb = document.querySelector(".admin-breadcrumb");
+  if (!breadcrumb) return;
+  const group = ADMIN_NAV_GROUPS.find((item) => item.id === groupId) || adminNavPageBySection(activeSection).group;
+  const page = group.pages.find((item) => item.section === activeSection) || firstAllowedAdminPageInGroup(group) || group.pages[0];
+  breadcrumb.innerHTML = `
+    <button type="button" data-admin-section="dashboard">Admin Center</button>
+    <span>&gt;</span>
+    <button type="button" data-admin-group="${escapeAttr(group.id)}" data-admin-section="${escapeAttr(firstAllowedAdminPageInGroup(group)?.section || page.section)}">${escapeHtml(group.label)}</button>
+    <span>&gt;</span>
+    <button type="button" data-admin-section="${escapeAttr(page.section)}">${escapeHtml(page.label)}</button>
+  `;
 }
 
 document.querySelectorAll(".tactic-button").forEach((button) => {
@@ -681,6 +973,9 @@ els.fieldTheme?.addEventListener("change", () => {
   render();
 });
 
+els.splashStartButton?.addEventListener("click", openCommunityHub);
+els.communityHub?.addEventListener("click", handleCommunityClick);
+els.communityHub?.addEventListener("submit", handleCommunitySubmit);
 els.startFromOverlay.addEventListener("click", () => navigateTo("play"));
 els.backToMenu.addEventListener("click", showMenu);
 els.playMatch.addEventListener("click", playMatch);
@@ -688,6 +983,7 @@ els.openPack.addEventListener("click", openPack);
 els.openAdmin.addEventListener("click", () => navigateTo("admin"));
 els.closeAdmin.addEventListener("click", closeAdminCenter);
 els.openLogin.addEventListener("click", () => navigateTo("profile"));
+document.querySelector("#logoutButton")?.addEventListener("click", logoutActiveUser);
 els.closeLogin.addEventListener("click", closeLoginPanel);
 els.loginForm.addEventListener("submit", handleLoginSubmit);
 els.profileForm.addEventListener("submit", handleProfileSubmit);
@@ -704,8 +1000,13 @@ els.featureContent.addEventListener("input", handleFeatureChange);
 els.featureContent.addEventListener("dragstart", handleDeckDragStart);
 els.featureContent.addEventListener("dragover", handleDeckDragOver);
 els.featureContent.addEventListener("drop", handleDeckDrop);
-document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
-  button.addEventListener("click", () => handleAdminNav(button));
+els.adminCenter?.addEventListener("click", (event) => {
+  const button = event.target.closest(".admin-nav [data-admin-section], .admin-subnav [data-admin-section], .admin-breadcrumb [data-admin-section], [data-admin-quick-section]");
+  if (!button || !els.adminCenter.contains(button)) return;
+  const section = button.dataset.adminSection || button.dataset.adminQuickSection;
+  if (!section) return;
+  event.preventDefault();
+  handleAdminNav(button, section);
 });
 document.querySelector("#adminEventList").addEventListener("click", handleAdminEventListClick);
 document.querySelector("#adminCalendarGrid").addEventListener("click", handleAdminEventListClick);
@@ -770,18 +1071,28 @@ document.querySelector("#adminAddCard").addEventListener("click", () => {
   if (!requireAdminPermission("game-data.manage", "Keine Berechtigung zum Erstellen von Karten.")) return;
   const selectedClass = Number(els.adminCardClass.value);
   const card = drawGameCard(selectedClass, selectedClass);
+  if (!card) {
+    setAdminStatus("Es sind keine Karten im Katalog vorhanden.");
+    showToast("Keine Karten im Katalog vorhanden.", "warning");
+    return;
+  }
   state.deck.push(card);
   setAdminStatus(`${card.name} wurde erstellt.`);
   render();
 });
 
 document.querySelector("#adminGodCard").addEventListener("click", () => {
-  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung zum Erstellen von Testkarten.")) return;
+  if (!requireAdminPermission("game-data.manage", "Keine Berechtigung zum Erstellen von Karten.")) return;
   const iconPool = GAME_CARDS.filter((card) => normalizeClassIndex(card.cls) >= teamClasses.length - 1);
   const card = cloneCardForCollection(pick(iconPool.length ? iconPool : GAME_CARDS), "admin-icon");
+  if (!card) {
+    setAdminStatus("Es sind keine Karten im Katalog vorhanden.");
+    showToast("Keine Karten im Katalog vorhanden.", "warning");
+    return;
+  }
   state.deck.push(card);
   state.teamClassIndex = teamClasses.length - 1;
-  setAdminStatus(`${card.name} wurde als Testkarte hinzugefuegt.`);
+  setAdminStatus(`${card.name} wurde hinzugefuegt.`);
   render();
 });
 
@@ -821,6 +1132,11 @@ document.querySelector("#adminRefreshDb").addEventListener("click", () => {
   setAdminStatus("Vereins- und Spieleruebersicht aktualisiert.");
 });
 
+els.adminDbSeason.addEventListener("change", () => {
+  updateAdminDatabaseDropdowns("season");
+  renderAdminDatabase();
+});
+
 els.adminDbLeague.addEventListener("change", () => {
   updateAdminDatabaseDropdowns("league");
   renderAdminDatabase();
@@ -845,9 +1161,515 @@ els.homeOverlay.addEventListener("click", (event) => {
 window.addEventListener("hashchange", handleRouteFromHash);
 window.addEventListener("load", () => setLoading(false));
 
+initPublicEntry();
 render();
 initAdminControls();
 handleRouteFromHash();
+
+function initPublicEntry() {
+  if (!els.publicSplash || !els.splashProgressBar || !els.splashStartButton || !els.splashStartLabel) return;
+  publicGameUnlocked = false;
+  els.publicSplash.classList.remove("is-hidden");
+  els.communityHub?.classList.add("is-hidden");
+  els.homeOverlay?.classList.add("is-hidden");
+  els.gameApp?.classList.add("is-hidden");
+  document.body.classList.add("public-entry");
+  let progress = 0;
+  const timer = window.setInterval(() => {
+    progress = Math.min(100, progress + 4);
+    els.splashProgressBar.style.width = `${progress}%`;
+    if (progress >= 100) {
+      window.clearInterval(timer);
+      const mobile = window.matchMedia("(hover: none), (max-width: 720px)").matches;
+      els.splashStartLabel.textContent = mobile ? "▶ TIPPEN ZUM STARTEN" : "▶ KLICKEN ZUM STARTEN";
+      els.splashStartButton.disabled = false;
+      els.splashStartButton.classList.add("is-ready");
+    }
+  }, 65);
+}
+
+function openCommunityHub() {
+  if (els.splashStartButton?.disabled) return;
+  els.publicSplash?.classList.add("is-hidden");
+  els.communityHub?.classList.remove("is-hidden");
+  renderCommunityView("home");
+}
+
+function handleCommunityClick(event) {
+  const viewButton = event.target.closest("[data-community-view]");
+  if (viewButton && els.communityHub?.contains(viewButton)) {
+    event.preventDefault();
+    renderCommunityView(viewButton.dataset.communityView || "home");
+    return;
+  }
+  const applicationButton = event.target.closest("[data-community-application]");
+  if (applicationButton && els.communityHub?.contains(applicationButton)) {
+    event.preventDefault();
+    renderApplicationForm(applicationButton.dataset.communityApplication || "tester");
+  }
+}
+
+function handleCommunitySubmit(event) {
+  const form = event.target.closest("[data-community-form]");
+  if (!form) return;
+  event.preventDefault();
+  const type = form.dataset.communityForm;
+  if (type === "developer-login") {
+    handleDeveloperLogin(form);
+    return;
+  }
+  if (type === "idea") {
+    saveCommunityRecord(COMMUNITY_STORAGE_KEYS.ideas, form, "Idee wurde gespeichert.", { status: "Neu", likes: 0, replies: 0 });
+    renderCommunityView("idea", "Danke! Deine Idee wurde lokal gespeichert.");
+    return;
+  }
+  if (type === "bug") {
+    saveCommunityRecord(COMMUNITY_STORAGE_KEYS.bugs, form, "Fehlermeldung wurde gespeichert.", { status: "Neu" });
+    renderCommunityView("bug", "Danke! Der Fehler wurde lokal gespeichert.");
+    return;
+  }
+  if (type === "contact") {
+    saveCommunityRecord(COMMUNITY_STORAGE_KEYS.contacts, form, "Nachricht wurde gespeichert.", { status: "Neu" });
+    renderCommunityView("contact", "Danke! Deine Nachricht wurde lokal gespeichert.");
+    return;
+  }
+  if (type === "forum-post") {
+    saveCommunityRecord(COMMUNITY_STORAGE_KEYS.forum, form, "Forenbeitrag wurde gespeichert.", { status: "Neu", likes: 0, replies: 0, pinned: false, closed: false });
+    renderCommunityView("forum", "Dein Beitrag wurde lokal gespeichert.");
+    return;
+  }
+  saveCommunityRecord(COMMUNITY_STORAGE_KEYS.applications, form, "Bewerbung wurde gespeichert.", { status: "Neu" });
+  renderCommunityView("support", "Danke! Deine Bewerbung wurde lokal gespeichert.");
+}
+
+function handleDeveloperLogin(form) {
+  const userId = form.elements.developerUser?.value || "";
+  const pin = form.elements.developerPin?.value || "";
+  const user = state.adminUsers.find((item) => item.id === userId);
+  const status = form.querySelector("[data-community-status]");
+  if (!user || user.locked || !verifyPin(user, pin) || !canOpenAdmin(user)) {
+    if (status) status.textContent = "Kein Zugriff. Nur berechtigte Entwickler, Owner oder Admins koennen das Spiel oeffnen.";
+    showToast("Kein Entwicklerzugriff.", "error");
+    return;
+  }
+  syncActiveUserWallet();
+  snapshotCurrentUserData(state.activeUserId);
+  state.activeUserId = user.id;
+  state.sessionLoggedOut = false;
+  applyUserData(user.id);
+  user.profile = normalizeUserProfile({ ...user.profile, lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, user);
+  loadActiveUserWallet();
+  publicGameUnlocked = true;
+  els.communityHub?.classList.add("is-hidden");
+  els.publicSplash?.classList.add("is-hidden");
+  document.body.classList.remove("public-entry");
+  updateAccountUi();
+  render();
+  saveState();
+  showMenu();
+  showToast(`Willkommen, ${userDisplayName(user)}.`, "success");
+}
+
+function saveCommunityRecord(storageKey, form, toastMessage, extra = {}) {
+  const data = Object.fromEntries(new FormData(form).entries());
+  const records = readCommunityRecords(storageKey);
+  records.unshift({
+    id: `${storageKey}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: form.dataset.communityForm || "unknown",
+    author: data.name || data.discord || "Community",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...extra,
+    ...data,
+  });
+  localStorage.setItem(storageKey, JSON.stringify(records.slice(0, 80)));
+  showToast(toastMessage, "success");
+}
+
+function readCommunityRecords(storageKey) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCommunityRecords(storageKey, records) {
+  localStorage.setItem(storageKey, JSON.stringify((records || []).slice(0, 120)));
+}
+
+function updateCommunityRecord(storageKey, id, updater) {
+  const stored = readCommunityRecords(storageKey);
+  const records = stored.length ? stored : defaultCommunityRecordsForKey(storageKey);
+  const index = records.findIndex((item) => item.id === id);
+  if (index < 0) return false;
+  const before = records[index];
+  records[index] = { ...before, ...updater(before), updatedAt: new Date().toISOString() };
+  writeCommunityRecords(storageKey, records);
+  return true;
+}
+
+function deleteCommunityRecord(storageKey, id) {
+  const stored = readCommunityRecords(storageKey);
+  const records = stored.length ? stored : defaultCommunityRecordsForKey(storageKey);
+  const next = records.filter((item) => item.id !== id);
+  writeCommunityRecords(storageKey, next);
+  return next.length !== records.length;
+}
+
+function defaultCommunityRecordsForKey(storageKey) {
+  if (storageKey === COMMUNITY_STORAGE_KEYS.news) return defaultCommunityNews();
+  if (storageKey === COMMUNITY_STORAGE_KEYS.roadmap) return defaultCommunityRoadmap();
+  return [];
+}
+
+function communitySettings() {
+  try {
+    return { ...COMMUNITY_FEATURE_DEFAULTS, ...(JSON.parse(localStorage.getItem(COMMUNITY_STORAGE_KEYS.settings) || "{}") || {}) };
+  } catch {
+    return { ...COMMUNITY_FEATURE_DEFAULTS };
+  }
+}
+
+function defaultCommunityNews() {
+  return [
+    { id: "news-welcome", title: "Willkommen bei KickOff SuperCard", summary: "Der Community Hub ist online und sammelt Ideen, Bugs und Bewerbungen.", category: "Update", pinned: true, createdAt: "2026-07-14", status: "Veröffentlicht" },
+    { id: "news-season-one", title: "Season 1 befindet sich in Entwicklung", summary: "Core Gameplay, Kartenrahmen und Community-Funktionen werden Schritt fuer Schritt aufgebaut.", category: "Season 1", pinned: false, createdAt: "2026-07-14", status: "Veröffentlicht" },
+    { id: "news-founders", title: "Founders Collection vorbereitet", summary: "Die ersten Founders-Karten und Marketinggrafiken koennen spaeter durch echte Spieler ersetzt werden.", category: "Cards", pinned: false, createdAt: "2026-07-14", status: "Veröffentlicht" },
+  ];
+}
+
+function communityNews() {
+  const stored = readCommunityRecords(COMMUNITY_STORAGE_KEYS.news);
+  return stored.length ? stored : defaultCommunityNews();
+}
+
+function defaultCommunityRoadmap() {
+  return [
+    { id: "roadmap-splash", title: "Splashscreen", done: true },
+    { id: "roadmap-community", title: "Community Hub", done: true },
+    { id: "roadmap-cardframes", title: "Kartenrahmen", done: true },
+    { id: "roadmap-founders", title: "Founders Collection", done: false },
+    { id: "roadmap-packs", title: "Packs", done: false },
+    { id: "roadmap-match", title: "Matchsystem", done: false },
+    { id: "roadmap-collection", title: "Sammlung", done: false },
+    { id: "roadmap-deck", title: "Deck", done: false },
+    { id: "roadmap-bundesliga", title: "Bundesliga", done: false },
+    { id: "roadmap-second-bundesliga", title: "2. Bundesliga", done: false },
+  ];
+}
+
+function communityRoadmap() {
+  const stored = readCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap);
+  return stored.length ? stored : defaultCommunityRoadmap();
+}
+
+function defaultForumPosts() {
+  return [
+    { id: "forum-welcome", category: "announcements", title: "Community Hub gestartet", author: "GörnaldoBerlin", createdAt: "2026-07-14", replies: 0, likes: 3, status: "Neu", pinned: true, closed: false },
+    { id: "forum-founders", category: "ideas", title: "Welche Founders-Karten sollen zuerst kommen?", author: "KickOff Team", createdAt: "2026-07-14", replies: 2, likes: 7, status: "In Prüfung", pinned: false, closed: false },
+    { id: "forum-bugs", category: "bugs", title: "Fehlerberichte fuer die Alpha sammeln", author: "KickOff Team", createdAt: "2026-07-14", replies: 1, likes: 2, status: "Neu", pinned: false, closed: false },
+  ];
+}
+
+function communityForumPosts() {
+  const stored = readCommunityRecords(COMMUNITY_STORAGE_KEYS.forum);
+  return [...defaultForumPosts(), ...stored];
+}
+
+function renderCommunityView(view, notice = "") {
+  if (!els.communityPanel) return;
+  const views = {
+    home: renderCommunityHome,
+    "developer-login": renderDeveloperLogin,
+    idea: renderIdeaForm,
+    bug: renderBugForm,
+    forum: renderCommunityForum,
+    support: () => renderSupportHub(notice),
+    tester: () => renderApplicationFormMarkup("tester", notice),
+    moderator: () => renderApplicationFormMarkup("moderator", notice),
+    "admin-application": () => renderApplicationFormMarkup("admin", notice),
+    helper: () => renderApplicationFormMarkup("helper", notice),
+    contact: renderContactForm,
+    news: renderPublicNews,
+    roadmap: renderPublicRoadmap,
+    social: renderDeveloperSocial,
+    "project-status": renderPublicProjectStatus,
+  };
+  els.communityPanel.innerHTML = (views[view] || views.home)(notice);
+}
+
+function renderCommunityHome() {
+  const settings = communitySettings();
+  const tiles = [
+    ["idea", "💡", "Ideen", "Vorschlaege fuer Karten, Modi und UI einreichen.", settings.ideas],
+    ["bug", "🐞", "Fehler melden", "Bugs mit Geraet, Browser und Version erfassen.", settings.bugs],
+    ["forum", "💬", "Community Forum", "Vier klare Bereiche fuer Austausch und Feedback.", settings.forum],
+    ["tester", "🧪", "Tester werden", "Bewirb dich fuer Alpha-Tests und Feedbackrunden.", settings.applications],
+    ["moderator", "🛡", "Moderator werden", "Hilf spaeter beim Ordnen der Community.", settings.applications],
+    ["admin-application", "⭐", "Admin Bewerbung", "Melde dich fuer erweiterte Projektaufgaben.", settings.applications],
+    ["contact", "📨", "Kontakt", "Schicke eine direkte Nachricht an das Projekt.", settings.contact],
+    ["news", "📢", "News", "Aktuelle Platzhalter-News fuer Season 1.", settings.news],
+    ["roadmap", "🗺", "Roadmap", "Sieh, was fertig ist und was als naechstes kommt.", settings.roadmap],
+    ["social", "👤", "Entwickler & Social Media", "GörnaldoBerlin, Links und Support.", true],
+  ];
+  return `
+    <article class="community-welcome">
+      <h2>Willkommen bei KickOff SuperCard</h2>
+      <p>Der Community Hub ist dein Einstieg fuer Ideen, Fehlerberichte, Bewerbungen, News und Roadmap. Alles wird in dieser Alpha lokal im Browser gespeichert.</p>
+      <div class="community-tile-grid">
+        ${tiles.filter((tile) => tile[4]).map(([view, icon, title, text]) => `
+          <button type="button" data-community-view="${escapeAttr(view)}">
+            <b>${icon}</b>
+            <strong>${escapeHtml(title)}</strong>
+            <span>${escapeHtml(text)}</span>
+          </button>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderDeveloperLogin() {
+  const options = state.adminUsers
+    .filter((user) => ["Owner", "Admin", "Tester"].includes(user.role))
+    .map((user) => `<option value="${escapeAttr(user.id)}">${escapeHtml(user.name)} - ${escapeHtml(user.role)}</option>`)
+    .join("");
+  return `
+    <form class="community-form" data-community-form="developer-login">
+      <h2>Entwickler Login</h2>
+      <p>Nur berechtigte Accounts erhalten Zugriff auf das Spiel. Es gibt keine oeffentliche Registrierung.</p>
+      <label>Account<select name="developerUser" required>${options}</select></label>
+      <label>PIN<input name="developerPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="0000" required /></label>
+      <button type="submit">Spiel oeffnen</button>
+      <span data-community-status></span>
+    </form>
+  `;
+}
+
+function renderIdeaForm(notice = "") {
+  if (!communitySettings().ideas) return renderCommunityDisabled("Ideen");
+  return `
+    <form class="community-form" data-community-form="idea">
+      <h2>Idee einreichen</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      <label>Titel<input name="title" maxlength="80" required /></label>
+      <label>Kategorie<select name="category" required><option>Gameplay</option><option>Karten</option><option>Design</option><option>Community</option><option>Sonstiges</option></select></label>
+      <label class="wide">Beschreibung<textarea name="description" rows="5" required></textarea></label>
+      <label>Discord<input name="discord" maxlength="64" /></label>
+      <label>E-Mail<input name="email" type="email" maxlength="120" /></label>
+      <button type="submit">Absenden</button>
+    </form>
+  `;
+}
+
+function renderBugForm(notice = "") {
+  if (!communitySettings().bugs) return renderCommunityDisabled("Fehler melden");
+  return `
+    <form class="community-form" data-community-form="bug">
+      <h2>Fehler melden</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      <label>Titel<input name="title" maxlength="90" required /></label>
+      <label>Geraet<input name="device" maxlength="80" required /></label>
+      <label>Browser<input name="browser" maxlength="80" required /></label>
+      <label>Version<input name="version" maxlength="40" placeholder="z.B. S1 v0.1 Alpha" required /></label>
+      <label class="wide">Beschreibung<textarea name="description" rows="5" required></textarea></label>
+      <label class="wide">Screenshot (spaeter)<input name="screenshotNote" maxlength="120" placeholder="Noch kein Upload in der Browser-Alpha" /></label>
+      <button type="submit">Absenden</button>
+    </form>
+  `;
+}
+
+function renderContactForm(notice = "") {
+  if (!communitySettings().contact) return renderCommunityDisabled("Kontakt");
+  return `
+    <form class="community-form" data-community-form="contact">
+      <h2>Kontakt</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      <label>Name<input name="name" maxlength="80" required /></label>
+      <label>E-Mail<input name="email" type="email" maxlength="120" required /></label>
+      <label class="wide">Betreff<input name="subject" maxlength="120" required /></label>
+      <label class="wide">Nachricht<textarea name="message" rows="5" required></textarea></label>
+      <button type="submit">Absenden</button>
+    </form>
+  `;
+}
+
+function renderSupportHub(notice = "") {
+  return `
+    <article class="community-support">
+      <h2>Support & Community</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      <div class="support-grid">
+        <button type="button" data-community-application="tester">Tester werden</button>
+        <button type="button" data-community-application="moderator">Moderator werden</button>
+        <button type="button" data-community-application="helper">Community Helfer werden</button>
+        <button type="button" data-community-application="admin">Admin Bewerbung</button>
+        <button type="button" data-community-application="bug">Fehler melden</button>
+        <button type="button" data-community-application="supporter">Projekt unterstuetzen</button>
+        <button type="button" data-community-application="discord">Discord</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderApplicationFormMarkup(type, notice = "") {
+  if (!communitySettings().applications) return renderCommunityDisabled("Bewerbungen");
+  const configs = {
+    tester: { title: "Tester werden", fields: [["name", "Name"], ["discord", "Discord"], ["device", "Geraet"], ["availability", "Zeit verfuegbar"], ["why", "Warum Tester?", "textarea"]] },
+    moderator: { title: "Moderator werden", fields: [["name", "Name"], ["discord", "Discord"], ["experience", "Erfahrung", "textarea"], ["why", "Warum Moderator?", "textarea"]] },
+    admin: { title: "Admin Bewerbung", fields: [["name", "Name"], ["discord", "Discord"], ["technicalExperience", "Technische Erfahrung", "textarea"], ["why", "Warum Admin?", "textarea"]] },
+    helper: { title: "Community Helfer werden", fields: [["name", "Name"], ["discord", "Discord"], ["area", "Bereich"], ["why", "Warum moechtest du helfen?", "textarea"]] },
+    bug: { title: "Fehler melden", fields: [["name", "Name"], ["discord", "Discord"], ["device", "Geraet"], ["description", "Fehlerbeschreibung", "textarea"]] },
+    supporter: { title: "Projekt unterstuetzen", fields: [["name", "Name"], ["discord", "Discord"], ["supportType", "Wie moechtest du unterstuetzen?"], ["message", "Nachricht", "textarea"]] },
+    discord: { title: "Discord", fields: [["name", "Name"], ["discord", "Discord"], ["message", "Nachricht", "textarea"]] },
+  };
+  const config = configs[type] || configs.tester;
+  return `
+    <form class="community-form" data-community-form="${escapeAttr(type)}">
+      <h2>${escapeHtml(config.title)}</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      ${config.fields.map(([name, label, kind]) => kind === "textarea"
+        ? `<label class="wide">${escapeHtml(label)}<textarea name="${escapeAttr(name)}" rows="4" required></textarea></label>`
+        : `<label>${escapeHtml(label)}<input name="${escapeAttr(name)}" required /></label>`).join("")}
+      <button type="submit">Absenden</button>
+    </form>
+  `;
+}
+
+function renderApplicationForm(type) {
+  els.communityPanel.innerHTML = renderApplicationFormMarkup(type);
+}
+
+function renderCommunityForum(notice = "") {
+  if (!communitySettings().forum) return renderCommunityDisabled("Community Forum");
+  const posts = communityForumPosts();
+  return `
+    <article class="community-forum">
+      <h2>Community Forum</h2>
+      ${notice ? `<p class="community-notice">${escapeHtml(notice)}</p>` : ""}
+      <div class="forum-category-grid">
+        ${COMMUNITY_FORUM_CATEGORIES.map((category) => `
+          <article>
+            <b>${category.icon}</b>
+            <strong>${escapeHtml(category.label)}</strong>
+            <span>${posts.filter((post) => post.category === category.id).length} Beitraege</span>
+          </article>
+        `).join("")}
+      </div>
+      <form class="community-form compact" data-community-form="forum-post">
+        <h3>Neuen Beitrag erstellen</h3>
+        <label>Titel<input name="title" maxlength="100" required /></label>
+        <label>Autor<input name="author" maxlength="80" required /></label>
+        <label>Kategorie<select name="category">${COMMUNITY_FORUM_CATEGORIES.map((category) => `<option value="${escapeAttr(category.id)}">${category.icon} ${escapeHtml(category.label)}</option>`).join("")}</select></label>
+        <label class="wide">Beitrag<textarea name="description" rows="4" required></textarea></label>
+        <button type="submit">Beitrag speichern</button>
+      </form>
+      <div class="forum-post-list">
+        ${posts.map(renderForumPostCard).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderForumPostCard(post) {
+  const category = COMMUNITY_FORUM_CATEGORIES.find((item) => item.id === post.category) || COMMUNITY_FORUM_CATEGORIES[3];
+  return `
+    <article class="forum-post-card ${post.pinned ? "pinned" : ""} ${post.closed ? "closed" : ""}">
+      <span>${category.icon} ${escapeHtml(category.label)}</span>
+      <h3>${escapeHtml(post.title || "Ohne Titel")}</h3>
+      <p>${escapeHtml(post.description || "Noch keine Beschreibung.")}</p>
+      <footer>
+        <b>${escapeHtml(post.author || "Community")}</b>
+        <time>${escapeHtml(formatCommunityDate(post.createdAt))}</time>
+        <span>${Number(post.replies || 0)} Antworten</span>
+        <span>${Number(post.likes || 0)} Likes</span>
+        <em>${escapeHtml(post.status || "Neu")}</em>
+      </footer>
+    </article>
+  `;
+}
+
+function renderPublicNews() {
+  if (!communitySettings().news) return renderCommunityDisabled("News");
+  const news = communityNews();
+  return `
+    <article class="community-news">
+      <h2>News</h2>
+      <div class="news-list">
+        ${news.map((item) => `
+          <article class="news-card ${item.pinned ? "pinned" : ""}">
+            <strong>${escapeHtml(item.title)}</strong>
+            <p>${escapeHtml(item.summary || item.description || "")}</p>
+            <span>${escapeHtml(item.category || "News")} · ${escapeHtml(formatCommunityDate(item.createdAt))}</span>
+          </article>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderPublicRoadmap() {
+  if (!communitySettings().roadmap) return renderCommunityDisabled("Roadmap");
+  return `
+    <article class="community-roadmap">
+      <h2>Roadmap</h2>
+      <div class="roadmap-list">
+        ${communityRoadmap().map((item) => `
+          <article class="${item.done ? "done" : ""}">
+            <b>${item.done ? "☑" : "⬜"}</b>
+            <strong>${escapeHtml(item.title)}</strong>
+          </article>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderDeveloperSocial() {
+  return `
+    <article class="developer-social-card">
+      <h2>Entwickler & Social Media</h2>
+      <div class="creator-card">
+        <b>GörnaldoBerlin</b>
+        <span>Owner & Creator</span>
+        <p>Alle Social-Media-Ziele sind Platzhalter fuer die spaetere Admin-Bearbeitung.</p>
+        <div class="social-button-grid">
+          ${["Discord", "TikTok", "Twitch", "YouTube", "Instagram", "X", "Support"].map((label) => `<button type="button">${escapeHtml(label)}</button>`).join("")}
+          <button type="button" data-community-view="developer-login">Entwickler Login</button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderCommunityDisabled(label) {
+  return `<article class="community-welcome"><h2>${escapeHtml(label)}</h2><p>Dieser Community-Bereich ist aktuell deaktiviert.</p></article>`;
+}
+
+function renderPublicProjectStatus() {
+  return `
+    <article class="community-status-card">
+      <h2>Projektstatus</h2>
+      <strong>Projektfortschritt</strong>
+      <div class="status-progress large"><i style="--status-progress:30%"></i></div>
+      <b>30%</b>
+      <dl>
+        <dt>Aktuelle Phase</dt><dd>Core Gameplay</dd>
+        <dt>Naechstes Ziel</dt><dd>Packs · Sammlung · Decksystem</dd>
+      </dl>
+    </article>
+  `;
+}
+
+function formatCommunityDate(value) {
+  if (!value) return "Heute";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
 function normalizeRoute(action) {
   return {
@@ -875,7 +1697,18 @@ function handleRouteFromHash() {
   applyRoute(route);
 }
 
+function publicEntryActive() {
+  if (publicGameUnlocked) return false;
+  const splashVisible = els.publicSplash && !els.publicSplash.classList.contains("is-hidden");
+  const hubVisible = els.communityHub && !els.communityHub.classList.contains("is-hidden");
+  return Boolean(splashVisible || hubVisible);
+}
+
 function applyRoute(route) {
+  if (publicEntryActive() && route !== "home") {
+    if (window.location.hash) window.location.hash = "";
+    return;
+  }
   updateMainNavigation(route);
   setLoading(route !== "home", `OEFFNE ${route.toUpperCase()}`);
   setTimeout(() => setLoading(false), 220);
@@ -931,10 +1764,10 @@ function updateMainNavigation(route) {
   });
 }
 
-function setLoading(active, text = "LADE LIGA CLASH") {
+function setLoading(active, text = "Loading...") {
   if (!els.loadingOverlay) return;
   els.loadingOverlay.classList.toggle("is-hidden", !active);
-  const label = els.loadingOverlay.querySelector("strong");
+  const label = els.loadingOverlay.querySelector(".loading-card span");
   if (label) label.textContent = text;
 }
 
@@ -1080,12 +1913,12 @@ function renderPlatzpassFeature() {
     { level: 20, free: "2 Diamanten", premium: "Elite Chance" },
   ];
   setFeature(
-    config.name || "Liga Clash PlatzPass",
+    config.name || "KickOff SuperCard PlatzPass",
     active ? "Saisonpass" : "Saisonpass vorbereitet",
     `
       <section class="feature-card platzpass-hero ${state.platzPass.owned ? "is-owned" : ""}">
         <div>
-          <h3>${escapeHtml(config.name || "Liga Clash PlatzPass")}</h3>
+          <h3>${escapeHtml(config.name || "KickOff SuperCard PlatzPass")}</h3>
           <p>Verdiene XP ueber Matches, Karriere und Missionen. Premium-Belohnungen werden nach Kauf freigeschaltet.</p>
           <div class="pill-row">
             <span>Level ${state.platzPass.level}/${Number(config.maxLevel) || 100}</span>
@@ -1124,12 +1957,8 @@ function renderFusionFeature() {
   const readyCount = sortedCards.filter((card) => fusionPartnerFor(card)).length;
   setFeature(
     "Fusion",
-    "Karten leveln & entwickeln",
+    "Evolution & Materialauswahl",
     `
-      <div class="feature-toolbar">
-        <button class="feature-action" type="button" data-feature-action="sort-rating">Nach Rating sortieren</button>
-        <button class="feature-action" type="button" data-feature-action="add-random-card">Gratis Scout</button>
-      </div>
       <div class="owned-filter-summary">
         <strong>Evolution</strong>
         <div class="pill-row">
@@ -1137,6 +1966,7 @@ function renderFusionFeature() {
           <span>${readyCount} Fusionen bereit</span>
           <span>Nur gleiche Karte + gleiche Serie</span>
           <span>Level 99 fusioniert nicht</span>
+          <span>Favoriten und gesperrte Karten werden geschuetzt</span>
         </div>
       </div>
       <div class="mini-deck fusion-card-grid">
@@ -1212,7 +2042,7 @@ function renderCareerFeature() {
   const power = careerTeamPower();
   const seasonLeft = Math.max(0, 10 - career.seasonGame);
   setFeature(
-    "Liga Clash Karriere",
+    "KickOff SuperCard Karriere",
     careerTierName(career.tier),
     `
       <div class="career-layout">
@@ -1740,14 +2570,13 @@ function cardOptionValues(records, field, fallback) {
 }
 
 function cardCollectionRecords(includeCatalog = false) {
-  if (CARD_SYSTEM?.collectionRecords) {
-    return CARD_SYSTEM.collectionRecords({
-      catalogCards: includeCatalog ? GAME_CARDS : state.deck,
-      ownedCards: state.deck,
-      helpers: { rating },
-    });
-  }
-  return (includeCatalog ? GAME_CARDS : state.deck).map((card) => ({ ...card, owned: state.deck.some((owned) => sourceCardId(owned) === sourceCardId(card)), overall: rating(card), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: card.nation || "Deutschland" }));
+  const ownedRecords = state.deck.map((card, index) => cardViewModel({ ...card, owned: true, latestAt: card.obtainedAt ? Date.parse(card.obtainedAt) || index : index }));
+  if (!includeCatalog) return ownedRecords;
+  const ownedSources = new Set(state.deck.map((card) => sourceCardId(card)));
+  const missingCatalog = GAME_CARDS
+    .filter((card) => !ownedSources.has(sourceCardId(card)))
+    .map((card, index) => cardViewModel({ ...card, owned: false, latestAt: -index - 1 }));
+  return [...ownedRecords, ...missingCatalog];
 }
 
 function ownedLeagues() {
@@ -2147,10 +2976,11 @@ function renderSettingsFeature() {
           </div>
           <p>Bearbeite Anzeigename, E-Mail und PIN im Profilfenster.</p>
           <button type="button" data-feature-action="open-profile">Profil bearbeiten</button>
+          <button type="button" data-feature-action="logout">Logout</button>
         </article>
         <article class="feature-card">
           <h3>Anzeige</h3>
-          <p>Stadionlicht, Partikel, Kachelglow und Hover-Effekte verwenden das bestehende Liga-Clash-Design.</p>
+          <p>Stadionlicht, Partikel, Kachelglow und Hover-Effekte verwenden das bestehende KickOff-SuperCard-Design.</p>
           <div class="pill-row"><span>HUD aktiv</span><span>Touch optimiert</span><span>Responsive</span></div>
         </article>
         <article class="feature-card">
@@ -2261,6 +3091,7 @@ function renderProfileFeature() {
           </div>
           <button class="feature-action" type="button" data-feature-action="save-profile">Profil speichern</button>
           <button type="button" data-feature-action="open-profile-login">Account wechseln / PIN</button>
+          <button type="button" data-feature-action="logout">Logout</button>
         </article>
       </div>
     `
@@ -2339,10 +3170,10 @@ function miniCard(card, selectable, context = "") {
   const club = getClub(card.club);
   const level = model.level;
   const proReady = model.owned ? fusionPartnerFor(card) : false;
+  const starInfo = model.owned ? starUpgradeInfo(card) : null;
   const isFusionContext = context === "fusion";
   const isClickableContext = ["fusion", "collection", "deck"].includes(context);
   const cardId = escapeAttr(card.id);
-  const sourceId = escapeAttr(sourceCardId(card));
   const cardAction = selectable && model.owned
     ? `data-feature-action="toggle-card" data-card="${cardId}"`
     : isClickableContext
@@ -2365,10 +3196,17 @@ function miniCard(card, selectable, context = "") {
       <div class="card-ownership"><span>${model.owned ? "Besitz" : "Katalog"}</span><span>Duplikate ${model.duplicateCount}</span></div>
       ${context === "collection" ? `
         <div class="card-actions">
-          <button type="button" data-feature-action="card-details" data-card="${sourceId}">Details</button>
-          <button type="button" data-feature-action="toggle-favorite" data-card="${sourceId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
+          <button type="button" data-feature-action="card-details" data-card="${cardId}">Details</button>
+          <button type="button" data-feature-action="toggle-favorite" data-card="${cardId}" ${model.owned ? "" : "disabled"}>${model.favorite ? "Favorit" : "Merken"}</button>
           <button type="button" data-feature-action="level-card" data-card="${cardId}" ${!model.owned || level >= model.levelCap ? "disabled" : ""}>Leveln</button>
-          <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${proReady ? "" : "disabled"}>Evolution</button>
+          <button type="button" data-feature-action="toggle-lock-card" data-card="${cardId}" ${model.owned ? "" : "disabled"}>${model.locked ? "Entsperren" : "Sperren"}</button>
+        </div>
+      ` : ""}
+      ${isFusionContext ? `
+        <div class="card-actions">
+          <button type="button" data-feature-action="card-details" data-card="${cardId}" ${model.owned ? "" : "disabled"}>Details</button>
+          <button type="button" data-feature-action="star-card" data-card="${cardId}" ${!starInfo?.canUpgrade || model.locked || model.favorite ? "disabled" : ""}>Stern-Fusion</button>
+          <button type="button" data-feature-action="pro-card" data-card="${cardId}" ${!proReady || model.locked || model.favorite ? "disabled" : ""}>PRO-Fusion</button>
         </div>
       ` : ""}
     </article>
@@ -2377,9 +3215,10 @@ function miniCard(card, selectable, context = "") {
 
 function cardViewModel(card) {
   const sourceId = sourceCardId(card);
+  const directOwned = state.deck.find((owned) => owned.id === card.id || owned.instanceId === card.instanceId);
   const ownedMatches = state.deck.filter((owned) => sourceCardId(owned) === sourceId);
-  const owned = ownedMatches.length > 0 || Boolean(card.owned);
-  const reference = ownedMatches[0] || card;
+  const owned = Boolean(directOwned) || Boolean(card.owned);
+  const reference = directOwned || card;
   const model = CARD_SYSTEM?.normalizeCardRecord
     ? CARD_SYSTEM.normalizeCardRecord({ ...card, ...reference, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1) }, { rating })
     : { ...card, owned, ownedCount: ownedMatches.length, duplicateCount: Math.max(0, ownedMatches.length - 1), overall: rating(reference), rarity: teamClasses[normalizeClassIndex(card.cls)], position: card.pos, category: cardCategory(card), nation: "Deutschland", flag: "DE", level: cardLevel(reference), stars: 1, maxLevel: CARD_MAX_LEVEL, xp: 0 };
@@ -2388,8 +3227,11 @@ function cardViewModel(card) {
   const upgrade = model.owned ? starUpgradeInfo(reference) : { availableDuplicates: 0, duplicatesRequired: CARD_PROGRESSION.starDuplicateCosts[stars] || 0 };
   return {
     ...model,
+    id: reference.id || model.id,
+    instanceId: reference.instanceId || reference.id || model.instanceId,
     name: safeCardName(model),
     favorite: Boolean(reference.favorite),
+    locked: Boolean(reference.locked),
     levelCap: cardLevelCap(model),
     xpToNext: model.xpToNextLevel,
     duplicateCount: Math.max(0, upgrade.availableDuplicates),
@@ -2403,7 +3245,7 @@ function cardCategory(card) {
 }
 
 function toggleFavoriteCard(cardId) {
-  const target = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
+  const target = state.deck.find((card) => card.id === cardId || card.instanceId === cardId);
   if (!target) {
     showToast("Favoriten sind nur fuer Besitzkarten verfuegbar.", "error");
     return;
@@ -2413,9 +3255,21 @@ function toggleFavoriteCard(cardId) {
   showToast(target.favorite ? "Karte als Favorit markiert." : "Favorit entfernt.", "success");
 }
 
+function toggleCardLock(cardId) {
+  const target = state.deck.find((card) => card.id === cardId || card.instanceId === cardId);
+  if (!target) {
+    showToast("Karte zum Sperren nicht gefunden.", "error");
+    return false;
+  }
+  target.locked = !target.locked;
+  saveState();
+  showToast(target.locked ? "Karte gesperrt." : "Karte entsperrt.", "success");
+  return true;
+}
+
 function showCardDetails(cardId) {
+  const owned = state.deck.find((card) => card.id === cardId || card.instanceId === cardId);
   const catalog = GAME_CARDS.find((card) => sourceCardId(card) === cardId || card.id === cardId);
-  const owned = state.deck.find((card) => sourceCardId(card) === cardId || card.id === cardId);
   const card = owned || catalog;
   if (!card) {
     showToast("Karte nicht gefunden.", "error");
@@ -2423,8 +3277,7 @@ function showCardDetails(cardId) {
   }
   const model = cardViewModel(card);
   const club = getClub(card.club);
-  const ownedCard = state.deck.find((item) => item.id === card.id) || owned;
-  const starInfo = ownedCard ? starUpgradeInfo(ownedCard) : null;
+  const ownedCard = owned || state.deck.find((item) => item.id === card.id || item.instanceId === card.instanceId);
   const proReady = ownedCard ? fusionPartnerFor(ownedCard) : null;
   const inActiveDeck = ownedCard ? deckIds(state.activeDeck).includes(ownedCard.id) : false;
   const nowProgression = calculateCardProgression(card, model.level, model.stars);
@@ -2440,6 +3293,7 @@ function showCardDetails(cardId) {
         ${miniCard(card, false, "")}
       </div>
       <div class="card-detail-data">
+        <button class="card-detail-top-close" type="button" data-feature-action="close-card-detail">Schliessen</button>
         <div class="pill-row">
           <span>${escapeHtml(model.rarity)}</span>
           <span>${escapeHtml(model.category)}</span>
@@ -2448,6 +3302,7 @@ function showCardDetails(cardId) {
         </div>
         <dl class="card-detail-list">
           <dt>Karten-ID</dt><dd>${escapeHtml(model.cardId)}</dd>
+          <dt>Instanz-ID</dt><dd>${escapeHtml(model.instanceId || card.id)}</dd>
           <dt>Spieler-ID</dt><dd>${escapeHtml(model.playerId)}</dd>
           <dt>Verein</dt><dd><img src="${escapeAttr(club.crest)}" alt="" /> ${escapeHtml(card.club)}</dd>
           <dt>Liga</dt><dd>${escapeHtml(card.league || club.league)}</dd>
@@ -2476,14 +3331,17 @@ function showCardDetails(cardId) {
           <div class="card-detail-actions">
             <button type="button" data-feature-action="toggle-favorite-detail" data-card="${escapeAttr(ownedCard.id)}">${model.favorite ? "Favorit entfernen" : "Als Favorit markieren"}</button>
             <button type="button" data-feature-action="level-card" data-card="${escapeAttr(ownedCard.id)}" ${model.level >= model.levelCap ? "disabled" : ""}>Leveln</button>
-            <button type="button" data-feature-action="star-card" data-card="${escapeAttr(ownedCard.id)}" ${!starInfo || !starInfo.canUpgrade ? "disabled" : ""}>Stern erhoehen (${starInfo ? `${starInfo.availableDuplicates}/${starInfo.duplicatesRequired}` : "0/0"})</button>
-            <button type="button" data-feature-action="pro-card" data-card="${escapeAttr(ownedCard.id)}" ${proReady ? "" : "disabled"}>Evolution</button>
+            <button type="button" data-feature-action="toggle-lock-card" data-card="${escapeAttr(ownedCard.id)}">${ownedCard.locked ? "Entsperren" : "Sperren"}</button>
             <button type="button" data-feature-action="${inActiveDeck ? "detail-remove-deck" : "detail-add-deck"}" data-card="${escapeAttr(ownedCard.id)}">${inActiveDeck ? "Aus Deck entfernen" : "Zum Deck hinzufuegen"}</button>
             <button type="button" data-feature-action="open-fusion-from-detail" data-card="${escapeAttr(ownedCard.id)}" ${proReady || model.duplicateCount > 0 ? "" : "disabled"}>Zur Fusion</button>
             <button type="button" data-feature-action="close-card-detail">Schliessen</button>
           </div>
-          <p class="muted">Sternkosten: 1->2 = 1, 2->3 = 2, 3->4 = 3, 4->5 = 5 Duplikate. Evolution benoetigt zwei gleiche Level-100-Karten.</p>
-        ` : ""}
+          <p class="muted">Sammlung: Hier kannst du Karten ansehen, leveln, favorisieren, sperren und ins Deck setzen. Fusionen laufen nur im Fusion-Bereich.</p>
+        ` : `
+          <div class="card-detail-actions">
+            <button type="button" data-feature-action="close-card-detail">Schliessen</button>
+          </div>
+        `}
       </div>
     </div>
   `;
@@ -2559,6 +3417,10 @@ function handleFeatureClick(event) {
   } else if (action === "toggle-favorite-detail") {
     toggleFavoriteCard(target.dataset.card);
     showCardDetails(target.dataset.card);
+  } else if (action === "toggle-lock-card") {
+    toggleCardLock(target.dataset.card);
+    if (!els.appDialog.classList.contains("is-hidden")) showCardDetails(target.dataset.card);
+    else refreshCardManagementFeature();
   } else if (action === "card-details") {
     showCardDetails(target.dataset.card);
   } else if (action === "level-card") {
@@ -2649,7 +3511,7 @@ function handleFeatureClick(event) {
     const fromCoins = state.coins;
     state.coins -= price;
     state.platzPass = { ...normalizePlatzPassState(state.platzPass), owned: true };
-    state.log = [`PlatzPass gekauft: ${state.adminData?.platzpass?.name || "Liga Clash PlatzPass"}.`, ...state.log].slice(0, 8);
+    state.log = [`PlatzPass gekauft: ${state.adminData?.platzpass?.name || "KickOff SuperCard PlatzPass"}.`, ...state.log].slice(0, 8);
     saveState();
     render();
     animateCoinChange(fromCoins, state.coins, target);
@@ -2688,11 +3550,15 @@ function handleFeatureClick(event) {
     navigateTo("profile");
   } else if (action === "open-profile-login") {
     openLoginPanel("Account wechseln oder PIN bearbeiten.");
+  } else if (action === "logout") {
+    logoutActiveUser();
+  } else if (action === "open-starter-pack") {
+    openStarterPackForActiveUser();
   } else if (action === "open-admin") {
     closeFeaturePanel();
     navigateTo("admin");
   } else if (action === "settings-info") {
-    openDialog("Liga Clash Einstellungen", "Diese Phase stellt die Benutzeroberflaeche bereit. Gameplay-, Booster- und Shop-Systeme werden hier nicht erweitert.");
+    openDialog("KickOff SuperCard Einstellungen", "Diese Phase stellt die Benutzeroberflaeche bereit. Gameplay-, Booster- und Shop-Systeme werden hier nicht erweitert.");
   }
 }
 
@@ -3233,6 +4099,11 @@ function previewPackTap(target) {
 
 function addGeneratedCard(minClass, maxClass, pool = "mixed", dropRates = null, positions = []) {
   const card = drawGameCard(minClass, maxClass, pool, dropRates, positions);
+  if (!card) {
+    state.log = ["Keine Karten im Katalog vorhanden.", ...state.log].slice(0, 8);
+    showToast("Keine Karten im Katalog vorhanden.", "warning");
+    return null;
+  }
   state.deck.push(card);
   recordGameEvent("card_received", { id: `card-${card.id}`, count: 1 });
   state.log = [`Neue Karte: ${card.name} (${teamClasses[card.cls]}).`, ...state.log].slice(0, 8);
@@ -3240,7 +4111,12 @@ function addGeneratedCard(minClass, maxClass, pool = "mixed", dropRates = null, 
 }
 
 function addGeneratedCards(minClass, maxClass, pool = "mixed", count = 1, dropRates = null, positions = []) {
-  const cards = Array.from({ length: normalizePackCardCount(count) }, () => drawGameCard(minClass, maxClass, pool, dropRates, positions));
+  const cards = Array.from({ length: normalizePackCardCount(count) }, () => drawGameCard(minClass, maxClass, pool, dropRates, positions)).filter(Boolean);
+  if (!cards.length) {
+    state.log = ["Pack konnte nicht geoeffnet werden: keine Karten im Katalog vorhanden.", ...state.log].slice(0, 8);
+    showToast("Keine Karten im Katalog vorhanden.", "warning");
+    return [];
+  }
   state.deck.push(...cards);
   recordGameEvent("card_received", { id: `cards-${Date.now()}-${cards.length}`, count: cards.length });
   const best = bestPulledCard(cards);
@@ -3249,7 +4125,7 @@ function addGeneratedCards(minClass, maxClass, pool = "mixed", count = 1, dropRa
 }
 
 function bestPulledCard(cards) {
-  return [...cards].sort((a, b) => rating(b) - rating(a))[0];
+  return [...(cards || [])].sort((a, b) => rating(b) - rating(a))[0] || null;
 }
 
 function freePackCount(packId) {
@@ -3352,6 +4228,7 @@ function applyQuickRewardPool(result) {
       applied.push(`+${reward.amount} Gratis-Pack`);
     } else if (reward.type === "card") {
       const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+      if (!card) return;
       state.deck.push(card);
       applied.push(`${teamClasses[reward.classIndex]} Karte`);
     }
@@ -3514,9 +4391,9 @@ function showPackReveal(cards, pack = null, opening = null) {
   const pulledCards = Array.isArray(cards) ? cards : [cards].filter(Boolean);
   if (!pulledCards.length) return;
   const best = bestPulledCard(pulledCards);
-  const packName = pack?.name || "Booster Pack";
+  const packName = typeof pack === "string" ? pack : pack?.name || "Booster Pack";
   let revealedCount = 0;
-  const packArt = pack?.image
+  const packArt = typeof pack === "object" && pack?.image
     ? `<img src="${escapeAttr(getPackImageUrl(pack))}" alt="${escapeAttr(packName)}" />`
     : `<span>${escapeHtml(packName)}</span>`;
   const reveal = document.createElement("div");
@@ -3641,6 +4518,11 @@ function calculateChemistry() {
 }
 
 function openAdminCenter() {
+  if (state.sessionLoggedOut) {
+    openLoginPanel("Bitte zuerst einloggen, bevor das Admin Center geoeffnet wird.");
+    showToast("Login erforderlich.", "error");
+    return;
+  }
   const user = activeUser();
   if (!canOpenAdmin(user)) {
     const message = state.adminData?.enabled === false ? "Admin Center ist deaktiviert." : `Admin Center fuer ${user.role} nicht freigegeben.`;
@@ -3652,6 +4534,7 @@ function openAdminCenter() {
   els.adminCenter.classList.remove("is-hidden");
   markAdminContentViews();
   const firstSection = canUseAdminModule("dashboard", user) ? "dashboard" : firstAllowedAdminSection(user);
+  renderAdminNavigationShell(firstSection);
   setActiveAdminNav(firstSection);
   setAdminContentView(firstSection);
   renderAdminDashboard();
@@ -3707,7 +4590,10 @@ function handleLoginSubmit(event) {
     return;
   }
   syncActiveUserWallet();
+  snapshotCurrentUserData(state.activeUserId);
   state.activeUserId = user.id;
+  state.sessionLoggedOut = false;
+  applyUserData(user.id);
   user.profile = normalizeUserProfile({ ...user.profile, lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, user);
   loadActiveUserWallet();
   els.loginStatus.textContent = `Eingeloggt als ${user.name} (${user.role}).`;
@@ -3715,7 +4601,154 @@ function handleLoginSubmit(event) {
   render();
   saveState();
   showToast(`Eingeloggt als ${user.name}.`, "success");
-  setTimeout(closeLoginPanel, 350);
+  setTimeout(() => {
+    closeLoginPanel();
+    maybeOpenStarterPackFlow(user.id);
+  }, 350);
+}
+
+function logoutActiveUser() {
+  snapshotCurrentUserData(state.activeUserId);
+  syncActiveUserWallet();
+  state.sessionLoggedOut = true;
+  state.deck = [];
+  state.selected = [];
+  state.activeDeck = createStarterActiveDeck([]);
+  state.savedDecks = [state.activeDeck];
+  state.coins = 0;
+  state.gems = 0;
+  saveState();
+  closeFeaturePanel();
+  closeAdminCenter();
+  updateAccountUi();
+  render();
+  openLoginPanel("Du bist abgemeldet. Waehle einen Account und gib die PIN ein.");
+  showToast("Logout erfolgreich.", "success");
+}
+
+function maybeOpenStarterPackFlow(userId = state.activeUserId) {
+  state.userData = state.userData || {};
+  const data = normalizeUserData(state.userData[userId] || createDefaultUserData(userId, [], null, []), userId);
+  state.userData[userId] = data;
+  if (data.starterPack.status === "completed") return false;
+  closeAdminCenter();
+  closeDialog();
+  setFeature(
+    "Starter-Pack",
+    "Willkommen bei KickOff SuperCard",
+    `
+      <section class="feature-card starter-pack-card">
+        <h3>Dein Startkader wartet</h3>
+        <p>Oeffne dein einmaliges Starter-Pack. Es enthaelt genau 10 Karten: 6 Bronze, 3 Silber und 1 Gold. Die Goldkarte wird zuletzt aufgedeckt.</p>
+        <div class="pill-row">
+          <span>1 Torwart</span>
+          <span>2 Verteidiger</span>
+          <span>2 Mittelfeld</span>
+          <span>1 Sturm</span>
+          <span>Instanzkarten</span>
+        </div>
+        <button class="feature-action" type="button" data-feature-action="open-starter-pack">Starter-Pack oeffnen</button>
+      </section>
+    `
+  );
+  els.featurePanel.classList.remove("is-hidden");
+  document.body.classList.add("menu-open");
+  return true;
+}
+
+function openStarterPackForActiveUser() {
+  const userId = state.activeUserId;
+  state.userData = state.userData || {};
+  const data = normalizeUserData(state.userData[userId] || createDefaultUserData(userId, [], null, []), userId);
+  if (data.starterPack.status === "completed") {
+    showToast("Starter-Pack wurde bereits abgeschlossen.", "success");
+    closeFeaturePanel();
+    return;
+  }
+
+  let cards = data.starterPack.cardIds
+    .map((id) => data.ownedCardInstances.find((card) => card.id === id || card.instanceId === id))
+    .filter(Boolean);
+
+  if (!cards.length) {
+    cards = createStarterPackCards();
+    if (!cards.length) {
+      data.starterPack = { status: "pending", cardIds: [], startedAt: "", completedAt: "" };
+      state.userData[userId] = normalizeUserData(data, userId);
+      saveState();
+      showToast("Starter-Pack ist leer, weil noch keine Karten im Katalog vorhanden sind.", "warning");
+      closeFeaturePanel();
+      return;
+    }
+    data.ownedCardInstances = [...data.ownedCardInstances, ...cards];
+    data.starterPack = {
+      status: "opening",
+      cardIds: cards.map((card) => card.id),
+      startedAt: new Date().toISOString(),
+      completedAt: "",
+    };
+  }
+
+  const starterDeckCards = cards.slice(0, MATCH_CARD_COUNT);
+  const starterDeck = createStarterActiveDeck(starterDeckCards);
+  data.activeDeck = starterDeck;
+  data.decks = [starterDeck];
+  data.activeDeckId = starterDeck.id || "main-deck";
+  data.selected = deckIds(starterDeck);
+  data.starterPack.status = "completed";
+  data.starterPack.completedAt = new Date().toISOString();
+  state.userData[userId] = normalizeUserData(data, userId);
+  applyUserData(userId);
+  snapshotCurrentUserData(userId);
+  saveState();
+  render();
+  closeFeaturePanel();
+  showPackReveal(cards, "Starter-Pack", { keepOpen: true });
+  showToast("Starter-Pack geoeffnet. Dein Startdeck wurde erstellt.", "success");
+}
+
+function createStarterPackCards() {
+  const plan = [
+    { group: "keeper", cls: 2 },
+    { group: "defense", cls: 2 },
+    { group: "defense", cls: 2 },
+    { group: "midfield", cls: 2 },
+    { group: "midfield", cls: 2 },
+    { group: "attack", cls: 2 },
+    { group: "mixed", cls: 3 },
+    { group: "mixed", cls: 3 },
+    { group: "mixed", cls: 4 },
+    { group: "mixed", cls: 5 },
+  ];
+  return plan.map((entry) => drawStarterCard(entry.group, entry.cls)).filter(Boolean);
+}
+
+function drawStarterCard(positionGroup, classIndex) {
+  const positions = starterPositionGroup(positionGroup);
+  const pool = playableCardPool();
+  const candidates = pool.filter((card) => normalizeClassIndex(card.cls) === classIndex && (!positions.length || positions.includes(String(card.pos || "").toUpperCase())));
+  const fallback = pool.filter((card) => normalizeClassIndex(card.cls) === classIndex);
+  const source = pick(candidates.length ? candidates : fallback.length ? fallback : pool);
+  const instance = cloneCardForCollection(source, "starter-pack");
+  if (!instance) return null;
+  instance.source = "starter-pack";
+  instance.ownerUserId = state.activeUserId;
+  instance.level = 1;
+  instance.currentLevel = 1;
+  instance.xp = 0;
+  instance.currentXp = 0;
+  instance.stars = 1;
+  instance.currentStars = 1;
+  return instance;
+}
+
+function starterPositionGroup(group) {
+  return {
+    keeper: ["TW", "GK"],
+    defense: ["IV", "CB", "LV", "RV"],
+    midfield: ["ZDM", "DM", "ZM", "CM", "ZOM", "OM", "CAM", "LM", "RM"],
+    attack: ["ST", "MS", "LF", "RF", "LA", "RA"],
+  }[group] || [];
 }
 
 function handleProfileSubmit(event) {
@@ -3769,20 +4802,17 @@ function renderAdminControls() {
 }
 
 function currentAdminSection() {
-  return document.querySelector(".admin-nav [data-admin-section].active")?.dataset.adminSection || "dashboard";
+  return document.querySelector(".admin-subnav [data-admin-section].active")?.dataset.adminSection
+    || document.querySelector(".admin-nav [data-admin-section].active")?.dataset.adminSection
+    || "dashboard";
 }
 
 function firstAllowedAdminSection(user = activeUser()) {
-  return ADMIN_MODULES.find((section) => canUseAdminModule(section, user)) || "dashboard";
+  return firstAllowedAdminPageInGroup(firstAllowedAdminGroup(user), user)?.section || "dashboard";
 }
 
 function updateAdminNavigationVisibility() {
-  const user = activeUser();
-  document.querySelectorAll(".admin-nav [data-admin-section]").forEach((button) => {
-    const allowed = canUseAdminModule(button.dataset.adminSection, user);
-    button.hidden = !allowed;
-    button.setAttribute("aria-hidden", String(!allowed));
-  });
+  renderAdminNavigationShell(currentAdminSection());
 }
 
 function renderAdminDashboard() {
@@ -3792,7 +4822,7 @@ function renderAdminDashboard() {
   if (headerCards[0]) headerCards[0].textContent = project.version;
   if (headerCards[1]) headerCards[1].textContent = project.season;
   if (headerCards[2]) headerCards[2].textContent = state.adminData?.enabled === false ? "Deaktiviert" : "Lokal";
-  if (headerCards[3]) headerCards[3].textContent = project.lastUpdated || "Lokal gespeichert";
+  if (headerCards[3]) headerCards[3].textContent = state.adminData?.dataStatus?.lastSquadUpdate || project.lastUpdated || "Lokal gespeichert";
 
   const hero = document.querySelector(".admin-hero");
   if (!hero) return;
@@ -3800,7 +4830,8 @@ function renderAdminDashboard() {
   const title = adminSectionTitle(section);
   hero.querySelector(".eyebrow").textContent = "Admin Center";
   hero.querySelector("h2").textContent = title;
-  hero.querySelector("span").textContent = `${project.name} | ${project.status} | ${project.releaseName}`;
+  const dataStatus = state.adminData?.dataStatus || SEASON_2026_27_STATUS;
+  hero.querySelector("span").textContent = `${project.name} | ${project.status} | ${project.releaseName} | Kaderstand ${dataStatus.lastSquadUpdate}${dataStatus.transferWindowOpen ? " | Transferfenster offen" : ""}`;
   const metricRoot = hero.querySelector(".admin-metrics");
   if (metricRoot) {
     metricRoot.innerHTML = [
@@ -3833,6 +4864,8 @@ function adminMetrics() {
 }
 
 function adminSectionTitle(section) {
+  const navMatch = adminNavPageBySection(section);
+  if (navMatch?.page?.section === section && navMatch.page.label) return navMatch.page.label;
   return {
     dashboard: "Dashboard",
     users: "Benutzer",
@@ -3842,6 +4875,7 @@ function adminSectionTitle(section) {
     clubs: "Vereine-Verwaltung",
     nations: "Nationen-Verwaltung",
     leagues: "Ligen-Verwaltung",
+    datacheck: "Datenpruefung",
     boosters: "Booster-Verwaltung",
     draftboard: "Draft-Board",
     droprates: "Dropchancen",
@@ -3889,7 +4923,299 @@ function validateAdminData() {
     nationCodes.add(code);
     if (!card.name || !card.club || !card.pos) errors.push(`${card.id || "Karte"}: Pflichtdaten fehlen.`);
   });
+  const currentSeasonCards = currentSeasonCardPool();
+  const duplicateCurrentPlayers = new Map();
+  currentSeasonCards.forEach((card) => {
+    const key = normalizeIdentity(`${card.name}|${card.club}`);
+    duplicateCurrentPlayers.set(key, (duplicateCurrentPlayers.get(key) || 0) + 1);
+    if (!getClub(card.club)?.name) errors.push(`${card.name}: unbekannter Verein ${card.club}.`);
+    if (!card.league) errors.push(`${card.name}: Liga fehlt.`);
+    if (!card.pos) errors.push(`${card.name}: Position fehlt.`);
+  });
+  duplicateCurrentPlayers.forEach((count, key) => {
+    if (count > 1) warnings.push(`Moegliche Dublette im aktuellen Kader: ${key} (${count} Karten).`);
+  });
+  const clubsWithoutCurrentSquad = CLUBS.filter((club) => !currentSeasonCards.some((card) => card.club === club.name));
+  if (clubsWithoutCurrentSquad.length) warnings.push(`${clubsWithoutCurrentSquad.length} Vereine besitzen noch keinen verifizierten 2026/27-Kader.`);
+  if (SEASON_2026_27_STATUS.transferWindowOpen) warnings.push("Sommertransferfenster 2026 ist offen; Kader sind nicht final.");
   return { errors, warnings };
+}
+
+function normalizeIdentity(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-zA-Z0-9|]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizePlayerName(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function teamIdForClubName(clubName, teamType = "men-first") {
+  const normalizedClub = normalizePlayerIdentity(clubName || "unassigned-club") || "unassigned-club";
+  const normalizedTeam = normalizePlayerIdentity(teamType || "men-first") || "men-first";
+  return `${normalizedClub}-${normalizedTeam}`;
+}
+
+function isHistoricalSeasonCard(card) {
+  const season = String(card?.season || "");
+  return card?.isHistorical === true || HISTORICAL_SEASONS.has(season);
+}
+
+function isCurrentSeasonCard(card, season = CURRENT_SEASON) {
+  return Boolean(
+    card &&
+    card.season === season &&
+    card.squadStatus === "active" &&
+    card.verifiedForSeason === true &&
+    card.isActiveSeasonCard === true &&
+    card.isHistorical !== true &&
+    card.isActive !== false &&
+    card.isPackable !== false
+  );
+}
+
+function isHistoricalPackPool(pool) {
+  const normalized = String(pool || "").toLowerCase();
+  return normalized.includes("historical") || normalized.includes("retro") || normalized.includes("archive");
+}
+
+function currentSeasonCardPool(cards = GAME_CARDS, season = CURRENT_SEASON) {
+  return (Array.isArray(cards) ? cards : []).filter((card) => isCurrentSeasonCard(card, season));
+}
+
+function getSeasonSquadMemberships(season = CURRENT_SEASON) {
+  const seasonData = season === CURRENT_SEASON ? globalThis.LIGA_CLASH_SEASON_2026_27 : null;
+  const memberships = Array.isArray(seasonData?.squadMemberships) ? seasonData.squadMemberships : [];
+  return memberships.filter((entry) => entry.season === season);
+}
+
+function getCurrentSquad(teamId, season = CURRENT_SEASON) {
+  return getSeasonSquadMemberships(season).filter((entry) => (
+    entry.teamId === teamId &&
+    entry.season === season &&
+    entry.squadStatus === "active" &&
+    entry.verifiedForSeason === true
+  ));
+}
+
+globalThis.getCurrentSquad = getCurrentSquad;
+
+function validateSeasonData(season = SEASON_2026_27_STATUS.season) {
+  const generatedAt = new Date().toISOString().slice(0, 10);
+  const issues = [];
+  const duplicates = [];
+  const knownPlayers = new Map();
+  const playerRows = [];
+  const currentCards = season === CURRENT_SEASON
+    ? currentSeasonCardPool(GAME_CARDS, season)
+    : GAME_CARDS.filter((card) => card.season === season && isHistoricalSeasonCard(card));
+  const cardPlayerIds = new Map();
+
+  const addIssue = (severity, type, message, refs = []) => {
+    issues.push({ severity, type, message, refs: refs.filter(Boolean).map(String) });
+  };
+
+  if (globalThis.LIGA_CLASH_SEASON_2026_27?.players?.length) {
+    globalThis.LIGA_CLASH_SEASON_2026_27.players
+      .filter((player) => player.season === season || player.squadSeason === season)
+      .forEach((player) => playerRows.push({ ...player, source: "season-player" }));
+  }
+
+  currentCards.forEach((card) => {
+    const playerId = sourceCardId(card);
+    playerRows.push({
+      id: playerId,
+      playerId,
+      displayName: card.name,
+      dateOfBirth: card.dateOfBirth || "",
+      nationality: card.nationality || card.nation || "",
+      position: card.pos,
+      clubName: card.club,
+      leagueId: card.league,
+      squadStatus: card.squadStatus || card.status || "active",
+      season: card.season,
+      source: "card",
+      cardId: card.id,
+    });
+    if (!cardPlayerIds.has(playerId)) cardPlayerIds.set(playerId, []);
+    cardPlayerIds.get(playerId).push(card.id);
+  });
+
+  playerRows.forEach((player) => {
+    const playerId = player.playerId || player.id;
+    const displayName = player.displayName || player.name || "";
+    if (!playerId) addIssue("error", "missing-player-id", `${displayName || "Unbekannter Spieler"} besitzt keine playerId.`, [player.cardId]);
+    if (!displayName) addIssue("error", "missing-name", `${playerId || "Unbekannter Spieler"} besitzt keinen Namen.`, [player.cardId]);
+    if (!player.position && !player.realPosition) addIssue("error", "missing-position", `${displayName || playerId} besitzt keine Position.`, [playerId]);
+    if (!player.nationality && !player.nation) addIssue("warning", "missing-nationality", `${displayName || playerId} besitzt keine Nationalitaet.`, [playerId]);
+    if (!player.clubName && !player.club && !player.currentClubId) addIssue("error", "missing-current-club", `${displayName || playerId} besitzt keinen aktuellen Verein.`, [playerId]);
+    if (playerId) {
+      if (!knownPlayers.has(playerId)) knownPlayers.set(playerId, []);
+      knownPlayers.get(playerId).push(player);
+    }
+  });
+
+  knownPlayers.forEach((matches, playerId) => {
+    const activeClubs = new Set(matches.filter((player) => (player.squadStatus || "active") === "active").map((player) => player.clubName || player.club || player.currentClubId).filter(Boolean));
+    if (activeClubs.size > 1) addIssue("error", "player-multiple-active-clubs", `${playerId} ist in mehreren aktiven Kadern.`, [...activeClubs]);
+  });
+
+  const byStrictId = new Map();
+  playerRows.forEach((player) => {
+    const playerId = player.playerId || player.id;
+    if (!playerId) return;
+    byStrictId.set(playerId, (byStrictId.get(playerId) || 0) + 1);
+  });
+  byStrictId.forEach((count, playerId) => {
+    if (count > 1) addIssue("warning", "duplicate-player-id-reference", `${playerId} wird ${count}x referenziert.`, [playerId]);
+  });
+
+  const byIdentity = new Map();
+  playerRows.forEach((player) => {
+    const name = normalizePlayerName(player.displayName || player.name);
+    if (!name) return;
+    const birth = player.dateOfBirth || "";
+    const nationality = normalizePlayerName(player.nationality || player.nation || "");
+    const position = String(player.position || player.realPosition || "").toUpperCase();
+    const key = birth ? `${name}|${birth}` : `${name}|${nationality}|${position}`;
+    if (!byIdentity.has(key)) byIdentity.set(key, []);
+    byIdentity.get(key).push(player);
+  });
+
+  byIdentity.forEach((matches, key) => {
+    const ids = [...new Set(matches.map((player) => player.playerId || player.id).filter(Boolean))];
+    const clubs = [...new Set(matches.map((player) => player.clubName || player.club || player.currentClubId).filter(Boolean))];
+    if (ids.length > 1 || clubs.length > 1) {
+      const suggestedCanonicalId = ids.find((id) => !String(id).includes("part1-")) || ids[0] || "";
+      duplicates.push({
+        key,
+        matches: matches.map((player) => `${player.displayName || player.name || "?"} (${player.playerId || player.id || "ohne ID"} / ${player.clubName || player.club || player.currentClubId || "ohne Verein"})`),
+        reason: "Name plus Geburtsdatum oder Nationalitaet/Position stimmen ueberein.",
+        suggestedCanonicalId,
+      });
+      addIssue("warning", "possible-duplicate-person", `Moegliche doppelte Person: ${key}`, ids);
+    }
+  });
+
+  currentCards.forEach((card) => {
+    const playerId = sourceCardId(card);
+    if (!playerId) addIssue("error", "card-without-player", `${card.name || card.id} besitzt keine Spielerreferenz.`, [card.id]);
+    if (card.isPackable !== false && (card.isActive === false || card.squadStatus === "departed")) addIssue("error", "inactive-packable-card", `${card.name} ist inaktiv, aber packbar.`, [card.id]);
+    if (!card.pos) addIssue("error", "card-missing-position", `${card.name || card.id} besitzt keine Kartenposition.`, [card.id]);
+  });
+
+  GAME_CARDS.forEach((card) => {
+    if (HISTORICAL_SEASONS.has(card.season) && (card.isActiveSeasonCard === true || card.squadStatus === "active" && card.verifiedForSeason === true)) {
+      addIssue("error", "historical-card-active-current-squad", `${card.name} (${card.season}) ist historisch, aber als aktueller Kader markiert.`, [card.id]);
+    }
+    if (card.season === CURRENT_SEASON && card.squadStatus === "active" && card.verifiedForSeason !== true) {
+      addIssue("error", "current-card-missing-verification", `${card.name} ist 2026/27 aktiv, aber nicht fuer die Saison bestaetigt.`, [card.id]);
+    }
+    if (card.season === CURRENT_SEASON && card.isHistorical === true) {
+      addIssue("error", "current-card-marked-historical", `${card.name} ist 2026/27, aber als historisch markiert.`, [card.id]);
+    }
+  });
+
+  const seasonMemberships = getSeasonSquadMemberships(season);
+  seasonMemberships.forEach((entry) => {
+    if (entry.squadStatus === "active" && entry.verifiedForSeason !== true) addIssue("error", "active-squad-unverified", `${entry.playerId} ist aktiv, aber nicht verifiziert.`, [entry.playerId, entry.teamId]);
+  });
+
+  const packPoolRisks = state.boosterPacks.flatMap((pack) => matchingCardsForPack(normalizeBoosterPack(pack)).filter((card) => {
+    const normalizedPack = normalizeBoosterPack(pack);
+    if (isHistoricalPackPool(normalizedPack.pool)) return false;
+    return card.season !== season || !isCurrentSeasonCard(card, season);
+  }).map((card) => `${pack.name}: ${card.name} (${card.season || "ohne Saison"})`));
+  packPoolRisks.forEach((risk) => addIssue("error", "pack-pool-invalid-current-card", `Ungueltige aktuelle Karte im Pack-Pool: ${risk}`));
+
+  const leagues = DB_LEAGUES.map((league) => {
+    const cards = currentCards.filter((card) => card.league === league);
+    const clubs = new Set(cards.map((card) => card.club));
+    const isWomenLeague = league.includes("Frauen");
+    return {
+      name: league,
+      clubCount: clubs.size,
+      activePlayers: cards.length,
+      malePlayers: isWomenLeague ? 0 : cards.length,
+      femalePlayers: isWomenLeague ? cards.length : 0,
+      status: cards.length ? "teilweise geladen" : "fehlt",
+    };
+  });
+
+  leagues.forEach((league) => {
+    if (!league.activePlayers) addIssue("error", "league-missing-current-rosters", `${league.name} besitzt keine aktiven 2026/27-Kaderdaten.`);
+    else if (league.clubCount < 10) addIssue("warning", "league-incomplete-current-rosters", `${league.name} wirkt unvollstaendig: nur ${league.clubCount} Vereine mit aktiven Karten.`);
+  });
+
+  const errorCount = issues.filter((issue) => issue.severity === "error").length;
+  const warningCount = issues.filter((issue) => issue.severity !== "error").length;
+  return {
+    season,
+    generatedAt,
+    issues,
+    duplicates,
+    leagues,
+    summary: {
+      playerRows: playerRows.length,
+      cardCount: currentCards.length,
+      duplicateGroups: duplicates.length,
+      errorCount,
+      warningCount,
+      ownedCardsPreserved: state.allUsersData ? Object.values(state.allUsersData).reduce((sum, userData) => sum + (userData.ownedCardInstances?.length || 0), 0) : state.deck.length,
+    },
+  };
+}
+
+globalThis.validateSeasonData = validateSeasonData;
+
+function repairSeasonMixing() {
+  const result = {
+    historicalCardsMarked: 0,
+    currentCardsDisabled: 0,
+    packEntriesProtected: 0,
+    ownedCardsPreserved: state.allUsersData ? Object.values(state.allUsersData).reduce((sum, userData) => sum + (userData.ownedCardInstances?.length || 0), 0) : state.deck.length,
+  };
+
+  GAME_CARDS.forEach((card) => {
+    if (HISTORICAL_SEASONS.has(card.season)) {
+      if (card.isHistorical !== true || card.isActiveSeasonCard !== false || card.squadStatus === "active" && card.verifiedForSeason === true) {
+        result.historicalCardsMarked += 1;
+      }
+      card.isHistorical = true;
+      card.isActiveSeasonCard = false;
+      card.verifiedForSeason = false;
+      if (card.squadStatus === "active") card.squadStatus = "historical";
+      if (card.isPackable !== false) {
+        card.isPackable = false;
+        result.packEntriesProtected += 1;
+      }
+      return;
+    }
+
+    if (card.season === CURRENT_SEASON) {
+      const canBeCurrent = card.squadStatus === "active" && card.verifiedForSeason === true && card.isHistorical !== true;
+      card.isActiveSeasonCard = canBeCurrent;
+      if (!canBeCurrent && card.isPackable !== false) {
+        card.isPackable = false;
+        result.currentCardsDisabled += 1;
+      }
+    }
+  });
+
+  return result;
 }
 
 function dropRateSum(rates, minClass = 0, maxClass = teamClasses.length - 1) {
@@ -3898,6 +5224,8 @@ function dropRateSum(rates, minClass = 0, maxClass = teamClasses.length - 1) {
 
 function matchingCardsForPack(pack) {
   return GAME_CARDS.filter((card) => {
+    const historicalPack = isHistoricalPackPool(pack.pool);
+    if (!historicalPack && !isCurrentSeasonCard(card)) return false;
     const cls = normalizeClassIndex(card.cls);
     const inClass = cls >= pack.minClass && cls <= pack.maxClass;
     const inPool = pack.pool === "mixed" || pack.pool === "all" || cardMatchesPackPool(card, pack.pool);
@@ -3907,7 +5235,9 @@ function matchingCardsForPack(pack) {
 }
 
 function cardMatchesPackPool(card, pool) {
-  if (pool === "men-bundesliga") return card.league === "1. Bundesliga";
+  if (!isHistoricalPackPool(pool) && !isCurrentSeasonCard(card)) return false;
+  if (isHistoricalPackPool(pool) && !isHistoricalSeasonCard(card)) return false;
+  if (pool === "men-bundesliga") return card.league === "1. Bundesliga" && (card.season !== CURRENT_SEASON || card.isPackable !== false);
   if (pool === "women-bundesliga") return card.league === "Google Pixel Frauen-Bundesliga";
   if (pool === "dfb-pokal") return DB_LEAGUES.includes(card.league);
   if (pool === "totw") return card.series === "totw" || normalizeClassIndex(card.cls) >= 8;
@@ -3921,7 +5251,19 @@ function renderAdminPhase9Module(section = currentAdminSection()) {
     els.adminPhase9Content.innerHTML = `<h3>${escapeHtml(adminSectionTitle(section))}</h3><p>Keine Berechtigung fuer dieses Modul.</p>`;
     return;
   }
-  if (!["players", "nations", "leagues", "droprates", "roles", "news", "shop", "platzpass", "design", "texts", "version", "status", "export", "backups", "logs"].includes(section)) {
+  if (section.startsWith("community-")) {
+    els.adminPhase9Content.innerHTML = renderAdminCommunityModule(section);
+    return;
+  }
+  if (section === "dashboard") {
+    els.adminPhase9Content.innerHTML = renderAdminDashboardModule();
+    return;
+  }
+  if (section.endsWith("-overview") || ["squads", "season-archive", "level-system", "star-system", "fusion", "deck-rules", "match-rules", "season-management", "schedules", "promotion-relegation", "battle-pass", "daily-login", "rights", "admin-audit", "data-duplicates", "system-general", "storage"].includes(section)) {
+    els.adminPhase9Content.innerHTML = renderAdminStructuredModule(section);
+    return;
+  }
+  if (!["players", "nations", "leagues", "datacheck", "droprates", "roles", "news", "shop", "platzpass", "draftboard", "design", "texts", "version", "status", "settings", "export", "backups", "logs"].includes(section)) {
     els.adminPhase9Content.innerHTML = renderAdminOverviewPanel(section);
     return;
   }
@@ -3929,6 +5271,7 @@ function renderAdminPhase9Module(section = currentAdminSection()) {
     players: renderAdminPlayersModule,
     nations: renderAdminNationsModule,
     leagues: renderAdminLeaguesModule,
+    datacheck: renderAdminDataCheckModule,
     droprates: renderAdminDropRatesModule,
     roles: renderAdminRolesModule,
     news: renderAdminNewsModule,
@@ -3939,6 +5282,7 @@ function renderAdminPhase9Module(section = currentAdminSection()) {
     texts: renderAdminTextsModule,
     version: renderAdminVersionModule,
     status: renderAdminStatusModule,
+    settings: renderAdminSettingsModule,
     export: renderAdminExportModule,
     backups: renderAdminBackupsModule,
     logs: renderAdminLogsModule,
@@ -3946,11 +5290,430 @@ function renderAdminPhase9Module(section = currentAdminSection()) {
   els.adminPhase9Content.innerHTML = renderers[section]();
 }
 
+function renderAdminCommunityModule(section) {
+  const data = communityAdminData();
+  const renderers = {
+    "community-dashboard": () => renderAdminCommunityDashboard(data),
+    "community-ideas": () => renderAdminCommunityRecords({
+      title: "Ideen",
+      storageKey: COMMUNITY_STORAGE_KEYS.ideas,
+      records: data.ideas,
+      statuses: COMMUNITY_ITEM_STATUSES,
+      fields: ["title", "category", "author", "description"],
+      emptyText: "Noch keine Ideen gespeichert.",
+    }),
+    "community-forum": () => renderAdminCommunityRecords({
+      title: "Forum",
+      storageKey: COMMUNITY_STORAGE_KEYS.forum,
+      records: data.forum,
+      statuses: COMMUNITY_ITEM_STATUSES,
+      fields: ["title", "category", "author", "description"],
+      extraActions: ["pin", "close"],
+      emptyText: "Noch keine Forenbeitraege gespeichert.",
+    }),
+    "community-applications": () => renderAdminCommunityRecords({
+      title: "Bewerbungen",
+      storageKey: COMMUNITY_STORAGE_KEYS.applications,
+      records: data.applications,
+      statuses: COMMUNITY_APPLICATION_STATUSES,
+      fields: ["type", "name", "discord", "why"],
+      emptyText: "Noch keine Bewerbungen gespeichert.",
+    }),
+    "community-bugs": () => renderAdminCommunityRecords({
+      title: "Fehlermeldungen",
+      storageKey: COMMUNITY_STORAGE_KEYS.bugs,
+      records: data.bugs,
+      statuses: COMMUNITY_BUG_STATUSES,
+      fields: ["title", "device", "browser", "version", "description"],
+      emptyText: "Noch keine Fehlermeldungen gespeichert.",
+    }),
+    "community-messages": () => renderAdminCommunityRecords({
+      title: "Nachrichten",
+      storageKey: COMMUNITY_STORAGE_KEYS.contacts,
+      records: data.contacts,
+      statuses: COMMUNITY_ITEM_STATUSES,
+      fields: ["name", "email", "subject", "message"],
+      emptyText: "Noch keine Nachrichten gespeichert.",
+    }),
+    "community-news": () => renderAdminCommunityNews(data.news),
+    "community-roadmap": () => renderAdminCommunityRoadmap(data.roadmap),
+    "community-settings": () => renderAdminCommunitySettings(data.settings),
+  };
+  return (renderers[section] || renderers["community-dashboard"])();
+}
+
+function communityAdminData() {
+  return {
+    ideas: readCommunityRecords(COMMUNITY_STORAGE_KEYS.ideas),
+    bugs: readCommunityRecords(COMMUNITY_STORAGE_KEYS.bugs),
+    applications: readCommunityRecords(COMMUNITY_STORAGE_KEYS.applications),
+    contacts: readCommunityRecords(COMMUNITY_STORAGE_KEYS.contacts),
+    forum: readCommunityRecords(COMMUNITY_STORAGE_KEYS.forum),
+    news: communityNews(),
+    roadmap: communityRoadmap(),
+    settings: communitySettings(),
+  };
+}
+
+function renderAdminCommunityDashboard(data = communityAdminData()) {
+  const metrics = [
+    ["Neue Ideen", data.ideas.filter((item) => item.status === "Neu").length, data.ideas.length],
+    ["Fehlermeldungen", data.bugs.filter((item) => item.status !== "Behoben" && item.status !== "Geschlossen").length, data.bugs.length],
+    ["Bewerbungen", data.applications.filter((item) => item.status === "Neu" || item.status === "In Prüfung").length, data.applications.length],
+    ["Nachrichten", data.contacts.filter((item) => item.status === "Neu").length, data.contacts.length],
+    ["Forum Posts", data.forum.length, communityForumPosts().length],
+    ["News", data.news.length, data.news.filter((item) => item.pinned).length],
+  ];
+  const quickLinks = [
+    ["Ideen pruefen", "community-ideas"],
+    ["Forum moderieren", "community-forum"],
+    ["Bewerbungen bearbeiten", "community-applications"],
+    ["Bugs pruefen", "community-bugs"],
+    ["News verwalten", "community-news"],
+    ["Roadmap bearbeiten", "community-roadmap"],
+    ["Einstellungen", "community-settings"],
+  ];
+  return `
+    <h3>Community Dashboard</h3>
+    <p>Alle Community-Eingaben werden lokal im Browser gespeichert und sind hier fuer Owner/Admin verwaltbar.</p>
+    <div class="community-admin-dashboard">
+      ${metrics.map(([label, open, total]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(open))}</strong><em>${escapeHtml(String(total))} gesamt</em></article>`).join("")}
+    </div>
+    <div class="admin-linked-pages">
+      ${quickLinks.map(([label, section]) => `<button type="button" data-admin-quick-section="${escapeAttr(section)}">${escapeHtml(label)}</button>`).join("")}
+    </div>
+  `;
+}
+
+function renderAdminCommunityRecords({ title, storageKey, records, statuses, fields, extraActions = [], emptyText }) {
+  return `
+    <h3>${escapeHtml(title)}</h3>
+    <p>Status bearbeiten, Eintraege moderieren oder nicht mehr benoetigte Datensaetze entfernen.</p>
+    <div class="community-admin-list">
+      ${records.length ? records.map((item) => renderAdminCommunityRecordCard(storageKey, item, statuses, fields, extraActions)).join("") : `<article><p>${escapeHtml(emptyText)}</p></article>`}
+    </div>
+  `;
+}
+
+function renderAdminCommunityRecordCard(storageKey, item, statuses, fields, extraActions = []) {
+  return `
+    <article class="community-admin-card ${item.pinned ? "is-pinned" : ""} ${item.closed ? "is-closed" : ""}">
+      <header>
+        <div>
+          <strong>${escapeHtml(item.title || item.subject || item.name || item.type || "Eintrag")}</strong>
+          <span>${escapeHtml(formatCommunityDate(item.createdAt))} · ${escapeHtml(item.author || item.name || item.discord || "Community")}</span>
+        </div>
+        <select class="community-status-select" data-phase9-action="community-status" data-community-key="${escapeAttr(storageKey)}" data-community-id="${escapeAttr(item.id)}">
+          ${communityStatusOptions(statuses, item.status || "Neu")}
+        </select>
+      </header>
+      <dl>
+        ${fields.map((field) => `<dt>${escapeHtml(communityFieldLabel(field))}</dt><dd>${escapeHtml(communityFieldValue(item, field))}</dd>`).join("")}
+      </dl>
+      <footer class="community-admin-actions">
+        ${extraActions.includes("pin") ? `<button type="button" data-phase9-action="community-toggle-pin" data-community-key="${escapeAttr(storageKey)}" data-community-id="${escapeAttr(item.id)}">${item.pinned ? "Pin entfernen" : "Anpinnen"}</button>` : ""}
+        ${extraActions.includes("close") ? `<button type="button" data-phase9-action="community-toggle-close" data-community-key="${escapeAttr(storageKey)}" data-community-id="${escapeAttr(item.id)}">${item.closed ? "Oeffnen" : "Schliessen"}</button>` : ""}
+        <button type="button" data-phase9-action="community-delete" data-community-key="${escapeAttr(storageKey)}" data-community-id="${escapeAttr(item.id)}">Loeschen</button>
+      </footer>
+    </article>
+  `;
+}
+
+function renderAdminCommunityNews(news) {
+  return `
+    <h3>Community News</h3>
+    <p>News fuer den Community Hub lokal erstellen, anpinnen oder entfernen.</p>
+    <div class="phase9-form community-admin-editor">
+      <label>Titel<input id="communityNewsTitle" maxlength="90" /></label>
+      <label>Kategorie<input id="communityNewsCategory" maxlength="40" value="Update" /></label>
+      <label class="wide">Text<textarea id="communityNewsSummary" rows="3"></textarea></label>
+      <button type="button" data-phase9-action="community-add-news">News erstellen</button>
+    </div>
+    <div class="community-admin-list">
+      ${news.map((item) => renderAdminCommunityRecordCard(COMMUNITY_STORAGE_KEYS.news, item, COMMUNITY_ITEM_STATUSES, ["title", "category", "summary"], ["pin"])).join("")}
+    </div>
+  `;
+}
+
+function renderAdminCommunityRoadmap(roadmap) {
+  return `
+    <h3>Community Roadmap</h3>
+    <p>Roadmap-Punkte fuer die oeffentliche Anzeige bearbeiten. Erledigte Punkte werden im Hub abgehakt.</p>
+    <div class="phase9-form community-admin-editor">
+      <label>Roadmap-Punkt<input id="communityRoadmapTitle" maxlength="90" /></label>
+      <button type="button" data-phase9-action="community-add-roadmap">Punkt hinzufuegen</button>
+    </div>
+    <div class="community-admin-list">
+      ${roadmap.map((item) => `
+        <article class="community-admin-card">
+          <header>
+            <div>
+              <strong>${item.done ? "☑" : "⬜"} ${escapeHtml(item.title)}</strong>
+              <span>${item.done ? "Erledigt" : "Offen"}</span>
+            </div>
+          </header>
+          <footer class="community-admin-actions">
+            <button type="button" data-phase9-action="community-toggle-roadmap" data-community-id="${escapeAttr(item.id)}">${item.done ? "Auf offen setzen" : "Als erledigt markieren"}</button>
+            <button type="button" data-phase9-action="community-delete-roadmap" data-community-id="${escapeAttr(item.id)}">Loeschen</button>
+          </footer>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderAdminCommunitySettings(settings) {
+  const labels = {
+    ideas: "Ideen",
+    forum: "Forum",
+    bugs: "Fehler melden",
+    applications: "Bewerbungen",
+    contact: "Kontakt",
+    news: "News",
+    roadmap: "Roadmap",
+  };
+  return `
+    <h3>Community Einstellungen</h3>
+    <p>Oeffentliche Community-Bereiche aktivieren oder deaktivieren. Deaktivierte Bereiche blockieren keine Klicks, sondern zeigen einen Hinweis.</p>
+    <div class="community-admin-settings">
+      ${Object.keys(COMMUNITY_FEATURE_DEFAULTS).map((key) => `
+        <label>
+          <input type="checkbox" data-community-setting="${escapeAttr(key)}" ${settings[key] ? "checked" : ""} />
+          <span>${escapeHtml(labels[key] || key)}</span>
+        </label>
+      `).join("")}
+    </div>
+    <button type="button" class="feature-action" data-phase9-action="community-save-settings">Einstellungen speichern</button>
+  `;
+}
+
+function communityStatusOptions(statuses, selected) {
+  return (statuses || COMMUNITY_ITEM_STATUSES).map((status) => `<option value="${escapeAttr(status)}" ${status === selected ? "selected" : ""}>${escapeHtml(status)}</option>`).join("");
+}
+
+function communityFieldLabel(field) {
+  return {
+    title: "Titel",
+    category: "Kategorie",
+    author: "Autor",
+    description: "Beschreibung",
+    type: "Typ",
+    name: "Name",
+    discord: "Discord",
+    why: "Motivation",
+    device: "Geraet",
+    browser: "Browser",
+    version: "Version",
+    email: "E-Mail",
+    subject: "Betreff",
+    message: "Nachricht",
+    summary: "Text",
+  }[field] || field;
+}
+
+function communityFieldValue(item, field) {
+  if (field === "category") {
+    const category = COMMUNITY_FORUM_CATEGORIES.find((entry) => entry.id === item.category);
+    return category ? category.label : item.category || "-";
+  }
+  if (field === "type") {
+    return {
+      tester: "Tester",
+      moderator: "Moderator",
+      admin: "Admin",
+      helper: "Community Helfer",
+      supporter: "Supporter",
+      discord: "Discord",
+      bug: "Fehler",
+    }[item.type] || item.type || "-";
+  }
+  return item[field] || "-";
+}
+
+function renderAdminDashboardModule() {
+  const metrics = adminMetrics();
+  const seasonReport = validateSeasonData(CURRENT_SEASON);
+  const users = state.adminUsers || [];
+  const activeUsers = users.filter((user) => user.status !== "gesperrt" && user.locked !== true).length;
+  const womenCards = currentSeasonCardPool().filter((card) => String(card.league || "").includes("Frauen")).length;
+  const menCards = currentSeasonCardPool().length - womenCards;
+  const womenTeams = CLUBS.filter((club) => String(club.league || "").includes("Frauen")).length;
+  const menTeams = CLUBS.length - womenTeams;
+  const incompleteRosters = seasonReport.leagues.filter((league) => league.status !== "teilweise geladen" || league.clubCount < 10).length;
+  const tiles = [
+    ["Registrierte Benutzer", users.length],
+    ["Aktive Benutzer", activeUsers],
+    ["Vereine", metrics.clubs],
+    ["Maennerteams", menTeams],
+    ["Frauenteams", womenTeams],
+    ["Spieler", menCards],
+    ["Spielerinnen", womenCards],
+    ["Karten", metrics.cards],
+    ["Aktive Ligen", metrics.leagues],
+    ["Aktive Packs", metrics.activeBoosters],
+    ["Offene Datenfehler", seasonReport.summary.errorCount],
+    ["Erkannte Duplikate", seasonReport.summary.duplicateGroups],
+    ["Unvollstaendige Kader", incompleteRosters],
+    ["Letzter Datenstand", SEASON_2026_27_STATUS.lastSquadUpdate],
+    ["Aktuelle Saison", CURRENT_SEASON],
+    ["Projektversion", state.adminData?.project?.version || "0.1 Alpha"],
+  ];
+  const quickActions = [
+    ["Spieler verwalten", "players"],
+    ["Verein anlegen", "clubs"],
+    ["Karte anlegen", "cards"],
+    ["Pack anlegen", "boosters"],
+    ["Liga bearbeiten", "leagues"],
+    ["Benutzer verwalten", "users"],
+    ["Datenpruefung starten", "datacheck"],
+    ["Einstellungen oeffnen", "system-general"],
+  ];
+  return `
+    <h3>Dashboard</h3>
+    <p>Kompakte Spieluebersicht fuer KickOff SuperCard. Schnellaktionen fuehren direkt in die passenden Unterseiten.</p>
+    <div class="admin-dashboard-grid">
+      ${tiles.map(([label, value]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(String(value))}</strong></article>`).join("")}
+    </div>
+    <h4>Schnellaktionen</h4>
+    <div class="admin-quick-actions">
+      ${quickActions.map(([label, section]) => `<button type="button" data-admin-quick-section="${escapeAttr(section)}">${escapeHtml(label)}</button>`).join("")}
+    </div>
+  `;
+}
+
+function renderAdminStructuredModule(section) {
+  const active = adminNavPageBySection(section);
+  const group = active.group;
+  const page = active.page;
+  const cards = currentSeasonCardPool();
+  const seasonReport = validateSeasonData(CURRENT_SEASON);
+  const missingImages = GAME_CARDS.filter((card) => resolvePlayerImage(card).fallback).length;
+  const duplicateCount = seasonReport.summary.duplicateGroups;
+  const rowsBySection = {
+    "clubs-overview": [
+      ["Vereine", CLUBS.length],
+      ["Mannschaften", new Set(cards.map((card) => card.teamId || teamIdForClubName(card.club))).size],
+      ["Spieler", cards.filter((card) => !String(card.league || "").includes("Frauen")).length],
+      ["Spielerinnen", cards.filter((card) => String(card.league || "").includes("Frauen")).length],
+      ["Spieler ohne Verein", GAME_CARDS.filter((card) => !card.club).length],
+      ["Spieler ohne Position", GAME_CARDS.filter((card) => !card.pos).length],
+      ["Fehlende Profilbilder", missingImages],
+      ["Moegliche Duplikate", duplicateCount],
+      ["Unvollstaendige Kader", seasonReport.leagues.filter((league) => league.clubCount < 10).length],
+      ["Letzter Kaderabgleich", SEASON_2026_27_STATUS.lastSquadUpdate],
+    ],
+    squads: [
+      ["Status", "Noch keine offiziellen Kaderdaten vorhanden."],
+      ["Offizielle aktive Spieler", cards.length],
+      ["Entfernte Platzhalterkarten", REMOVED_TEMPORARY_PLAYER_COUNT],
+      ["Saison-Fallback", "deaktiviert"],
+      ["Hinweis", "Kader werden in einer spaeteren Version neu und sauber ergaenzt."],
+    ],
+    rights: adminPermissionCategoryRows(),
+    teams: CLUBS.slice(0, 20).map((club) => [club.name, club.league, String(club.league || "").includes("Frauen") ? "Frauen erste Mannschaft" : "Maenner erste Mannschaft", teamIdForClubName(club.name, String(club.league || "").includes("Frauen") ? "women-first" : "men-first")]),
+    "player-images": GAME_CARDS.filter((card) => resolvePlayerImage(card).fallback).slice(0, 40).map((card) => [card.name, card.club, card.pos, resolvePlayerImage(card).reason || "Silhouette"]),
+    "player-duplicates": seasonReport.duplicates.slice(0, 40).map((item) => [item.key, item.matches.join(" | "), item.reason, item.suggestedCanonicalId || "-"]),
+    "data-duplicates": seasonReport.duplicates.slice(0, 40).map((item) => [item.key, item.matches.join(" | "), item.reason, item.suggestedCanonicalId || "-"]),
+    "season-archive": SQUAD_SEASONS.map((season) => [season, season === CURRENT_SEASON ? "AKTUELL" : "HISTORISCH", GAME_CARDS.filter((card) => card.season === season).length, season === CURRENT_SEASON ? "Nur verifizierte Kader aktiv" : "Archivansicht"]),
+    "season-mixing": seasonReport.issues.filter((issue) => issue.type.includes("season") || issue.type.includes("historical") || issue.type.includes("pack-pool")).map((issue) => [issue.severity, issue.type, issue.message, issue.refs.join(", ")]),
+    storage: [
+      ["LocalStorage-Key", "liga-clash-state-v1"],
+      ["Karten", GAME_CARDS.length],
+      ["Spieler im Besitz", state.deck.length],
+      ["Benutzer", state.adminUsers?.length || 0],
+    ],
+    "admin-audit": (state.adminData?.auditLog || []).slice(0, 40).map((log) => [log.time, log.userName, log.area, log.action, log.result]),
+    "error-log": [...seasonReport.issues, ...validateAdminData().errors.map((message) => ({ severity: "error", type: "admin-data", message, refs: [] }))].slice(0, 60).map((issue) => [issue.severity, issue.type, issue.message, issue.refs?.join(", ") || "-"]),
+  };
+  const table = rowsBySection[section];
+  const headers = {
+    "clubs-overview": ["Kennzahl", "Wert"],
+    squads: ["Bereich", "Status"],
+    rights: ["Kategorie", "Ansehen", "Erstellen", "Bearbeiten", "Loeschen", "Import/Export"],
+    teams: ["Verein", "Liga", "Mannschaft", "teamId"],
+    "player-images": ["Spieler", "Verein", "Position", "Status"],
+    "player-duplicates": ["Schluessel", "Treffer", "Grund", "Kanonisch"],
+    "data-duplicates": ["Schluessel", "Treffer", "Grund", "Kanonisch"],
+    "season-archive": ["Saison", "Status", "Karten", "Hinweis"],
+    "season-mixing": ["Schwere", "Typ", "Meldung", "Referenzen"],
+    storage: ["Bereich", "Wert"],
+    "admin-audit": ["Zeit", "Admin", "Bereich", "Aktion", "Status"],
+    "error-log": ["Schwere", "Typ", "Meldung", "Referenzen"],
+  };
+  const mappedLinks = (group.pages || []).filter((item) => item.section !== section && canUseAdminModule(item.section)).slice(0, 10);
+  return `
+    <h3>${escapeHtml(page.label || adminSectionTitle(section))}</h3>
+    <p>${escapeHtml(adminStructuredDescription(section, group.label))}</p>
+    ${table ? renderPhase9Table(headers[section] || ["Name", "Wert"], table) : renderAdminLinkedPageSummary(section)}
+    <div class="admin-linked-pages">
+      ${mappedLinks.map((item) => `<button type="button" data-admin-quick-section="${escapeAttr(item.section)}">${escapeHtml(item.label)}</button>`).join("")}
+    </div>
+  `;
+}
+
+function adminStructuredDescription(section, groupLabel) {
+  const descriptions = {
+    squads: "Noch keine offiziellen Kaderdaten vorhanden. Es werden keine alten Saisons als aktueller Kader verwendet.",
+    "cards-overview": "Karten koennen nach Saison, Verein, Liga, Position und aktiver/historischer Karte gefiltert werden.",
+    "season-mixing": "Prueft alte Saisonkarten in aktuellen Kadern und aktuelle Pack-Pools auf falsche historische Eintraege.",
+    "data-sources": "Datenanbieter und API-Verbindungen werden vorbereitet. Geheime Schluessel duerfen nicht im Frontend gespeichert werden.",
+    maintenance: "Wartungsaktionen duerfen keine Benutzerdaten ungefragt loeschen.",
+  };
+  return descriptions[section] || `${groupLabel}: ${adminSectionTitle(section)} ist in die neue zweistufige Admin-Struktur eingeordnet.`;
+}
+
+function adminPermissionCategoryRows() {
+  return [
+    ["Admin Center", "admin.open", "-", "admin.manage", "-", "-"],
+    ["Vereine & Spieler", "game-data.manage", "-", "game-data.manage", "-", "-"],
+    ["Karten & Gameplay", "game-data.manage", "game-data.manage", "game-data.manage", "-", "-"],
+    ["Wettbewerbe", "events.manage", "events.manage", "events.manage", "-", "-"],
+    ["Belohnungen & Wirtschaft", "shop.manage", "boosters.manage", "shop.manage", "-", "-"],
+    ["Benutzer & Rechte", "users.view", "users.manage", "roles.manage", "users.manage", "-"],
+    ["Datenverwaltung", "game-data.manage", "-", "backup.create", "data.reset", "export.read"],
+    ["Einstellungen", "project.manage", "-", "project.manage", "-", "-"],
+  ];
+}
+
+function renderAdminLinkedPageSummary(section) {
+  const links = {
+    squads: ["Saisonfilter", "Liga", "Verein", "Mannschaft", "Kaderstatus"],
+    "card-designs": ["Bronze", "Silber", "Gold", "Elite", "Icon", "PRO", "Fusion"],
+    "card-values": ["Overall", "Tempo", "Abschluss", "Passspiel", "Dribbling", "Defensive", "Physis"],
+    "level-system": ["Maximallevel", "XP-Kurve", "Levelkosten", "Overall-Steigerung"],
+    "star-system": ["Maximale Sterne", "Duplikate", "PRO-Freischaltung"],
+    fusion: ["Fusionsregeln", "Kosten", "Sternaufstieg", "Favoritenschutz"],
+    "deck-rules": ["Formationen", "Positionsregeln", "Teamstaerke"],
+    "match-rules": ["Runden", "Punktesystem", "Heim/Auswaerts"],
+    "cpu-opponents": ["KI-Staerke", "Schwierigkeitsgrade", "Kartenwahl"],
+    "season-management": ["Saison anlegen", "Aktivieren", "Archivieren"],
+    tables: ["Punkte", "Siege", "Niederlagen", "Spielpunkte"],
+    schedules: ["Spieltage", "Heim/Auswaerts", "Verschiebungen"],
+    currencies: ["Coins", "Gems", "XP", "Fusion-Ressourcen"],
+    achievements: ["Bedingung", "Fortschritt", "Belohnung"],
+    "battle-pass": ["Free", "Premium", "Elite", "Belohnungen"],
+    "daily-login": ["Serienbonus", "Monatskalender", "Verpasste Tage"],
+    mailbox: ["Nachrichten", "Geschenke", "Ablaufdatum"],
+    notifications: ["Wartung", "Events", "Neue Packs"],
+    support: ["Nutzeranfragen", "Fehlermeldungen", "Status"],
+    reports: ["Gemeldete Inhalte", "Bearbeiter", "Status"],
+    rights: ["Bereich ansehen", "Erstellen", "Bearbeiten", "Loeschen", "Importieren"],
+    bans: ["Zeitweise Sperre", "Permanente Sperre", "Sperrgrund"],
+    "login-history": ["Letzter Login", "Registrierung", "Session"],
+    migrations: ["Schema-Version", "Ausgefuehrt", "Ausstehend", "Fehler"],
+    "system-general": ["Spielname", "Slogan", "Saison", "Wartungsmodus"],
+    "data-sources": ["Spieler-API", "Bildquellen", "Datenstichtag"],
+    security: ["PIN-Regeln", "Adminrechte", "Kritische Aktionen"],
+  };
+  const rows = (links[section] || ["Bestehende Funktionen", "Rechtepruefung", "Navigation", "Status"]).map((item) => [item, "vorbereitet / vorhandene Daten angebunden"]);
+  return renderPhase9Table(["Funktion", "Status"], rows);
+}
+
 function renderAdminOverviewPanel(section) {
   const validation = validateAdminData();
   return `
     <h3>${escapeHtml(adminSectionTitle(section))}</h3>
-    <p>Dieses Modul nutzt die vorhandenen Liga-Clash-Daten. Detailansichten sind ueber die linke Navigation erreichbar.</p>
+    <p>Dieses Modul nutzt die vorhandenen KickOff-SuperCard-Daten. Detailansichten sind ueber die linke Navigation erreichbar.</p>
     <div class="phase9-grid">
       <article><b>${GAME_CARDS.length}</b><span>Karten im Datenpool</span></article>
       <article><b>${CLUBS.length}</b><span>Vereine integriert</span></article>
@@ -3961,23 +5724,22 @@ function renderAdminOverviewPanel(section) {
 }
 
 function renderAdminPlayersModule() {
-  const players = GAME_CARDS.slice(0, 80);
+  const players = playableCardPool().slice(0, 80);
   return `
     <h3>Spieler-Verwaltung</h3>
-    <p>Spieler und Karten bleiben getrennt. Bilder werden lokal markiert; ohne Backend sind Uploads nur als gespeicherte Pfade/Metadaten vorbereitet.</p>
-    ${renderPhase9Table(["Spieler", "Verein", "Liga", "Position", "Bildstatus", "Typ", "Quelle", "Lizenz/Fallback"], players.map((card) => {
+    <p>Es sind aktuell keine offiziellen Spielerdaten im aktiven Katalog vorhanden. Neue Kader muessen spaeter sauber importiert werden.</p>
+    ${players.length ? renderPhase9Table(["Spieler", "Verein", "Liga", "Position", "Basis-OVR", "Bildstatus", "Status"], players.map((card) => {
       const image = resolvePlayerImage(card);
       return [
       safeCardName(card),
       getClub(card.club).name,
       card.league,
       card.pos,
+      card.baseOverall,
       image.fallback ? "Silhouette aktiv" : "freigegeben",
-      card.imageType || (image.fallback ? "fallback" : "licensed"),
-      image.source,
-      card.imageLicense || image.reason || "lokale Metadaten",
+      "aktiv",
     ];
-    }))}
+    })) : `<div class="empty-state">Keine Spieler vorhanden.</div>`}
   `;
 }
 
@@ -4060,16 +5822,21 @@ function renderAdminDropRatesModule() {
 }
 
 function renderAdminRolesModule() {
+  const rolePermissions = normalizeRolePermissions(state.adminData.rolePermissions);
   return `
     <h3>Rollen & Rechte</h3>
-    <p>Alle Admin-Aktionen pruefen die Rechte technisch ueber diese zentrale Matrix.</p>
-    ${renderPhase9Table(["Rolle", "Darf Admin oeffnen", "Daten", "Content", "Kritisch"], ADMIN_ROLES.map((role) => [
-      role,
-      adminPermissionsFor(role).includes("admin.open") ? "ja" : "nein",
-      hasRolePermission(role, "game-data.manage") ? "ja" : "nein",
-      hasRolePermission(role, "content.manage") ? "ja" : "nein",
-      role === "Owner" ? "voll" : "eingeschraenkt",
-    ]))}
+    <p>Rollen sind die zentrale Stelle fuer Rechte. Einzelne Benutzer zeigen nur Profil- und Accountdaten.</p>
+    <div class="role-permission-grid">
+      ${ADMIN_ROLES.map((role) => `
+        <article class="feature-card role-permission-card" data-role-permission="${escapeAttr(role)}">
+          <h4>${escapeHtml(role)}</h4>
+          <p>${role === "Owner" ? "Vollzugriff, geschuetzt und nicht loeschbar." : role === "Admin" ? "Verwaltung ohne Owner-Entzug und kritische Systemloeschungen." : role === "Moderator" ? "Benutzer ansehen, sperren und Inhalte moderieren." : role === "Tester" ? "Testbereiche und Leserechte ohne Datenveraenderung." : "Normaler Spieler ohne Admin Center."}</p>
+          <span>${state.adminUsers.filter((user) => user.role === role).length} Benutzer</span>
+          <span>${rolePermissions[role]?.length || 0} Rechte</span>
+          <span>${role === "Owner" ? "geschuetzt" : "aktiv"}</span>
+        </article>
+      `).join("")}
+    </div>
   `;
 }
 
@@ -4112,18 +5879,60 @@ function renderAdminPlatzpassModule() {
 }
 
 function renderAdminDraftBoardModule() {
+  const settings = normalizeDraftBoardSettings(state.draftBoardSettings);
+  const totalSlots = settings.rows * settings.columns;
   return `
-    <h3>Draft-Board Belohnungen</h3>
-    <p>Typ <b>Karte</b> erzeugt zufaellige Spieler-Karten passend zur eingestellten Klasse. Typ <b>Stufenkarte</b> ist die Reset-Karte des Boards.</p>
+    <h3>Draft-Board Verwaltung</h3>
+    <p>Diese Werte steuern das echte Draft-Board nach Matches. Typ <b>Karte</b> erzeugt zufaellige Spieler-Karten, Typ <b>Stufenkarte</b> gibt den Board-Reset frei.</p>
+    <div class="phase9-form draft-settings-form" data-draft-settings-form>
+      <label>Aktiv<select data-draft-setting="enabled"><option value="true" ${settings.enabled ? "selected" : ""}>aktiv</option><option value="false" ${!settings.enabled ? "selected" : ""}>deaktiviert</option></select></label>
+      <label>Reihen<input type="number" min="2" max="8" data-draft-setting="rows" value="${settings.rows}" /></label>
+      <label>Spalten<input type="number" min="2" max="8" data-draft-setting="columns" value="${settings.columns}" /></label>
+      <label>Picks Sieg<input type="number" min="1" max="${totalSlots}" data-draft-setting="picksWin" value="${settings.picksWin}" /></label>
+      <label>Picks Unentschieden<input type="number" min="1" max="${totalSlots}" data-draft-setting="picksDraw" value="${settings.picksDraw}" /></label>
+      <label>Picks Niederlage<input type="number" min="1" max="${totalSlots}" data-draft-setting="picksLoss" value="${settings.picksLoss}" /></label>
+      <label>Reset nach Abschluss<select data-draft-setting="resetWhenCompleted"><option value="false" ${!settings.resetWhenCompleted ? "selected" : ""}>erst Stufenkarte</option><option value="true" ${settings.resetWhenCompleted ? "selected" : ""}>nach Abschluss</option></select></label>
+      <label>Jackpot<select data-draft-setting="jackpotEnabled"><option value="true" ${settings.jackpotEnabled ? "selected" : ""}>aktiv</option><option value="false" ${!settings.jackpotEnabled ? "selected" : ""}>deaktiviert</option></select></label>
+      <label>Jackpot-Chance %<input type="number" min="0" max="100" step="0.1" data-draft-setting="jackpotChance" value="${settings.jackpotChance}" /></label>
+      <label>Max. Belohnungsstufe<select data-draft-setting="maxRewardTier">${teamClasses.map((label, index) => `<option value="${index}" ${index === settings.maxRewardTier ? "selected" : ""}>${escapeHtml(label)}</option>`).join("")}</select></label>
+    </div>
     <div class="admin-reward-pool-list standalone-draft-pool">
-      ${renderRewardPoolRowsMarkup("draft", normalizeRewardPool(state.rewardPools?.draft, 8))}
+      ${renderRewardPoolRowsMarkup("draft", normalizeRewardPool(settings.rewardPool, 8))}
+    </div>
+    <div class="draft-admin-preview">
+      <strong>Vorschau: ${settings.rows} x ${settings.columns} (${totalSlots} Felder)</strong>
+      <div class="draft-board-grid" style="--draft-columns:${settings.columns}">
+        ${Array.from({ length: totalSlots }, (_, index) => `<button type="button" class="draft-slot" disabled><strong>${index === 0 && settings.jackpotEnabled ? "Stufenkarte" : "Belohnung"}</strong><span>Feld ${index + 1}</span></button>`).join("")}
+      </div>
     </div>
     <button type="button" data-phase9-action="save-draftboard">Draft-Board speichern</button>
   `;
 }
 
 function renderAdminDesignModule() {
-  return `<h3>Design-Verwaltung</h3><p>Asset-Pfade werden nur als Textreferenz gespeichert; Originalassets werden nicht ueberschrieben.</p>${renderKeyValueForm("design", state.adminData.design, ["logo", "background", "slogan", "accent"])}`;
+  const assets = normalizeAdminAssets(state.adminData.assets);
+  const currentLogo = resolveAdminAssetUrl(state.adminData.design.logo);
+  return `
+    <h3>Design & Asset-Verwaltung</h3>
+    <p>Bilder, Logos, Kartenrahmen, Boosterbilder und Hintergruende werden lokal im Spielstand gespeichert und koennen wiederverwendet werden.</p>
+    ${renderKeyValueForm("design", state.adminData.design, ["logo", "background", "slogan", "accent"])}
+    <section class="phase9-panel asset-manager">
+      <h4>Asset hochladen</h4>
+      <div class="phase9-form">
+        <label>Name<input id="adminAssetName" maxlength="48" placeholder="z.B. KickOff SuperCard Logo" /></label>
+        <label>Typ<select id="adminAssetType">${assetTypeOptions().map((item) => `<option value="${escapeAttr(item.value)}">${escapeHtml(item.label)}</option>`).join("")}</select></label>
+        <label class="asset-upload-field">Datei<input id="adminAssetUpload" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" /></label>
+      </div>
+      <button type="button" data-phase9-action="upload-asset">Asset speichern</button>
+    </section>
+    <section class="phase9-panel asset-manager">
+      <h4>Asset-Bibliothek</h4>
+      ${currentLogo ? `<p>Aktuelles Logo:</p><img class="asset-logo-preview" src="${escapeAttr(currentLogo)}" alt="Aktuelles Logo" />` : ""}
+      <div class="asset-grid">
+        ${assets.length ? assets.map(renderAdminAssetTile).join("") : `<article class="asset-tile empty"><strong>Noch keine Uploads</strong><span>PNG, JPG, WebP oder SVG hochladen.</span></article>`}
+      </div>
+    </section>
+  `;
 }
 
 function renderAdminTextsModule() {
@@ -4131,11 +5940,140 @@ function renderAdminTextsModule() {
 }
 
 function renderAdminVersionModule() {
-  return `<h3>Version</h3><p>Projektversion, Build und Release-Name sind zentral verwaltbar.</p>${renderKeyValueForm("project", state.adminData.project, ["version", "season", "build", "releaseName", "lastUpdated"])}`;
+  return `<h3>Version</h3><p>Projektversion, Build, Release-Name und Kaderdatenstand sind zentral verwaltbar.</p>${renderKeyValueForm("project", state.adminData.project, ["version", "season", "build", "releaseName", "lastUpdated"])}${renderSeasonDataStatusPanel()}`;
 }
 
 function renderAdminStatusModule() {
-  return `<h3>Projektstatus</h3><p>Wartungsmodus ist nur vorbereitet, da kein Backend vorhanden ist.</p>${renderKeyValueForm("project", state.adminData.project, ["name", "status", "progress", "maintenance"])}`;
+  return `<h3>Projektstatus</h3><p>Wartungsmodus ist nur vorbereitet, da kein Backend vorhanden ist.</p>${renderKeyValueForm("project", state.adminData.project, ["name", "status", "progress", "maintenance"])}${renderSeasonDataStatusPanel()}`;
+}
+
+function renderSeasonDataStatusPanel() {
+  const dataStatus = state.adminData?.dataStatus || SEASON_2026_27_STATUS;
+  const currentCards = currentSeasonCardPool(GAME_CARDS, dataStatus.season || CURRENT_SEASON);
+  const activeClubs = new Set(currentCards.map((card) => card.club));
+  return `
+    <section class="phase9-panel">
+      <h4>Kaderdaten ${escapeHtml(dataStatus.season)}</h4>
+      <p>${escapeHtml(dataStatus.note || "Datenstand fuer aktuelle Saisonkarten.")}</p>
+      <div class="phase9-grid">
+        <article><b>${escapeHtml(dataStatus.lastSquadUpdate || "-")}</b><span>Datenstichtag</span></article>
+        <article><b>${dataStatus.transferWindowOpen ? "Offen" : "Geschlossen"}</b><span>Transferfenster</span></article>
+        <article><b>${escapeHtml(dataStatus.completeness || "partial")}</b><span>Vollstaendigkeit</span></article>
+        <article><b>${currentCards.length}</b><span>aktuelle Karten</span></article>
+        <article><b>${activeClubs.size}/${CLUBS.length}</b><span>Vereine mit 26/27-Kader</span></article>
+      </div>
+    </section>
+  `;
+}
+
+function renderAdminSettingsModule() {
+  const providers = state.adminData.playerSearchProviders = normalizePlayerSearchProviders(state.adminData.playerSearchProviders);
+  const providerRows = Object.entries(providers).map(([id, provider]) => [
+    id,
+    provider.label,
+    provider.enabled ? "aktiv" : "inaktiv",
+    provider.requiresApiKey ? "server-only" : "nein",
+    provider.baseUrl || "-",
+    provider.dailyLimit || "-",
+    provider.monthlyLimit || "-",
+    provider.lastSuccessfulConnection || "-",
+    provider.lastError || "-",
+  ]);
+  return `
+    <h3>Einstellungen</h3>
+    <p>Globale Admin-Einstellungen und Datenquellen fuer Spielerimporte.</p>
+    ${renderKeyValueForm("project", state.adminData.project, ["name", "version", "season", "status", "releaseName"])}
+    <section class="phase9-panel">
+      <h4>Datenquellen</h4>
+      <p>Geheime API-Schluessel werden nicht im Browser gespeichert. Fuer Anbieter mit Key ist ein sicherer Backend-Proxy noetig; alternativ lokale Suche, manuelle URL, JSON oder CSV nutzen.</p>
+      ${renderPhase9Table(["ID", "Anbieter", "Status", "API-Key", "Basis-URL", "Tag", "Monat", "Letzte Verbindung", "Fehler"], providerRows)}
+      <div class="phase9-form" data-provider-settings>
+        <label>Anbieter<select id="scoutProviderId">${Object.entries(providers).map(([id, provider]) => optionHtml(id, provider.label, "manualUrl")).join("")}</select></label>
+        <label>API-Basis-URL<input id="scoutProviderBaseUrl" placeholder="https://api.example.test/players" /></label>
+        <label>Taegliches Limit<input id="scoutProviderDaily" type="number" min="0" value="0" /></label>
+        <label>Monatliches Limit<input id="scoutProviderMonthly" type="number" min="0" value="0" /></label>
+      </div>
+      <div class="admin-actions">
+        <button type="button" data-phase9-action="scout-save-provider">Provider speichern</button>
+        <button type="button" data-phase9-action="scout-test-provider">Testverbindung</button>
+      </div>
+    </section>
+  `;
+}
+
+function assetTypeOptions() {
+  return [
+    { value: "logo", label: "Logo" },
+    { value: "background", label: "Hintergrund" },
+    { value: "card-frame", label: "Kartenrahmen" },
+    { value: "booster", label: "Boosterbild" },
+    { value: "player", label: "Spielerbild" },
+    { value: "club-logo", label: "Vereinslogo" },
+    { value: "field", label: "Spielfeld" },
+    { value: "tile", label: "Menue-Kachel" },
+    { value: "other", label: "Sonstiges" },
+  ];
+}
+
+function normalizeAdminAssets(assets) {
+  return Array.isArray(assets)
+    ? assets
+        .filter((asset) => asset && asset.id && asset.dataUrl)
+        .map((asset) => ({
+          id: String(asset.id),
+          name: String(asset.name || asset.fileName || "Asset"),
+          fileName: String(asset.fileName || asset.name || "upload"),
+          category: normalizeAssetCategory(asset.category || asset.type),
+          mimeType: String(asset.mimeType || asset.type || "image/png"),
+          size: Math.max(0, Number(asset.size) || 0),
+          dataUrl: String(asset.dataUrl),
+          createdAt: asset.createdAt || new Date().toISOString(),
+          source: asset.source || "admin-upload-local",
+          usedAs: Array.isArray(asset.usedAs) ? asset.usedAs : [],
+        }))
+        .slice(0, 80)
+    : [];
+}
+
+function normalizeAssetCategory(category) {
+  const value = String(category || "other").toLowerCase();
+  return assetTypeOptions().some((item) => item.value === value) ? value : "other";
+}
+
+function renderAdminAssetTile(asset) {
+  const url = resolveAdminAssetUrl(asset.id) || asset.dataUrl;
+  const typeLabel = assetTypeOptions().find((item) => item.value === asset.category)?.label || asset.category;
+  return `
+    <article class="asset-tile" data-admin-asset-id="${escapeAttr(asset.id)}">
+      <img src="${escapeAttr(url)}" alt="${escapeAttr(asset.name)}" />
+      <strong>${escapeHtml(asset.name)}</strong>
+      <span>${escapeHtml(typeLabel)} | ${formatFileSize(asset.size)}</span>
+      <small>${escapeHtml(asset.fileName)}<br>${escapeHtml(formatDateShort(asset.createdAt))}</small>
+      <div class="asset-actions">
+        ${asset.category === "logo" ? `<button type="button" data-phase9-action="apply-asset" data-asset-target="logo" data-asset-id="${escapeAttr(asset.id)}">Als Logo</button>` : ""}
+        ${asset.category === "background" ? `<button type="button" data-phase9-action="apply-asset" data-asset-target="background" data-asset-id="${escapeAttr(asset.id)}">Als Hintergrund</button>` : ""}
+        ${asset.category === "booster" ? `<button type="button" data-phase9-action="apply-asset" data-asset-target="booster-library" data-asset-id="${escapeAttr(asset.id)}">Fuer Booster</button>` : ""}
+        <button class="danger" type="button" data-phase9-action="delete-asset" data-asset-id="${escapeAttr(asset.id)}">Entfernen</button>
+      </div>
+    </article>
+  `;
+}
+
+function resolveAdminAssetUrl(reference) {
+  const value = String(reference || "").trim();
+  if (!value) return "";
+  const asset = state?.adminData?.assets?.find((item) => item.id === value);
+  if (asset?.dataUrl) return asset.dataUrl;
+  const packAsset = state?.adminData?.packImages?.find((item) => item.id === value);
+  if (packAsset?.dataUrl) return packAsset.dataUrl;
+  return value;
+}
+
+function formatFileSize(size) {
+  const bytes = Math.max(0, Number(size) || 0);
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }
 
 function renderAdminExportModule() {
@@ -4201,6 +6139,7 @@ function createAdminExportPayload(scope = "full") {
       events: safeAdminSnapshot(state.events),
       news: safeAdminSnapshot(state.adminData.news),
       shopOffers: safeAdminSnapshot(state.adminData.shopOffers),
+      assets: safeAdminSnapshot(state.adminData.assets),
       settings: safeAdminSnapshot({ project: state.adminData.project, design: state.adminData.design, texts: state.adminData.texts, platzpass: state.adminData.platzpass }),
     },
   };
@@ -4210,6 +6149,27 @@ function handleAdminPhase9Action(event) {
   const button = event.target.closest("[data-phase9-action]");
   if (!button) return;
   const action = button.dataset.phase9Action;
+  if (action.startsWith("community-")) {
+    handleAdminCommunityAction(action, button);
+    return;
+  }
+  if (action === "data-check-refresh") {
+    renderAdminPhase9Module("datacheck");
+    setAdminStatus("Datenpruefung aktualisiert.");
+    return;
+  }
+  if (action === "repair-season-mixing") {
+    if (!requireAdminPermission("game-data.manage")) return;
+    const result = repairSeasonMixing();
+    saveState();
+    renderAdminPhase9Module("datacheck");
+    setAdminStatus(`Saisonvermischung repariert: ${result.historicalCardsMarked} historische Karten markiert, ${result.currentCardsDisabled} unbestaetigte aktuelle Karten deaktiviert.`);
+    return;
+  }
+  if (action.startsWith("scout-")) {
+    handlePlayerScoutAction(action, button);
+    return;
+  }
   if (action === "add-news") {
     if (!requireAdminPermission("content.manage")) return;
     const title = document.querySelector("#adminNewsTitle")?.value.trim();
@@ -4250,6 +6210,49 @@ function handleAdminPhase9Action(event) {
     state.adminData.project.lastUpdated = new Date().toISOString().slice(0, 10);
     logAdminAction(area, "save", area, before, target);
     setAdminStatus(`${adminSectionTitle(currentAdminSection())} gespeichert.`);
+  } else if (action === "upload-asset") {
+    uploadAdminAsset();
+    return;
+  } else if (action === "apply-asset") {
+    if (!requireAdminPermission("project.manage", "Keine Berechtigung fuer Asset-Zuweisungen.")) return;
+    const assetId = button.dataset.assetId;
+    const target = button.dataset.assetTarget;
+    const asset = state.adminData.assets.find((item) => item.id === assetId);
+    if (!asset) return;
+    const before = safeAdminSnapshot(state.adminData.design);
+    if (target === "logo") {
+      state.adminData.design.logo = asset.id;
+    } else if (target === "background") {
+      state.adminData.design.background = asset.id;
+    } else if (target === "booster-library") {
+      state.adminData.packImages = upsertById(state.adminData.packImages || [], {
+        id: asset.id,
+        name: asset.name,
+        type: asset.mimeType,
+        size: asset.size,
+        dataUrl: asset.dataUrl,
+        createdAt: asset.createdAt,
+        source: "admin-asset-library",
+      }).slice(0, 40);
+      saveBoosterConfig();
+    }
+    asset.usedAs = [...new Set([...(asset.usedAs || []), target])];
+    logAdminAction("assets", "apply", asset.id, before, { target, design: state.adminData.design });
+    setAdminStatus(`${asset.name} wurde angewendet.`);
+  } else if (action === "delete-asset") {
+    if (!requireAdminPermission("project.manage", "Keine Berechtigung zum Entfernen von Assets.")) return;
+    const assetId = button.dataset.assetId;
+    const asset = state.adminData.assets.find((item) => item.id === assetId);
+    if (!asset) return;
+    if (!window.confirm(`${asset.name} wirklich aus der Asset-Bibliothek entfernen?`)) return;
+    createAdminBackup(`Asset entfernt: ${asset.name}`, ["adminData"]);
+    state.adminData.assets = state.adminData.assets.filter((item) => item.id !== assetId);
+    state.adminData.packImages = (state.adminData.packImages || []).filter((item) => item.id !== assetId);
+    ["logo", "background"].forEach((key) => {
+      if (state.adminData.design[key] === assetId) state.adminData.design[key] = "";
+    });
+    logAdminAction("assets", "delete", asset.id, asset, null);
+    setAdminStatus(`${asset.name} wurde entfernt.`);
   } else if (action === "create-export") {
     if (!requireAdminPermission("export.read")) return;
     const payload = createAdminExportPayload();
@@ -4264,9 +6267,41 @@ function handleAdminPhase9Action(event) {
   } else if (action === "save-draftboard") {
     if (!requireAdminPermission("draftboard.manage")) return;
     state.rewardPools = state.rewardPools || {};
-    state.rewardPools.draft = readRewardPoolRowsFromRoot(document.querySelector(".standalone-draft-pool"));
-    logAdminAction("draftboard", "save", "rewardPools.draft", null, state.rewardPools.draft);
-    setAdminStatus("Draft-Board Belohnungen gespeichert.");
+    const before = safeAdminSnapshot(state.draftBoardSettings);
+    const form = document.querySelector("[data-draft-settings-form]");
+    const field = (name) => form?.querySelector(`[data-draft-setting="${name}"]`)?.value;
+    const rewardPool = readRewardPoolRowsFromRoot(document.querySelector(".standalone-draft-pool"));
+    state.rewardPools.draft = rewardPool;
+    state.draftBoardSettings = normalizeDraftBoardSettings({
+      ...state.draftBoardSettings,
+      enabled: field("enabled") === "true",
+      rows: field("rows"),
+      columns: field("columns"),
+      picksWin: field("picksWin"),
+      picksDraw: field("picksDraw"),
+      picksLoss: field("picksLoss"),
+      resetWhenCompleted: field("resetWhenCompleted") === "true",
+      jackpotEnabled: field("jackpotEnabled") === "true",
+      jackpotChance: field("jackpotChance"),
+      maxRewardTier: field("maxRewardTier"),
+      rewardPool,
+    });
+    logAdminAction("draftboard", "save", "draftBoardSettings", before, state.draftBoardSettings);
+    setAdminStatus("Draft-Board Einstellungen und Belohnungen gespeichert.");
+  } else if (action === "save-role-permissions") {
+    if (!requireAdminPermission("roles.manage", "Nur Owner duerfen Rollenrechte speichern.")) return;
+    const before = safeAdminSnapshot(state.adminData.rolePermissions);
+    const next = {};
+    document.querySelectorAll("[data-role-permission]").forEach((card) => {
+      const role = normalizeAdminRole(card.dataset.rolePermission);
+      next[role] = [...card.querySelectorAll("[data-role-permission-key]")]
+        .filter((input) => input.checked)
+        .map((input) => input.dataset.rolePermissionKey);
+    });
+    next.Owner = [...new Set([...(next.Owner || []), "admin.open", "admin.manage", "roles.manage", "users.manage"])];
+    state.adminData.rolePermissions = normalizeRolePermissions(next);
+    logAdminAction("roles", "save-permissions", "rolePermissions", before, state.adminData.rolePermissions);
+    setAdminStatus("Rollenrechte gespeichert.");
   }
   renderAdminDashboard();
   renderAdminPhase9Module(currentAdminSection());
@@ -4274,9 +6309,1081 @@ function handleAdminPhase9Action(event) {
 }
 
 function handleAdminPhase9Change(event) {
-  if (event.target.matches("[data-phase9-field]")) {
+  const actionTarget = event.target.closest("[data-phase9-action]");
+  if (actionTarget?.dataset.phase9Action?.startsWith("community-")) {
+    handleAdminCommunityAction(actionTarget.dataset.phase9Action, actionTarget);
+  } else if (event.target.matches("[data-phase9-field]")) {
     setAdminStatus("Ungespeicherte Admin-Aenderung erkannt.");
+  } else if (event.target.matches("#adminAssetUpload")) {
+    const file = event.target.files?.[0];
+    setAdminStatus(file ? `Asset ausgewaehlt: ${file.name}` : "Kein Asset ausgewaehlt.");
+  } else if (event.target.matches("[data-draft-setting], [data-reward-field]")) {
+    refreshDraftAdminPreview();
+    setAdminStatus("Ungespeicherte Draft-Board-Aenderung erkannt.");
   }
+}
+
+function handleAdminCommunityAction(action, element) {
+  if (!requireAdminPermission("content.manage", "Keine Berechtigung fuer Community-Verwaltung.")) return;
+  const storageKey = element.dataset.communityKey;
+  const id = element.dataset.communityId;
+  let changed = false;
+  if (action === "community-status" && storageKey && id) {
+    changed = updateCommunityRecord(storageKey, id, () => ({ status: element.value || "Neu" }));
+    if (changed) setAdminStatus("Community-Status gespeichert.");
+  } else if (action === "community-delete" && storageKey && id) {
+    if (!window.confirm("Community-Eintrag wirklich loeschen?")) return;
+    changed = deleteCommunityRecord(storageKey, id);
+    if (changed) setAdminStatus("Community-Eintrag geloescht.");
+  } else if (action === "community-toggle-pin" && storageKey && id) {
+    changed = updateCommunityRecord(storageKey, id, (item) => ({ pinned: !item.pinned }));
+    if (changed) setAdminStatus("Pin-Status aktualisiert.");
+  } else if (action === "community-toggle-close" && storageKey && id) {
+    changed = updateCommunityRecord(storageKey, id, (item) => ({ closed: !item.closed }));
+    if (changed) setAdminStatus("Forum-Status aktualisiert.");
+  } else if (action === "community-add-news") {
+    const title = document.querySelector("#communityNewsTitle")?.value.trim();
+    const category = document.querySelector("#communityNewsCategory")?.value.trim() || "Update";
+    const summary = document.querySelector("#communityNewsSummary")?.value.trim();
+    if (!title) {
+      setAdminStatus("Community-News benoetigt einen Titel.");
+      return;
+    }
+    const records = readCommunityRecords(COMMUNITY_STORAGE_KEYS.news);
+    records.unshift({ id: `community-news-${Date.now()}`, title, category, summary, status: "Neu", pinned: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), author: activeUser().name });
+    writeCommunityRecords(COMMUNITY_STORAGE_KEYS.news, records);
+    changed = true;
+    setAdminStatus("Community-News erstellt.");
+  } else if (action === "community-add-roadmap") {
+    const title = document.querySelector("#communityRoadmapTitle")?.value.trim();
+    if (!title) {
+      setAdminStatus("Roadmap-Punkt benoetigt einen Titel.");
+      return;
+    }
+    const records = readCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap);
+    const source = records.length ? records : defaultCommunityRoadmap();
+    source.push({ id: `roadmap-${Date.now()}`, title, done: false, createdAt: new Date().toISOString() });
+    writeCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap, source);
+    changed = true;
+    setAdminStatus("Roadmap-Punkt hinzugefuegt.");
+  } else if (action === "community-toggle-roadmap" && id) {
+    const records = readCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap);
+    const source = records.length ? records : defaultCommunityRoadmap();
+    const next = source.map((item) => item.id === id ? { ...item, done: !item.done, updatedAt: new Date().toISOString() } : item);
+    writeCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap, next);
+    changed = true;
+    setAdminStatus("Roadmap-Punkt aktualisiert.");
+  } else if (action === "community-delete-roadmap" && id) {
+    if (!window.confirm("Roadmap-Punkt wirklich loeschen?")) return;
+    const records = readCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap);
+    const source = records.length ? records : defaultCommunityRoadmap();
+    writeCommunityRecords(COMMUNITY_STORAGE_KEYS.roadmap, source.filter((item) => item.id !== id));
+    changed = true;
+    setAdminStatus("Roadmap-Punkt geloescht.");
+  } else if (action === "community-save-settings") {
+    const settings = {};
+    document.querySelectorAll("[data-community-setting]").forEach((input) => {
+      settings[input.dataset.communitySetting] = input.checked;
+    });
+    localStorage.setItem(COMMUNITY_STORAGE_KEYS.settings, JSON.stringify({ ...COMMUNITY_FEATURE_DEFAULTS, ...settings }));
+    changed = true;
+    setAdminStatus("Community-Einstellungen gespeichert.");
+  }
+  if (!changed) return;
+  showToast("Community-Verwaltung aktualisiert.", "success");
+  renderAdminDashboard();
+  renderAdminPhase9Module(currentAdminSection());
+}
+
+function uploadAdminAsset() {
+  if (!requireAdminPermission("project.manage", "Keine Berechtigung zum Hochladen von Assets.")) return;
+  const input = document.querySelector("#adminAssetUpload");
+  const file = input?.files?.[0];
+  const category = normalizeAssetCategory(document.querySelector("#adminAssetType")?.value);
+  const name = document.querySelector("#adminAssetName")?.value.trim() || file?.name || "Asset";
+  if (!file) {
+    setAdminStatus("Bitte zuerst eine Datei auswaehlen.");
+    return;
+  }
+  const validation = validateAdminAssetFile(file);
+  if (!validation.ok) {
+    setAdminStatus(validation.message);
+    showToast(validation.message, "error");
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    const asset = {
+      id: `asset-${category}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name,
+      fileName: file.name,
+      category,
+      mimeType: file.type || "image/svg+xml",
+      size: file.size,
+      dataUrl: String(reader.result || ""),
+      createdAt: new Date().toISOString(),
+      source: "admin-upload-local",
+      usedAs: [],
+    };
+    state.adminData.assets = [asset, ...normalizeAdminAssets(state.adminData.assets)].slice(0, 80);
+    if (category === "booster") {
+      state.adminData.packImages = upsertById(state.adminData.packImages || [], {
+        id: asset.id,
+        name: asset.name,
+        type: asset.mimeType,
+        size: asset.size,
+        dataUrl: asset.dataUrl,
+        createdAt: asset.createdAt,
+        source: "admin-asset-library",
+      }).slice(0, 40);
+    }
+    logAdminAction("assets", "upload", asset.id, null, { name: asset.name, category: asset.category, size: asset.size });
+    setAdminStatus(`${asset.name} wurde in der Asset-Bibliothek gespeichert.`);
+    showToast("Asset gespeichert.", "success");
+    saveState();
+    renderAdminDashboard();
+    renderAdminPhase9Module("design");
+  });
+  reader.addEventListener("error", () => {
+    setAdminStatus("Asset konnte nicht gelesen werden.");
+    showToast("Asset konnte nicht gelesen werden.", "error");
+  });
+  reader.readAsDataURL(file);
+}
+
+function validateAdminAssetFile(file) {
+  const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+  if (!allowed.includes(file.type)) return { ok: false, message: "Nur PNG, JPG, WebP oder SVG sind erlaubt." };
+  if (file.size > 3 * 1024 * 1024) return { ok: false, message: "Assets duerfen maximal 3 MB gross sein." };
+  return { ok: true, message: "Asset ist gueltig." };
+}
+
+function upsertById(items, item) {
+  const list = Array.isArray(items) ? items.filter(Boolean) : [];
+  return [item, ...list.filter((existing) => existing.id !== item.id)];
+}
+
+function refreshDraftAdminPreview() {
+  const preview = document.querySelector(".draft-admin-preview");
+  const form = document.querySelector("[data-draft-settings-form]");
+  if (!preview || !form) return;
+  const rows = clamp(Math.round(Number(form.querySelector('[data-draft-setting="rows"]')?.value) || 5), 2, 8);
+  const columns = clamp(Math.round(Number(form.querySelector('[data-draft-setting="columns"]')?.value) || 5), 2, 8);
+  const jackpotEnabled = form.querySelector('[data-draft-setting="jackpotEnabled"]')?.value !== "false";
+  const totalSlots = rows * columns;
+  preview.innerHTML = `
+    <strong>Vorschau: ${rows} x ${columns} (${totalSlots} Felder)</strong>
+    <div class="draft-board-grid" style="--draft-columns:${columns}">
+      ${Array.from({ length: totalSlots }, (_, index) => `<button type="button" class="draft-slot" disabled><strong>${index === 0 && jackpotEnabled ? "Stufenkarte" : "Belohnung"}</strong><span>Feld ${index + 1}</span></button>`).join("")}
+    </div>
+  `;
+}
+
+function renderAdminDataCheckModule() {
+  const report = validateSeasonData(SEASON_2026_27_STATUS.season);
+  const issueRows = report.issues.slice(0, 80).map((issue) => [
+    issue.severity,
+    issue.type,
+    issue.message,
+    issue.refs.join(", ") || "-",
+  ]);
+  const duplicateRows = report.duplicates.slice(0, 60).map((duplicate) => [
+    duplicate.key,
+    duplicate.matches.join(" | "),
+    duplicate.reason,
+    duplicate.suggestedCanonicalId || "-",
+    "Manuelle Freigabe erforderlich",
+  ]);
+  const leagueRows = report.leagues.map((league) => [
+    league.name,
+    league.clubCount,
+    league.activePlayers,
+    league.malePlayers,
+    league.femalePlayers,
+    league.status,
+  ]);
+  const seasonMixingRows = report.issues
+    .filter((issue) => [
+      "historical-card-active-current-squad",
+      "current-card-missing-verification",
+      "current-card-marked-historical",
+      "active-squad-unverified",
+      "pack-pool-invalid-current-card",
+    ].includes(issue.type))
+    .map((issue) => [issue.severity, issue.type, issue.message, issue.refs.join(", ") || "-", "Saisonvermischung reparieren"]);
+  return `
+    <h3>Datenpruefung Saison ${escapeHtml(report.season)}</h3>
+    <p>Phase A ist aktiv: Dubletten, alte aktive Kaderzuordnungen und kaputte Referenzen werden sichtbar gemacht, bevor neue Kader importiert werden.</p>
+    <div class="phase9-grid">
+      <article><b>${report.summary.playerRows}</b><span>Spielerzeilen</span></article>
+      <article><b>${report.summary.cardCount}</b><span>Karten</span></article>
+      <article><b>${report.summary.duplicateGroups}</b><span>Duplikatgruppen</span></article>
+      <article><b>${report.summary.errorCount}</b><span>Fehler</span></article>
+      <article><b>${report.summary.warningCount}</b><span>Warnungen</span></article>
+      <article><b>${escapeHtml(report.generatedAt)}</b><span>Datenstand</span></article>
+    </div>
+    <div class="admin-actions">
+      <button type="button" data-phase9-action="data-check-refresh">Pruefung aktualisieren</button>
+      <button type="button" data-phase9-action="repair-season-mixing">Saisonvermischung reparieren</button>
+    </div>
+    <h4>Ligenstatus</h4>
+    ${renderPhase9Table(["Liga", "Vereine", "Aktive Spieler", "Maenner", "Frauen", "Status"], leagueRows)}
+    <h4>Datenpruefung -> Saisonvermischung</h4>
+    ${seasonMixingRows.length ? renderPhase9Table(["Schwere", "Typ", "Meldung", "Referenzen", "Reparatur"], seasonMixingRows) : "<p>Keine Saisonvermischung in den geladenen Daten gefunden.</p>"}
+    <h4>Spieler-Duplikate</h4>
+    ${duplicateRows.length ? renderPhase9Table(["Schluessel", "Treffer", "Grund", "Kanonisch", "Aktion"], duplicateRows) : "<p>Keine eindeutigen Dubletten in den geladenen aktuellen Daten.</p>"}
+    <h4>Validierungsfehler</h4>
+    ${issueRows.length ? renderPhase9Table(["Schwere", "Typ", "Meldung", "Referenzen"], issueRows) : "<p>Keine Fehler in der aktuellen Pruefung.</p>"}
+  `;
+}
+
+function renderAdminPlayerScoutModule() {
+  const scout = state.adminData.playerScout = normalizePlayerScoutState(state.adminData.playerScout);
+  const filters = scout.filters;
+  const providers = state.adminData.playerSearchProviders = normalizePlayerSearchProviders(state.adminData.playerSearchProviders);
+  const selected = scout.preview || scout.results.find((item) => item.id === scout.selectedId) || null;
+  const duplicate = selected ? checkPlayerImportDuplicate(selected) : null;
+  const providerRows = Object.entries(providers).map(([id, provider]) => [
+    provider.label,
+    provider.enabled ? "aktiv" : "inaktiv",
+    provider.requiresApiKey ? "Backend-Proxy erforderlich" : "kein geheimer Key",
+    provider.baseUrl || "-",
+    provider.dailyLimit || "-",
+    provider.monthlyLimit || "-",
+    provider.lastSuccessfulConnection || "-",
+    provider.lastError || "-",
+    provider.dataDate || "-",
+  ]);
+  const resultRows = scout.results.map((result) => {
+    const dupe = checkPlayerImportDuplicate(result);
+    return [
+      result.image ? `<img class="scout-thumb" src="${escapeAttr(result.image)}" alt="${escapeAttr(result.displayName)}" />` : "Silhouette",
+      escapeHtml(result.displayName),
+      escapeHtml(result.dateOfBirth || "-"),
+      escapeHtml(result.nationality || "-"),
+      escapeHtml(result.position || "-"),
+      escapeHtml(result.clubName || "-"),
+      escapeHtml(result.leagueId || "-"),
+      escapeHtml(result.sourceName || "-"),
+      escapeHtml(dupe.label),
+      `<button type="button" data-phase9-action="scout-preview" data-scout-id="${escapeAttr(result.id)}">Vorschau</button>`,
+    ];
+  });
+  return `
+    <h3>Spieler-Scout / Online-Import</h3>
+    <p>Suche lokal, pruefe externe JSON-Quellen oder importiere CSV/JSON mit Vorschau. Geheime API-Keys werden in dieser statischen Browser-App nicht gespeichert.</p>
+    <section class="phase9-panel scout-panel">
+      <h4>Spieler suchen</h4>
+      <div class="phase9-form" data-player-scout-form>
+        <label>Spielername<input id="scoutName" value="${escapeAttr(filters.name)}" placeholder="Romano Schmid" /></label>
+        <label>Verein<select id="scoutClub">${scoutClubOptions(filters.club)}</select></label>
+        <label>Liga<select id="scoutLeague">${scoutLeagueOptions(filters.league)}</select></label>
+        <label>Land/Nationalitaet<input id="scoutNationality" value="${escapeAttr(filters.nationality)}" placeholder="Oesterreich" /></label>
+        <label>Position<input id="scoutPosition" value="${escapeAttr(filters.position)}" placeholder="ZM" /></label>
+        <label>Maenner/Frauen<select id="scoutGender">${optionHtml("all", "Alle", filters.gender)}${optionHtml("male", "Maenner", filters.gender)}${optionHtml("female", "Frauen", filters.gender)}</select></label>
+        <label>Saison<input id="scoutSeason" value="${escapeAttr(filters.season)}" /></label>
+        <label>Datenquelle<select id="scoutSource">${Object.entries(providers).map(([id, provider]) => optionHtml(id, provider.label, filters.source)).join("")}</select></label>
+        <label class="wide">Manuelle Quellen-URL<input id="scoutSourceUrl" value="${escapeAttr(filters.sourceUrl)}" placeholder="https://.../player.json" /></label>
+      </div>
+      <div class="admin-actions">
+        <button type="button" data-phase9-action="scout-search">Spieler suchen</button>
+        <button type="button" data-phase9-action="scout-reset">Filter zuruecksetzen</button>
+        <button type="button" data-phase9-action="scout-local">Lokale Datenbank pruefen</button>
+        <button type="button" data-phase9-action="scout-online">Online suchen</button>
+      </div>
+      <p>${escapeHtml(scout.lastMessage || "Bereit fuer Suche.")}</p>
+    </section>
+    <section class="phase9-panel scout-panel">
+      <h4>Datenquellen</h4>
+      <p>API-Schluessel duerfen nicht im Frontend gespeichert werden. Fuer geheime Anbieter ist ein sicherer Backend-Proxy vorgesehen.</p>
+      ${renderPhase9Table(["Anbieter", "Status", "Key", "Basis-URL", "Tag", "Monat", "Letzte Verbindung", "Fehler", "Datenstand"], providerRows)}
+      <div class="phase9-form" data-provider-settings>
+        <label>Anbieter<select id="scoutProviderId">${Object.entries(providers).map(([id, provider]) => optionHtml(id, provider.label, filters.source || "local")).join("")}</select></label>
+        <label>API-Basis-URL<input id="scoutProviderBaseUrl" placeholder="https://api.example.test/players" /></label>
+        <label>Taegliches Limit<input id="scoutProviderDaily" type="number" min="0" value="0" /></label>
+        <label>Monatliches Limit<input id="scoutProviderMonthly" type="number" min="0" value="0" /></label>
+      </div>
+      <div class="admin-actions">
+        <button type="button" data-phase9-action="scout-save-provider">Provider speichern</button>
+        <button type="button" data-phase9-action="scout-test-provider">Testverbindung</button>
+      </div>
+    </section>
+    <section class="phase9-panel scout-panel">
+      <h4>JSON-/CSV-Import</h4>
+      <textarea id="scoutCsvJsonInput" rows="5" placeholder="JSON Array oder CSV mit name, birth_date, nationality, position, club, league">${escapeHtml(scout.csvJsonInput)}</textarea>
+      <div class="admin-actions">
+        <button type="button" data-phase9-action="scout-parse-import">Datei/Text pruefen</button>
+        <button type="button" data-phase9-action="scout-batch-import">Ausgewaehlte uebernehmen</button>
+      </div>
+    </section>
+    <section class="phase9-panel scout-results">
+      <h4>Suchergebnisse</h4>
+      ${renderPhase9TableRich(["Bild", "Name", "Geburt", "Nation", "Pos", "Verein", "Liga", "Quelle", "Duplikat", "Aktion"], resultRows)}
+    </section>
+    ${selected ? renderScoutPreview(selected, duplicate) : ""}
+    <section class="phase9-panel">
+      <h4>Importverlauf</h4>
+      ${renderPhase9Table(["Datum", "Admin", "Spieler", "Aktion", "Quelle", "Ergebnis", "Warnungen"], state.adminData.playerImportLogs.map((log) => [log.importedAt, log.performedByUserId, log.playerId, log.action, log.sourceName, log.result, log.warnings.join(", ")]))}
+    </section>
+  `;
+}
+
+function renderScoutPreview(result, duplicate) {
+  return `
+    <section class="phase9-panel scout-preview">
+      <h4>Importvorschau</h4>
+      <div class="scout-preview-grid">
+        <article>
+          <h5>Lokaler Abgleich</h5>
+          <strong>${escapeHtml(duplicate.label)}</strong>
+          <p>${escapeHtml(duplicate.message)}</p>
+          ${duplicate.matches.length ? renderPhase9Table(["Lokale ID", "Name", "Verein", "Position", "Karten"], duplicate.matches.map((match) => [sourceCardId(match), match.name, match.club, match.pos, matchingOwnedCards(match).length])) : "<p>Keine lokale Uebereinstimmung gefunden.</p>"}
+        </article>
+        <article>
+          <h5>Online-/Importdaten</h5>
+          <div class="phase9-form" data-scout-preview-form data-scout-id="${escapeAttr(result.id)}">
+            <label>playerId<input id="previewPlayerId" value="${escapeAttr(result.playerId || suggestedPlayerId(result))}" /></label>
+            <label>External ID<input id="previewExternalId" value="${escapeAttr(result.externalId || "")}" /></label>
+            <label>Vorname<input id="previewFirstName" value="${escapeAttr(result.firstName || "")}" /></label>
+            <label>Nachname<input id="previewLastName" value="${escapeAttr(result.lastName || "")}" /></label>
+            <label>Anzeigename<input id="previewDisplayName" value="${escapeAttr(result.displayName || "")}" /></label>
+            <label>Geburtsdatum<input id="previewDateOfBirth" value="${escapeAttr(result.dateOfBirth || "")}" /></label>
+            <label>Nationalitaet<input id="previewNationality" value="${escapeAttr(result.nationality || "")}" /></label>
+            <label>Sek. Nationalitaet<input id="previewSecondaryNationality" value="${escapeAttr(result.secondaryNationality || "")}" /></label>
+            <label>Geschlecht<select id="previewGender">${optionHtml("male", "Maenner", result.gender)}${optionHtml("female", "Frauen", result.gender)}</select></label>
+            <label>Realposition<input id="previewRealPosition" value="${escapeAttr(result.realPosition || result.position || "")}" /></label>
+            <label>Spielposition<input id="previewGamePosition" value="${escapeAttr(result.gamePosition || result.position || "")}" /></label>
+            <label>Rueckennummer<input id="previewShirtNumber" type="number" min="0" value="${escapeAttr(result.shirtNumber ?? "")}" /></label>
+            <label>Liga<select id="previewLeague">${scoutLeagueOptions(result.leagueId || "1. Bundesliga")}</select></label>
+            <label>Verein<select id="previewClub">${scoutClubOptions(result.clubName || "Alle Vereine")}</select></label>
+            <label>Teamtyp<select id="previewTeamType">${optionHtml("men-first", "Maenner erste Mannschaft", result.teamType)}${optionHtml("women-first", "Frauen erste Mannschaft", result.teamType)}${optionHtml("men-second", "Maenner zweite Mannschaft", result.teamType)}${optionHtml("youth", "U-Mannschaft", result.teamType)}</select></label>
+            <label>Kaderstatus<select id="previewSquadStatus">${optionHtml("active", "active", result.squadStatus)}${optionHtml("loaned-out", "loaned-out", result.squadStatus)}${optionHtml("departed", "departed", result.squadStatus)}</select></label>
+            <label>Fuer Saison bestaetigt<select id="previewVerifiedForSeason">${optionHtml("true", "Ja", String(result.verifiedForSeason !== false))}${optionHtml("false", "Nein", String(result.verifiedForSeason !== false))}</select></label>
+            <label>Vertrag bis<input id="previewContractUntil" value="${escapeAttr(result.contractUntil || "")}" /></label>
+            <label>Leihstatus<select id="previewLoanStatus">${optionHtml("none", "none", result.loanStatus)}${optionHtml("loan-in", "loan-in", result.loanStatus)}${optionHtml("loan-out", "loan-out", result.loanStatus)}</select></label>
+            <label>Saison<input id="previewSeason" value="${escapeAttr(result.season || SEASON_2026_27_STATUS.season)}" /></label>
+            <label>Quelle<input id="previewSourceName" value="${escapeAttr(result.sourceName || "")}" /></label>
+            <label class="wide">Quellen-URL<input id="previewSourceUrl" value="${escapeAttr(result.sourceUrl || "")}" /></label>
+            <label class="wide">Bild-URL oder lokaler Pfad<input id="previewImage" value="${escapeAttr(result.image || PLAYER_IMAGE_PLACEHOLDER)}" /></label>
+            <label>Bildquelle<input id="previewImageSource" value="${escapeAttr(result.imageSource || "silhouette")}" /></label>
+            <label>Bildlizenz<input id="previewImageLicense" value="${escapeAttr(result.imageLicense || "fallback")}" /></label>
+            <label>Karte erstellen<select id="previewCreateCard">${optionHtml("auto", "Automatische Raritaet", "auto")}${optionHtml("none", "Keine Karte", "auto")}${teamClasses.map((label, index) => optionHtml(String(index), label, "auto")).join("")}</select></label>
+          </div>
+          <div class="scout-image-candidates">
+            ${renderScoutImageCandidate(PLAYER_IMAGE_PLACEHOLDER, "Standardsilhouette", "fallback", result.image || PLAYER_IMAGE_PLACEHOLDER)}
+            ${result.image && result.image !== PLAYER_IMAGE_PLACEHOLDER ? renderScoutImageCandidate(result.image, result.imageSource || "Importquelle", result.imageLicense || "zu pruefen", result.image) : ""}
+          </div>
+          <div class="admin-actions">
+            <button type="button" data-phase9-action="scout-import-player">Spieler anlegen</button>
+            <button type="button" data-phase9-action="scout-update-player">Vorhandenen Spieler aktualisieren</button>
+          </div>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
+function renderScoutImageCandidate(url, source, license, selected) {
+  return `<button type="button" data-phase9-action="scout-select-image" data-image-url="${escapeAttr(url)}" data-image-source="${escapeAttr(source)}" data-image-license="${escapeAttr(license)}" class="${url === selected ? "active" : ""}"><img src="${escapeAttr(url)}" alt="${escapeAttr(source)}" /><span>${escapeHtml(source)}</span><small>${escapeHtml(license)}</small></button>`;
+}
+
+function optionHtml(value, label, selected) {
+  return `<option value="${escapeAttr(value)}"${String(value) === String(selected) ? " selected" : ""}>${escapeHtml(label)}</option>`;
+}
+
+function scoutClubOptions(selected = "Alle Vereine") {
+  return [{ name: "Alle Vereine" }, ...CLUBS]
+    .map((club) => optionHtml(club.name, club.name, selected))
+    .join("");
+}
+
+function scoutLeagueOptions(selected = "Alle Ligen") {
+  return DB_LEAGUES.map((league) => optionHtml(league, league, selected)).join("");
+}
+
+function handlePlayerScoutAction(action, button) {
+  if (!requireAdminPermission("managePlayerImport", "Keine Berechtigung fuer den Spieler-Scout.")) return;
+  if (action === "scout-search" || action === "scout-local") {
+    runLocalPlayerScoutSearch();
+  } else if (action === "scout-reset") {
+    state.adminData.playerScout = defaultPlayerScoutState();
+    setAdminStatus("Spieler-Scout Filter zurueckgesetzt.");
+  } else if (action === "scout-online") {
+    runOnlinePlayerScoutSearch();
+    return;
+  } else if (action === "scout-preview") {
+    selectScoutPreview(button.dataset.scoutId);
+  } else if (action === "scout-parse-import") {
+    parseScoutImportText();
+  } else if (action === "scout-import-player") {
+    importScoutPreviewAsPlayer({ updateExisting: false });
+  } else if (action === "scout-update-player") {
+    importScoutPreviewAsPlayer({ updateExisting: true });
+  } else if (action === "scout-select-image") {
+    selectScoutImage(button.dataset.imageUrl, button.dataset.imageSource, button.dataset.imageLicense);
+  } else if (action === "scout-save-provider") {
+    saveScoutProviderSettings();
+  } else if (action === "scout-test-provider") {
+    testScoutProviderConnection();
+    return;
+  } else if (action === "scout-batch-import") {
+    importScoutResultsBatch();
+  }
+  saveState();
+  renderAdminDashboard();
+  renderAdminPhase9Module("playerscout");
+}
+
+function readScoutFiltersFromDom() {
+  const scout = state.adminData.playerScout = normalizePlayerScoutState(state.adminData.playerScout);
+  scout.filters = {
+    name: document.querySelector("#scoutName")?.value.trim() || "",
+    club: document.querySelector("#scoutClub")?.value || "Alle Vereine",
+    league: document.querySelector("#scoutLeague")?.value || "Alle Ligen",
+    nationality: document.querySelector("#scoutNationality")?.value.trim() || "",
+    position: document.querySelector("#scoutPosition")?.value.trim() || "",
+    gender: document.querySelector("#scoutGender")?.value || "all",
+    season: document.querySelector("#scoutSeason")?.value.trim() || SEASON_2026_27_STATUS.season,
+    source: document.querySelector("#scoutSource")?.value || "local",
+    sourceUrl: document.querySelector("#scoutSourceUrl")?.value.trim() || "",
+  };
+  return scout.filters;
+}
+
+function runLocalPlayerScoutSearch() {
+  const filters = readScoutFiltersFromDom();
+  const results = GAME_CARDS
+    .filter((card) => scoutCardMatchesFilters(card, filters))
+    .map((card) => scoutResultFromCard(card, "local"))
+    .slice(0, 80);
+  state.adminData.playerScout.results = results;
+  state.adminData.playerScout.preview = results[0] || null;
+  state.adminData.playerScout.selectedId = results[0]?.id || "";
+  state.adminData.playerScout.lastMessage = results.length ? `${results.length} lokale Treffer gefunden.` : "Keine lokalen Treffer gefunden.";
+  setAdminStatus(state.adminData.playerScout.lastMessage);
+}
+
+function scoutCardMatchesFilters(card, filters) {
+  const haystack = normalizePlayerIdentity(`${card.name} ${card.club} ${card.nationality || card.nation || ""} ${card.pos}`);
+  if (filters.name && !haystack.includes(normalizePlayerIdentity(filters.name))) return false;
+  if (filters.club !== "Alle Vereine" && card.club !== filters.club) return false;
+  if (filters.league !== "Alle Ligen" && card.league !== filters.league) return false;
+  if (filters.nationality && !normalizePlayerIdentity(card.nationality || card.nation || "").includes(normalizePlayerIdentity(filters.nationality))) return false;
+  if (filters.position && !String(card.pos || "").toUpperCase().includes(String(filters.position || "").toUpperCase())) return false;
+  if (filters.gender === "female" && !String(card.league || "").includes("Frauen")) return false;
+  if (filters.gender === "male" && String(card.league || "").includes("Frauen")) return false;
+  return true;
+}
+
+function scoutResultFromCard(card, sourceName = "local") {
+  const [firstName, ...rest] = String(card.name || "").split(" ");
+  return normalizeScoutResult({
+    id: `scout-${sourceName}-${sourceCardId(card)}`,
+    externalId: sourceCardId(card),
+    playerId: sourceCardId(card),
+    firstName,
+    lastName: rest.join(" "),
+    displayName: card.name,
+    dateOfBirth: card.dateOfBirth || "",
+    nationality: card.nationality || card.nation || "Deutschland",
+    secondaryNationality: card.secondaryNationality || "",
+    gender: String(card.league || "").includes("Frauen") ? "female" : "male",
+    realPosition: card.pos,
+    gamePosition: card.pos,
+    position: card.pos,
+    secondaryPositions: card.secondaryPositions || [],
+    shirtNumber: card.shirtNumber ?? null,
+    clubName: card.club,
+    leagueId: card.league,
+    teamType: String(card.league || "").includes("Frauen") ? "women-first" : "men-first",
+    squadStatus: card.squadStatus || "active",
+    loanStatus: card.loanStatus || "none",
+    season: card.season || SEASON_2026_27_STATUS.season,
+    image: resolvePlayerImage(card).src || PLAYER_IMAGE_PLACEHOLDER,
+    imageSource: card.imageSource || "local",
+    imageLicense: card.imageLicense || "",
+    sourceName,
+    sourceUrl: card.sourceUrl || "",
+    lastVerifiedAt: card.lastVerifiedAt || "",
+  });
+}
+
+function normalizeScoutResult(result = {}) {
+  const displayName = String(result.displayName || result.name || [result.firstName, result.lastName].filter(Boolean).join(" ") || "Unbekannter Spieler").trim();
+  const [firstName, ...rest] = displayName.split(" ");
+  return {
+    id: String(result.id || `scout-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    externalId: String(result.externalId || result.external_id || ""),
+    playerId: String(result.playerId || result.player_id || ""),
+    externalIds: result.externalIds && typeof result.externalIds === "object" ? result.externalIds : {},
+    firstName: String(result.firstName || result.first_name || firstName || ""),
+    lastName: String(result.lastName || result.last_name || rest.join(" ") || ""),
+    displayName,
+    dateOfBirth: String(result.dateOfBirth || result.birth_date || result.date_of_birth || ""),
+    nationality: String(result.nationality || result.country || ""),
+    secondaryNationality: String(result.secondaryNationality || result.secondary_nationality || ""),
+    gender: ["male", "female"].includes(result.gender) ? result.gender : "male",
+    realPosition: String(result.realPosition || result.real_position || result.position || ""),
+    gamePosition: String(result.gamePosition || result.game_position || result.position || ""),
+    position: String(result.position || result.gamePosition || result.game_position || result.realPosition || result.real_position || ""),
+    secondaryPositions: Array.isArray(result.secondaryPositions) ? result.secondaryPositions.map(String) : [],
+    shirtNumber: result.shirtNumber ?? result.shirt_number ?? null,
+    clubName: String(result.clubName || result.club || result.currentClub || ""),
+    leagueId: String(result.leagueId || result.league || ""),
+    teamType: String(result.teamType || (String(result.league || "").includes("Frauen") ? "women-first" : "men-first")),
+    squadStatus: String(result.squadStatus || result.squad_status || "active"),
+    verifiedForSeason: result.verifiedForSeason === false || result.verifiedForSeason === "false" ? false : true,
+    contractUntil: String(result.contractUntil || result.contract_until || ""),
+    loanStatus: String(result.loanStatus || result.loan_status || "none"),
+    season: String(result.season || SEASON_2026_27_STATUS.season),
+    image: String(result.image || result.photo || PLAYER_IMAGE_PLACEHOLDER),
+    imageSource: String(result.imageSource || result.image_source || "silhouette"),
+    imageLicense: String(result.imageLicense || result.image_license || "fallback"),
+    imageVerifiedAt: String(result.imageVerifiedAt || result.image_verified_at || ""),
+    sourceName: String(result.sourceName || result.source || "manual"),
+    sourceUrl: String(result.sourceUrl || result.source_url || ""),
+    lastVerifiedAt: String(result.lastVerifiedAt || result.last_verified_at || new Date().toISOString().slice(0, 10)),
+    verificationStatus: String(result.verificationStatus || result.verification_status || "needs-review"),
+    imported: Boolean(result.imported),
+  };
+}
+
+function normalizePlayerIdentity(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function renderPhase9TableRich(headers, rows) {
+  return `<div class="phase9-table-wrap"><table class="phase9-table"><thead><tr>${headers.map((header) => `<th>${escapeHtml(String(header))}</th>`).join("")}</tr></thead><tbody>${rows.length ? rows.map((row) => `<tr>${row.map((cell) => `<td>${String(cell ?? "")}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${headers.length}">Keine Daten vorhanden.</td></tr>`}</tbody></table></div>`;
+}
+
+function runOnlinePlayerScoutSearch() {
+  const filters = readScoutFiltersFromDom();
+  const url = filters.sourceUrl || state.adminData.playerSearchProviders?.[filters.source]?.baseUrl || "";
+  if (!isSafeHttpUrl(url)) {
+    state.adminData.playerScout.lastMessage = "Keine gueltige HTTPS-Quellen-URL angegeben. Lokale Suche bleibt verfuegbar.";
+    setAdminStatus(state.adminData.playerScout.lastMessage);
+    saveState();
+    renderAdminPhase9Module("playerscout");
+    return;
+  }
+  state.adminData.playerScout.lastMessage = "Online-Suche laeuft...";
+  setAdminStatus("Online-Suche laeuft...");
+  fetch(url, { headers: { Accept: "application/json,text/csv,text/plain" } })
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.text();
+    })
+    .then((text) => {
+      const parsed = parseScoutRecords(text, url);
+      const results = parsed.filter((item) => scoutResultMatchesFilters(item, filters)).slice(0, 100);
+      state.adminData.playerScout.results = results;
+      state.adminData.playerScout.preview = results[0] || null;
+      state.adminData.playerScout.selectedId = results[0]?.id || "";
+      state.adminData.playerScout.lastMessage = `${results.length} Online-/Importtreffer geladen.`;
+      const provider = state.adminData.playerSearchProviders?.[filters.source];
+      if (provider) {
+        provider.lastSuccessfulConnection = new Date().toISOString();
+        provider.lastError = "";
+        provider.dataDate = new Date().toISOString().slice(0, 10);
+      }
+      saveState();
+      renderAdminPhase9Module("playerscout");
+      setAdminStatus(state.adminData.playerScout.lastMessage);
+    })
+    .catch((error) => {
+      const provider = state.adminData.playerSearchProviders?.[filters.source];
+      if (provider) provider.lastError = error.message;
+      state.adminData.playerScout.lastMessage = `Onlinequelle nicht erreichbar: ${error.message}`;
+      saveState();
+      renderAdminPhase9Module("playerscout");
+      setAdminStatus(state.adminData.playerScout.lastMessage);
+      showToast("Onlinequelle nicht erreichbar.", "error");
+    });
+}
+
+function isSafeHttpUrl(url) {
+  try {
+    const parsed = new URL(String(url || ""));
+    return parsed.protocol === "https:" || parsed.hostname === "127.0.0.1" || parsed.hostname === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+function parseScoutImportText() {
+  const scout = state.adminData.playerScout = normalizePlayerScoutState(state.adminData.playerScout);
+  scout.csvJsonInput = document.querySelector("#scoutCsvJsonInput")?.value || "";
+  const records = parseScoutRecords(scout.csvJsonInput, "manual-import");
+  scout.results = records.slice(0, 100);
+  scout.preview = scout.results[0] || null;
+  scout.selectedId = scout.preview?.id || "";
+  scout.lastMessage = records.length ? `${records.length} Datensaetze aus JSON/CSV vorbereitet.` : "Keine gueltigen Datensaetze gefunden.";
+  setAdminStatus(scout.lastMessage);
+}
+
+function parseScoutRecords(text, sourceUrl = "") {
+  const value = String(text || "").trim();
+  if (!value) return [];
+  try {
+    const json = JSON.parse(value);
+    const rows = Array.isArray(json) ? json : Array.isArray(json.players) ? json.players : Array.isArray(json.data) ? json.data : [json];
+    return rows.map((row) => normalizeScoutResult({ ...row, sourceName: "json", sourceUrl })).filter((row) => row.displayName);
+  } catch {
+    return parseScoutCsv(value, sourceUrl);
+  }
+}
+
+function parseScoutCsv(text, sourceUrl = "") {
+  const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]).map((header) => normalizePlayerIdentity(header));
+  return lines.slice(1).map((line, index) => {
+    const cells = splitCsvLine(line);
+    const row = {};
+    headers.forEach((header, cellIndex) => {
+      row[header] = cells[cellIndex] || "";
+    });
+    return normalizeScoutResult({
+      id: `csv-${Date.now()}-${index}`,
+      displayName: row.name || row.displayname || row.player || row.spieler,
+      firstName: row.firstname || row.vorname,
+      lastName: row.lastname || row.nachname,
+      dateOfBirth: row.birthdate || row.birth_date || row.geburtsdatum,
+      nationality: row.nationality || row.nation || row.land,
+      position: row.position || row.pos,
+      clubName: row.club || row.verein,
+      leagueId: row.league || row.liga,
+      shirtNumber: row.shirtnumber || row.number || row.nummer,
+      season: row.season || row.saison || SEASON_2026_27_STATUS.season,
+      gender: row.gender || row.geschlecht || "male",
+      sourceName: "csv",
+      sourceUrl,
+      lastVerifiedAt: new Date().toISOString().slice(0, 10),
+    });
+  }).filter((row) => row.displayName);
+}
+
+function splitCsvLine(line) {
+  const cells = [];
+  let current = "";
+  let quoted = false;
+  for (const char of String(line || "")) {
+    if (char === "\"") quoted = !quoted;
+    else if (char === "," && !quoted) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function scoutResultMatchesFilters(result, filters) {
+  if (filters.name && !normalizePlayerIdentity(result.displayName).includes(normalizePlayerIdentity(filters.name))) return false;
+  if (filters.club !== "Alle Vereine" && result.clubName !== filters.club) return false;
+  if (filters.league !== "Alle Ligen" && result.leagueId !== filters.league) return false;
+  if (filters.nationality && !normalizePlayerIdentity(result.nationality).includes(normalizePlayerIdentity(filters.nationality))) return false;
+  if (filters.position && !String(result.position || "").toUpperCase().includes(String(filters.position || "").toUpperCase())) return false;
+  if (filters.gender !== "all" && result.gender !== filters.gender) return false;
+  return true;
+}
+
+function selectScoutPreview(id) {
+  const scout = state.adminData.playerScout;
+  const result = scout.results.find((item) => item.id === id);
+  if (!result) return;
+  scout.selectedId = id;
+  scout.preview = result;
+  scout.lastMessage = `${result.displayName} in Vorschau geoeffnet.`;
+  setAdminStatus(scout.lastMessage);
+}
+
+function checkPlayerImportDuplicate(result) {
+  const nameKey = normalizePlayerIdentity(result.displayName);
+  const birthKey = String(result.dateOfBirth || "");
+  const nationKey = normalizePlayerIdentity(result.nationality);
+  const matches = GAME_CARDS.filter((card) => {
+    const sameName = normalizePlayerIdentity(card.name) === nameKey;
+    const sameBirth = birthKey && String(card.dateOfBirth || "") === birthKey;
+    const sameNation = nationKey && normalizePlayerIdentity(card.nationality || card.nation || "") === nationKey;
+    const sameClub = result.clubName && card.club === result.clubName;
+    const samePosition = result.position && String(card.pos || "").toUpperCase() === String(result.position).toUpperCase();
+    const sameExternal = result.externalId && (card.externalId === result.externalId || card.externalIds?.provider === result.externalId);
+    return sameExternal || (sameName && (sameBirth || sameNation || sameClub || samePosition));
+  });
+  if (matches.some((card) => normalizePlayerIdentity(card.name) === nameKey && (!birthKey || String(card.dateOfBirth || "") === birthKey))) {
+    return { level: "exact", label: "Exakter bestehender Spieler", message: "Name und vorhandene Identitaetsdaten passen zu einem lokalen Spieler.", matches };
+  }
+  if (matches.length) return { level: "possible", label: "Moegliche Uebereinstimmung", message: "Ein oder mehrere lokale Spieler passen teilweise. Bitte vor Import pruefen.", matches };
+  return { level: "none", label: "Keine Uebereinstimmung gefunden", message: "Kein lokaler Treffer anhand Name, Geburtsdatum, Nation, Verein oder Position.", matches: [] };
+}
+
+function matchingOwnedCards(catalogCard) {
+  const catalogId = sourceCardId(catalogCard);
+  return state.deck.filter((card) => sourceCardId(card) === catalogId || card.playerId === catalogId || card.name === catalogCard.name);
+}
+
+function readScoutPreviewForm() {
+  const value = (selector) => document.querySelector(selector)?.value?.trim() || "";
+  const clubName = value("#previewClub");
+  const club = getClub(clubName === "Alle Vereine" ? "" : clubName);
+  const displayName = value("#previewDisplayName");
+  return normalizeScoutResult({
+    id: state.adminData.playerScout?.selectedId || `manual-${Date.now()}`,
+    playerId: value("#previewPlayerId") || suggestedPlayerId({ displayName }),
+    externalId: value("#previewExternalId"),
+    firstName: value("#previewFirstName"),
+    lastName: value("#previewLastName"),
+    displayName,
+    dateOfBirth: value("#previewDateOfBirth"),
+    nationality: value("#previewNationality"),
+    secondaryNationality: value("#previewSecondaryNationality"),
+    gender: value("#previewGender") || "male",
+    realPosition: value("#previewRealPosition"),
+    gamePosition: value("#previewGamePosition"),
+    position: value("#previewGamePosition") || value("#previewRealPosition"),
+    shirtNumber: value("#previewShirtNumber") ? Number(value("#previewShirtNumber")) : null,
+    clubName: club.name,
+    leagueId: value("#previewLeague") || club.league,
+    teamType: value("#previewTeamType"),
+    squadStatus: value("#previewSquadStatus") || "active",
+    verifiedForSeason: value("#previewVerifiedForSeason") !== "false",
+    contractUntil: value("#previewContractUntil"),
+    loanStatus: value("#previewLoanStatus") || "none",
+    season: value("#previewSeason") || SEASON_2026_27_STATUS.season,
+    sourceName: value("#previewSourceName") || "manual",
+    sourceUrl: value("#previewSourceUrl"),
+    image: value("#previewImage") || PLAYER_IMAGE_SILHOUETTE,
+    imageSource: value("#previewImageSource") || "silhouette",
+    imageLicense: value("#previewImageLicense") || "fallback",
+    lastVerifiedAt: new Date().toISOString().slice(0, 10),
+    verificationStatus: "needs-review",
+  });
+}
+
+function validateScoutImport(result) {
+  const errors = [];
+  if (!result.displayName) errors.push("Name fehlt.");
+  if (!result.playerId) errors.push("playerId fehlt.");
+  if (!result.position) errors.push("Position fehlt.");
+  if (!result.clubName || result.clubName === "FC Augsburg" && document.querySelector("#previewClub")?.value === "Alle Vereine") errors.push("Verein muss ausgewaehlt werden.");
+  if (!result.leagueId || result.leagueId === "Alle Ligen") errors.push("Liga muss ausgewaehlt werden.");
+  if (result.image && result.image !== PLAYER_IMAGE_SILHOUETTE && !isSafeImageReference(result.image)) errors.push("Bild-URL/Pfad ist ungueltig.");
+  return errors;
+}
+
+function isSafeImageReference(value) {
+  const text = String(value || "");
+  if (!text) return false;
+  if (text.startsWith("assets/players/") || text.startsWith("data:image/")) return true;
+  return isSafeHttpUrl(text);
+}
+
+function suggestedPlayerId(result) {
+  return `player-${normalizePlayerIdentity(result.displayName || result.name || "spieler") || Date.now()}`;
+}
+
+function importScoutPreviewAsPlayer({ updateExisting = false } = {}) {
+  if (!requireAdminPermission("managePlayerImport", "Keine Berechtigung fuer Spielerimporte.")) return false;
+  const scout = state.adminData.playerScout = normalizePlayerScoutState(state.adminData.playerScout);
+  if (scout.isSaving) return false;
+  scout.isSaving = true;
+  try {
+    const result = readScoutPreviewForm();
+    const errors = validateScoutImport(result);
+    if (errors.length) {
+      scout.lastMessage = errors.join(" ");
+      setAdminStatus(scout.lastMessage);
+      showToast("Importdaten unvollstaendig.", "error");
+      return false;
+    }
+    const duplicate = checkPlayerImportDuplicate(result);
+    let card;
+    if (updateExisting || duplicate.level === "exact") {
+      card = duplicate.matches[0];
+      if (!card) {
+        scout.lastMessage = "Kein vorhandener Spieler zum Aktualisieren gefunden.";
+        setAdminStatus(scout.lastMessage);
+        return false;
+      }
+      updateCatalogCardFromScout(card, result);
+      registerPlayerImport(result, card, "player-updated", duplicate);
+      scout.lastMessage = `${result.displayName} wurde aktualisiert.`;
+    } else {
+      const existingSeasonCard = GAME_CARDS.find((item) => item.playerId === result.playerId && item.season === result.season && cardSeries(item) === "standard");
+      if (existingSeasonCard) {
+        scout.lastMessage = "Diese Saisonkarte existiert bereits. Import abgebrochen.";
+        setAdminStatus(scout.lastMessage);
+        return false;
+      }
+      card = createCatalogCardFromScout(result);
+      GAME_CARDS.push(card);
+      state.adminData.playerImports = normalizePlayerImports([registerImportedPlayerRecord(result, card), ...(state.adminData.playerImports || [])]);
+      registerPlayerImport(result, card, "player-created", duplicate);
+      scout.lastMessage = `${result.displayName} wurde angelegt.`;
+    }
+    scout.results = scout.results.map((item) => item.id === scout.selectedId ? { ...item, imported: true } : item);
+    scout.preview = scout.results.find((item) => item.id === scout.selectedId) || result;
+    renderAdminDatabase();
+    setAdminStatus(scout.lastMessage);
+    showToast(scout.lastMessage, "success");
+    return true;
+  } finally {
+    scout.isSaving = false;
+  }
+}
+
+function createCatalogCardFromScout(result) {
+  const cls = scoutClassFromPreview();
+  const values = defaultCardValuesForPosition(result.position, cls);
+  const id = `${result.playerId}-base-${String(result.season || "2627").replace(/[^0-9]/g, "") || "2627"}`;
+  const card = cardDef(id, result.displayName, result.position, result.clubName, cls, values.atk, values.mid, values.def, result.image || PLAYER_IMAGE_SILHOUETTE);
+  const isCurrent = result.season === CURRENT_SEASON && result.squadStatus === "active" && result.verifiedForSeason === true;
+  return {
+    ...card,
+    id,
+    cardId: id,
+    playerId: result.playerId,
+    externalIds: result.externalId ? { provider: result.externalId } : {},
+    firstName: result.firstName,
+    lastName: result.lastName,
+    displayName: result.displayName,
+    dateOfBirth: result.dateOfBirth,
+    nationality: result.nationality,
+    secondaryNationality: result.secondaryNationality,
+    gender: result.gender,
+    realPosition: result.realPosition,
+    gamePosition: result.gamePosition,
+    shirtNumber: result.shirtNumber,
+    clubId: result.clubName,
+    currentClubId: result.clubName,
+    leagueId: result.leagueId,
+    teamType: result.teamType,
+    teamId: teamIdForClubName(result.clubName, result.teamType),
+    squadStatus: result.squadStatus,
+    squadSeason: result.season,
+    verifiedForSeason: result.verifiedForSeason === true,
+    contractUntil: result.contractUntil,
+    loanStatus: result.loanStatus,
+    season: result.season,
+    image: result.image || PLAYER_IMAGE_SILHOUETTE,
+    imageSource: result.imageSource,
+    imageLicense: result.imageLicense,
+    imageVerifiedAt: result.imageLicense === "fallback" ? "" : new Date().toISOString().slice(0, 10),
+    sourceName: result.sourceName,
+    sourceUrl: result.sourceUrl,
+    lastVerifiedAt: result.lastVerifiedAt,
+    verificationStatus: result.verificationStatus,
+    isHistorical: result.season !== CURRENT_SEASON,
+    isActiveSeasonCard: isCurrent,
+    isActive: isCurrent,
+    isPackable: isCurrent,
+    cardSeries: "base",
+    series: "standard",
+  };
+}
+
+function scoutClassFromPreview() {
+  const value = document.querySelector("#previewCreateCard")?.value || "auto";
+  if (value === "none") return 2;
+  if (value !== "auto") return clamp(Number(value) || 0, 0, teamClasses.length - 1);
+  return 3;
+}
+
+function updateCatalogCardFromScout(card, result) {
+  const before = { ...card };
+  Object.assign(card, {
+    playerId: card.playerId || result.playerId,
+    externalIds: { ...(card.externalIds || {}), ...(result.externalId ? { provider: result.externalId } : {}) },
+    firstName: result.firstName,
+    lastName: result.lastName,
+    displayName: result.displayName,
+    dateOfBirth: result.dateOfBirth || card.dateOfBirth,
+    nationality: result.nationality || card.nationality,
+    secondaryNationality: result.secondaryNationality || card.secondaryNationality,
+    gender: result.gender,
+    realPosition: result.realPosition || card.realPosition,
+    gamePosition: result.gamePosition || card.gamePosition,
+    pos: result.position || card.pos,
+    shirtNumber: result.shirtNumber ?? card.shirtNumber,
+    currentClubId: result.clubName || card.currentClubId,
+    leagueId: result.leagueId || card.leagueId,
+    teamType: result.teamType || card.teamType,
+    teamId: result.clubName ? teamIdForClubName(result.clubName, result.teamType || card.teamType) : card.teamId,
+    squadStatus: result.squadStatus || card.squadStatus,
+    squadSeason: result.season || card.squadSeason,
+    season: result.season || card.season,
+    verifiedForSeason: result.verifiedForSeason === true,
+    isHistorical: (result.season || card.season) !== CURRENT_SEASON,
+    isActiveSeasonCard: (result.season || card.season) === CURRENT_SEASON && result.squadStatus === "active" && result.verifiedForSeason === true,
+    isPackable: (result.season || card.season) === CURRENT_SEASON && result.squadStatus === "active" && result.verifiedForSeason === true,
+    isActive: (result.season || card.season) === CURRENT_SEASON && result.squadStatus === "active" && result.verifiedForSeason === true,
+    contractUntil: result.contractUntil || card.contractUntil,
+    loanStatus: result.loanStatus || card.loanStatus,
+    image: result.image || card.image,
+    imageSource: result.imageSource || card.imageSource,
+    imageLicense: result.imageLicense || card.imageLicense,
+    sourceName: result.sourceName || card.sourceName,
+    sourceUrl: result.sourceUrl || card.sourceUrl,
+    lastVerifiedAt: result.lastVerifiedAt,
+    verificationStatus: result.verificationStatus,
+  });
+  if (result.clubName) {
+    card.club = result.clubName;
+    card.league = result.leagueId || getClub(result.clubName).league;
+    card.crest = getClub(result.clubName).crest;
+  }
+  return before;
+}
+
+function registerImportedPlayerRecord(result, card) {
+  return normalizeScoutImportedRecord({
+    ...result,
+    cardId: card.id,
+    card,
+  });
+}
+
+function normalizeScoutImportedRecord(record = {}) {
+  if (!record.playerId && !record.cardId) return null;
+  return {
+    playerId: String(record.playerId || sourceCardId(record.card || {})),
+    cardId: String(record.cardId || record.card?.id || ""),
+    importedAt: String(record.importedAt || new Date().toISOString()),
+    sourceName: String(record.sourceName || ""),
+    sourceUrl: String(record.sourceUrl || ""),
+    player: normalizeScoutResult(record),
+    card: record.card ? normalizeCard(record.card) : null,
+  };
+}
+
+function applyAdminPlayerImportsToCatalog(imports = []) {
+  normalizePlayerImports(imports).forEach((record) => {
+    if (!record.card || GAME_CARDS.some((card) => card.id === record.card.id)) return;
+    GAME_CARDS.push(record.card);
+  });
+}
+
+function registerPlayerImport(result, card, action, duplicate) {
+  const user = activeUser();
+  state.adminData.playerImportLogs = normalizePlayerImportLogs([
+    {
+      id: `player-import-log-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      action,
+      playerId: result.playerId,
+      cardId: card.id,
+      performedByUserId: user.id,
+      sourceName: result.sourceName,
+      sourceUrl: result.sourceUrl,
+      importedAt: new Date().toISOString(),
+      changedFields: ["currentClubId", "leagueId", "squadStatus", "image", "season"],
+      duplicateCheckResult: duplicate.label,
+      imageSource: result.imageSource,
+      result: "success",
+      warnings: duplicate.level === "possible" ? ["Moegliches Duplikat wurde manuell uebernommen."] : [],
+    },
+    ...(state.adminData.playerImportLogs || []),
+  ]);
+  logAdminAction("playerscout", action, result.playerId, null, { cardId: card.id, duplicate: duplicate.label }, "success");
+}
+
+function saveScoutProviderSettings() {
+  const providerId = document.querySelector("#scoutProviderId")?.value || "manualUrl";
+  const providers = state.adminData.playerSearchProviders = normalizePlayerSearchProviders(state.adminData.playerSearchProviders);
+  const provider = providers[providerId];
+  if (!provider) return;
+  provider.baseUrl = document.querySelector("#scoutProviderBaseUrl")?.value.trim() || provider.baseUrl;
+  provider.dailyLimit = Math.max(0, Number(document.querySelector("#scoutProviderDaily")?.value) || provider.dailyLimit || 0);
+  provider.monthlyLimit = Math.max(0, Number(document.querySelector("#scoutProviderMonthly")?.value) || provider.monthlyLimit || 0);
+  provider.enabled = true;
+  provider.lastError = provider.requiresApiKey ? "API-Key bleibt serverseitig. Im Browser wird kein geheimer Schluessel gespeichert." : "";
+  setAdminStatus(`${provider.label} gespeichert.`);
+  logAdminAction("playerscout", "provider-save", providerId, null, { baseUrl: provider.baseUrl }, "success");
+}
+
+function testScoutProviderConnection() {
+  const providerId = document.querySelector("#scoutProviderId")?.value || "manualUrl";
+  const provider = state.adminData.playerSearchProviders?.[providerId];
+  if (!provider) return;
+  const url = document.querySelector("#scoutProviderBaseUrl")?.value.trim() || provider.baseUrl;
+  if (provider.requiresApiKey) {
+    provider.lastError = "Test nur ueber sicheren Backend-Proxy moeglich. Kein API-Key im Frontend.";
+    setAdminStatus(provider.lastError);
+    saveState();
+    renderAdminPhase9Module("playerscout");
+    return;
+  }
+  if (!isSafeHttpUrl(url)) {
+    provider.lastError = "Keine gueltige HTTPS-URL.";
+    setAdminStatus(provider.lastError);
+    saveState();
+    renderAdminPhase9Module("playerscout");
+    return;
+  }
+  fetch(url, { method: "GET" })
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      provider.lastSuccessfulConnection = new Date().toISOString();
+      provider.lastError = "";
+      provider.dataDate = new Date().toISOString().slice(0, 10);
+      setAdminStatus("Provider-Verbindung erfolgreich.");
+    })
+    .catch((error) => {
+      provider.lastError = error.message;
+      setAdminStatus(`Provider-Test fehlgeschlagen: ${error.message}`);
+    })
+    .finally(() => {
+      saveState();
+      renderAdminPhase9Module("playerscout");
+    });
+}
+
+function selectScoutImage(url, source, license) {
+  const image = document.querySelector("#previewImage");
+  const imageSource = document.querySelector("#previewImageSource");
+  const imageLicense = document.querySelector("#previewImageLicense");
+  if (image) image.value = url || PLAYER_IMAGE_SILHOUETTE;
+  if (imageSource) imageSource.value = source || "silhouette";
+  if (imageLicense) imageLicense.value = license || "fallback";
+  const preview = state.adminData.playerScout.preview;
+  if (preview) {
+    preview.image = image?.value || PLAYER_IMAGE_SILHOUETTE;
+    preview.imageSource = imageSource?.value || "silhouette";
+    preview.imageLicense = imageLicense?.value || "fallback";
+  }
+  setAdminStatus("Bildauswahl in Vorschau uebernommen.");
+}
+
+function importScoutResultsBatch() {
+  const scout = state.adminData.playerScout = normalizePlayerScoutState(state.adminData.playerScout);
+  let imported = 0;
+  let skipped = 0;
+  for (const result of scout.results.slice(0, 25)) {
+    const duplicate = checkPlayerImportDuplicate(result);
+    if (duplicate.level !== "none") {
+      skipped += 1;
+      continue;
+    }
+    const normalized = { ...result, playerId: result.playerId || suggestedPlayerId(result) };
+    const card = createCatalogCardFromScout(normalized);
+    if (GAME_CARDS.some((item) => item.id === card.id || (item.playerId === card.playerId && item.season === card.season))) {
+      skipped += 1;
+      continue;
+    }
+    GAME_CARDS.push(card);
+    state.adminData.playerImports = normalizePlayerImports([registerImportedPlayerRecord(normalized, card), ...(state.adminData.playerImports || [])]);
+    registerPlayerImport(normalized, card, "batch-player-created", duplicate);
+    imported += 1;
+  }
+  scout.lastMessage = `Stapelimport: ${imported} angelegt, ${skipped} uebersprungen.`;
+  setAdminStatus(scout.lastMessage);
 }
 
 function renderAdminUsers() {
@@ -4290,15 +7397,19 @@ function renderAdminUsers() {
   els.adminUserList.innerHTML = state.adminUsers
     .map((user) => {
       const wallet = userWallet(user);
+      const profile = normalizeUserProfile(user.profile, user);
       return `
       <article class="${user.locked ? "locked" : ""} ${user.id === state.activeUserId ? "active-user" : ""}" data-user-id="${user.id}">
-        <label>Name<input data-user-field="name" type="text" value="${escapeAttr(user.name)}" /></label>
+        <h4>${escapeHtml(user.name)}</h4>
+        <label>Anzeigename<input data-user-field="name" type="text" value="${escapeAttr(user.name)}" /></label>
         <label>E-Mail<input data-user-field="email" type="email" value="${escapeAttr(user.email)}" /></label>
         <select data-user-action="role" ${canManageRoles ? "" : "disabled"}>
           ${ADMIN_ROLES.map((role) => `<option value="${role}" ${role === user.role ? "selected" : ""}>${role}</option>`).join("")}
         </select>
+        <label>Avatar<input data-user-field="avatar" type="text" value="${escapeAttr(profile.avatar)}" /></label>
+        <label>Lieblingsverein<input data-user-field="favoriteClub" type="text" value="${escapeAttr(profile.favoriteClub)}" /></label>
         <label>PIN<input data-user-field="pin" type="text" inputmode="numeric" value="${escapeAttr(user.pin)}" /></label>
-        <span>${user.id === state.activeUserId ? "Aktiv | " : ""}${user.locked ? "Gesperrt" : "Freigegeben"}<br />${formatNumber(wallet.coins)} Credits | ${formatNumber(wallet.gems)} Diamanten</span>
+        <span>${user.id === state.activeUserId ? "Aktiv | " : ""}${user.locked ? "Gesperrt" : "Freigegeben"}<br />Rolle: ${escapeHtml(user.role)} | Rechte werden ueber die Rolle verwaltet.<br />${formatNumber(wallet.coins)} Credits | ${formatNumber(wallet.gems)} Diamanten<br />Erstellt: ${escapeHtml(formatDateShort(profile.createdAt))} | Login: ${escapeHtml(formatDateShort(profile.lastLoginAt))}</span>
         <button type="button" data-user-action="save" ${canManageUsers ? "" : "disabled"}>Speichern</button>
         <button type="button" data-user-action="lock" ${canManageUsers && user.role !== "Owner" ? "" : "disabled"}>${user.locked ? "Entsperren" : "Sperren"}</button>
         <button class="danger" type="button" data-user-action="delete" ${canManageUsers && user.role !== "Owner" ? "" : "disabled"}>Entfernen</button>
@@ -4450,6 +7561,18 @@ function handleAdminUserAction(event) {
     if (nextRole !== user.role && !canChangeAdminRole(user, nextRole)) return;
     user.role = nextRole;
     user.pin = normalizePin(row.querySelector('[data-user-field="pin"]')?.value, user.role);
+    user.extraPermissions = [...row.querySelectorAll("[data-user-permission]")]
+      .filter((input) => input.checked)
+      .map((input) => input.dataset.userPermission);
+    user.profile = normalizeUserProfile({
+      ...user.profile,
+      displayName: user.name,
+      email: user.email,
+      avatar: row.querySelector('[data-user-field="avatar"]')?.value || "",
+      title: row.querySelector('[data-user-field="title"]')?.value || "",
+      favoriteClub: row.querySelector('[data-user-field="favoriteClub"]')?.value || "",
+      updatedAt: new Date().toISOString(),
+    }, user);
     logAdminAction("users", "save", user.id, before, user);
     setAdminStatus(`${user.name} wurde gespeichert.`);
   } else if (action === "lock" && user.role !== "Owner") {
@@ -4484,7 +7607,12 @@ function addAdminUser() {
     pin: defaultPinForRole(role),
     locked: false,
     wallet: { coins: 0, gems: 0 },
+    extraPermissions: [],
+    userData: createDefaultUserData(`admin-user-${Date.now()}`),
   };
+  user.userData = createDefaultUserData(user.id);
+  state.userData = state.userData || {};
+  state.userData[user.id] = user.userData;
   state.adminUsers.push(user);
   logAdminAction("users", "create", user.id, null, user);
   els.adminNewUserName.value = "";
@@ -4526,20 +7654,49 @@ function canOpenAdmin(user) {
   return Boolean(state.adminData?.enabled) && hasAdminPermission("admin.open", user);
 }
 
-function adminPermissionsFor(role) {
+function adminPermissionsForStatic(role) {
   return ADMIN_PERMISSION_MATRIX[normalizeAdminRole(role)] || [];
+}
+
+function normalizeRolePermissions(rolePermissions = {}) {
+  return Object.fromEntries(ADMIN_ROLES.map((role) => {
+    const permissions = Array.isArray(rolePermissions[role]) ? rolePermissions[role] : adminPermissionsForStatic(role);
+    const unique = [...new Set(permissions.filter(Boolean))];
+    if (role === "Owner" && !unique.includes("admin.manage")) unique.push("admin.manage");
+    if (role === "Owner" && !unique.includes("admin.open")) unique.push("admin.open");
+    return [role, unique];
+  }));
+}
+
+function adminPermissionsFor(role) {
+  const normalized = normalizeAdminRole(role);
+  return (typeof state !== "undefined" && state.adminData?.rolePermissions?.[normalized]) || adminPermissionsForStatic(normalized);
 }
 
 function hasAdminPermission(permission, user = activeUser()) {
   const checkedUser = user || activeUser();
   if (!checkedUser || checkedUser.locked) return false;
   const permissions = adminPermissionsFor(checkedUser.role);
-  return permissions.includes(permission) || permissions.includes("admin.manage");
+  const extra = Array.isArray(checkedUser.extraPermissions) ? checkedUser.extraPermissions : [];
+  return permissions.includes(permission) || permissions.includes("admin.manage") || extra.includes(permission);
 }
 
 function canUseAdminModule(section, user = activeUser()) {
   const permission = ADMIN_MODULE_PERMISSIONS[section] || "admin.open";
   return hasAdminPermission(permission, user);
+}
+
+function canViewAdminSection(user, groupId) {
+  const group = ADMIN_NAV_GROUPS.find((item) => item.id === groupId);
+  return Boolean(group && allowedAdminPages(group, user).length);
+}
+
+function canEditAdminPage(user, section) {
+  return canUseAdminModule(section, user);
+}
+
+function canImportPlayers(user = activeUser()) {
+  return hasAdminPermission("managePlayerImport", user);
 }
 
 function requireAdminPermission(permission, message = "Keine Berechtigung fuer diese Admin-Aktion.") {
@@ -4620,6 +7777,20 @@ function verifyPin(user, pin) {
 }
 
 function updateAccountUi() {
+  if (state.sessionLoggedOut) {
+    els.headerUserName.textContent = "ABGEMELDET";
+    els.headerUserRole.textContent = "LOGIN ERFORDERLICH";
+    els.headerAvatar.textContent = "LC";
+    els.adminHeaderName.textContent = "Abgemeldet";
+    els.adminHeaderRole.textContent = "Login";
+    els.adminHeaderAvatar.textContent = "LC";
+    els.loginActiveName.textContent = "Kein aktiver Account";
+    els.loginActiveRole.textContent = "Bitte anmelden";
+    els.loginActiveAvatar.textContent = "LC";
+    els.openAdmin.hidden = true;
+    els.openAdmin.setAttribute("aria-hidden", "true");
+    return;
+  }
   const user = activeUser();
   const displayName = userDisplayName(user);
   const initials = userInitials(displayName);
@@ -4665,18 +7836,18 @@ function renderAdminBoosters() {
     ? state.boosterPacks.map((pack) => {
       const normalizedPack = normalizeBoosterPack(pack);
       const imageOptions = boosterImageOptions()
-        .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === pack.image ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
+        .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === normalizedPack.image ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
         .join("");
       const minClassOptions = teamClasses
-        .map((_, index) => `<option value="${index}" ${index === pack.minClass ? "selected" : ""}>${escapeHtml(classLabel(index))}</option>`)
+        .map((_, index) => `<option value="${index}" ${index === normalizedPack.minClass ? "selected" : ""}>${escapeHtml(classLabel(index))}</option>`)
         .join("");
       const maxClassOptions = teamClasses
-        .map((_, index) => `<option value="${index}" ${index === pack.maxClass ? "selected" : ""}>${escapeHtml(classLabel(index))}</option>`)
+        .map((_, index) => `<option value="${index}" ${index === normalizedPack.maxClass ? "selected" : ""}>${escapeHtml(classLabel(index))}</option>`)
         .join("");
       const poolOptions = packPoolOptions()
-        .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === pack.pool ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
+        .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === normalizedPack.pool ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
         .join("");
-      const positionValue = packPositionOptionValue(pack.positions);
+      const positionValue = packPositionOptionValue(normalizedPack.positions);
       const positionOptions = packPositionOptions()
         .map((option) => `<option value="${escapeAttr(option.value)}" ${option.value === positionValue ? "selected" : ""}>${escapeHtml(option.label)}</option>`)
         .join("");
@@ -4689,23 +7860,23 @@ function renderAdminBoosters() {
         `)
         .join("");
       return `
-      <article class="${pack.active ? "" : "disabled"}" data-pack-id="${pack.id}">
+      <article class="${normalizedPack.active ? "" : "disabled"}" data-pack-id="${escapeAttr(normalizedPack.id)}">
         <div class="admin-booster-art">
-          ${pack.image ? `<img src="${escapeAttr(getPackImageUrl(pack))}" alt="${escapeAttr(pack.name)}" />` : `<span>${escapeHtml(pack.name.slice(0, 2))}</span>`}
+          ${normalizedPack.image ? `<img src="${escapeAttr(getPackImageUrl(normalizedPack))}" alt="${escapeAttr(normalizedPack.name)}" />` : `<span>${escapeHtml(normalizedPack.name.slice(0, 2))}</span>`}
         </div>
         <div class="admin-booster-editor">
-          <label>Name<input data-pack-field="name" value="${escapeAttr(pack.name)}" /></label>
-          <label>Preis<input data-pack-field="cost" type="number" min="0" step="1" value="${pack.cost}" /></label>
+          <label>Name<input data-pack-field="name" value="${escapeAttr(normalizedPack.name)}" /></label>
+          <label>Preis<input data-pack-field="cost" type="number" min="0" step="1" value="${normalizedPack.cost}" /></label>
           <label>Waehrung
             <select data-pack-field="currency">
-              <option value="coins" ${pack.currency === "coins" ? "selected" : ""}>Coins</option>
-              <option value="gems" ${pack.currency === "gems" ? "selected" : ""}>Diamanten</option>
+              <option value="coins" ${normalizedPack.currency === "coins" ? "selected" : ""}>Coins</option>
+              <option value="gems" ${normalizedPack.currency === "gems" ? "selected" : ""}>Diamanten</option>
             </select>
           </label>
           <label>Von<select data-pack-field="minClass">${minClassOptions}</select></label>
           <label>Bis<select data-pack-field="maxClass">${maxClassOptions}</select></label>
-          <label>Karten<input data-pack-field="cardCount" type="number" min="1" max="20" step="1" value="${pack.cardCount}" /></label>
-          <label>Kauflimit<input data-pack-field="purchaseLimit" type="number" min="0" step="1" value="${pack.purchaseLimit || 0}" /><small>0 = keine Beschraenkung</small></label>
+          <label>Karten<input data-pack-field="cardCount" type="number" min="1" max="20" step="1" value="${normalizedPack.cardCount}" /></label>
+          <label>Kauflimit<input data-pack-field="purchaseLimit" type="number" min="0" step="1" value="${normalizedPack.purchaseLimit || 0}" /><small>0 = keine Beschraenkung</small></label>
           <label>Pool<select data-pack-field="pool">${poolOptions}</select></label>
           <label>Positionen<select data-pack-field="positions">${positionOptions}</select></label>
           <label>Bild<select data-pack-field="image">${imageOptions}</select></label>
@@ -4714,12 +7885,12 @@ function renderAdminBoosters() {
             <legend>Drop-Rate nach Klasse</legend>
             ${dropRateInputs}
           </fieldset>
-          <label class="wide">Beschreibung<textarea data-pack-field="description" rows="2">${escapeHtml(pack.description)}</textarea></label>
-          <span>${pack.active ? "Aktiv" : "Deaktiviert"} | ${pack.cardCount} ${pack.cardCount === 1 ? "Karte" : "Karten"} | Limit ${pack.purchaseLimit || 0 ? pack.purchaseLimit : "keins"} | ${teamClasses[pack.minClass]} bis ${teamClasses[pack.maxClass]} | ${escapeHtml(packPoolLabel(pack.pool))} | ${escapeHtml(packPositionLabel(pack.positions))}${pack.imageSource === "admin-upload" ? " | eigenes Bild" : ""}</span>
+          <label class="wide">Beschreibung<textarea data-pack-field="description" rows="2">${escapeHtml(normalizedPack.description)}</textarea></label>
+          <span>${normalizedPack.active ? "Aktiv" : "Deaktiviert"} | ${normalizedPack.cardCount} ${normalizedPack.cardCount === 1 ? "Karte" : "Karten"} | Limit ${normalizedPack.purchaseLimit || 0 ? normalizedPack.purchaseLimit : "keins"} | ${teamClasses[normalizedPack.minClass]} bis ${teamClasses[normalizedPack.maxClass]} | ${escapeHtml(packPoolLabel(normalizedPack.pool))} | ${escapeHtml(packPositionLabel(normalizedPack.positions))}${normalizedPack.imageSource === "admin-upload" ? " | eigenes Bild" : ""}</span>
         </div>
         <div class="admin-booster-actions">
           <button type="button" data-pack-action="save">Speichern</button>
-          <button type="button" data-pack-action="toggle">${pack.active ? "Deaktivieren" : "Aktivieren"}</button>
+          <button type="button" data-pack-action="toggle">${normalizedPack.active ? "Deaktivieren" : "Aktivieren"}</button>
           <button class="danger" type="button" data-pack-action="delete">Loeschen</button>
         </div>
       </article>
@@ -4755,6 +7926,7 @@ function createAdminBooster() {
   resetAdminBoosterForm();
   renderAdminBoosters();
   setAdminStatus(`${pack.name} wurde angelegt.`);
+  saveBoosterConfig();
   saveState();
 }
 
@@ -4797,15 +7969,19 @@ function handleAdminBoosterAction(event) {
     const sum = dropRateSum(dropRates, minClass, maxClass);
     pack.dropRates = rebalanceDropRates(dropRates, minClass, maxClass, pack.id);
     pack.image = row.querySelector('[data-pack-field="image"]').value;
-    pack.imageSource = pack.image && pack.image.startsWith("pack-img-") ? "admin-upload" : pack.image ? "asset" : "placeholder";
+    pack.imageSource = isAdminUploadedImageRef(pack.image) ? "admin-upload" : pack.image ? "asset" : "placeholder";
     pack.tier = packTierFromImage(pack.image || getPackImageUrl(pack));
     pack.description = row.querySelector('[data-pack-field="description"]').value.trim() || pack.description;
+    pack.updatedAt = new Date().toISOString();
+    state.boosterPacks = state.boosterPacks.map((item) => item.id === pack.id ? normalizeBoosterPack(pack) : item);
     logAdminAction("boosters", "save", pack.id, before, pack);
     setAdminStatus(`${pack.name} wurde gespeichert.${Math.abs(sum - 100) > 0.01 ? ` Dropchancen wurden von ${sum.toFixed(1)}% auf 100% normalisiert.` : ""}`);
   } else if (button.dataset.packAction === "toggle") {
     if (!requireAdminPermission("boosters.manage", "Keine Berechtigung zum Aktivieren von Boostern.")) return;
     const before = safeAdminSnapshot(pack);
     pack.active = !pack.active;
+    pack.updatedAt = new Date().toISOString();
+    state.boosterPacks = state.boosterPacks.map((item) => item.id === pack.id ? normalizeBoosterPack(pack) : item);
     logAdminAction("boosters", pack.active ? "activate" : "deactivate", pack.id, before, pack);
     setAdminStatus(`${pack.name} wurde ${pack.active ? "aktiviert" : "deaktiviert"}.`);
   } else if (button.dataset.packAction === "delete") {
@@ -4815,10 +7991,13 @@ function handleAdminBoosterAction(event) {
     logAdminAction("boosters", "delete", pack.id, pack, null);
     state.deletedBoosterPackIds = [...new Set([...(state.deletedBoosterPackIds || []), pack.id])];
     state.boosterPacks = state.boosterPacks.filter((item) => item.id !== pack.id);
+    state.openedPacks = state.openedPacks || {};
+    delete state.openedPacks[pack.id];
     setAdminStatus(`${pack.name} wurde geloescht.`);
   }
 
   renderAdminBoosters();
+  saveBoosterConfig();
   saveState();
 }
 
@@ -4864,6 +8043,7 @@ function handleAdminBoosterImageUpload(event) {
     setAdminStatus(`${pack.name}: Bild ${file.name} wurde lokal zugeordnet.`);
     showToast("Booster-Bild zugeordnet.", "success");
     renderAdminBoosters();
+    saveBoosterConfig();
     saveState();
   });
   reader.addEventListener("error", () => {
@@ -4874,10 +8054,15 @@ function handleAdminBoosterImageUpload(event) {
 }
 
 function validatePackImage(file) {
-  const allowed = ["image/png", "image/jpeg", "image/webp"];
-  if (!allowed.includes(file.type)) return { ok: false, message: "Nur PNG, JPG oder WebP sind erlaubt." };
+  const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
+  if (!allowed.includes(file.type)) return { ok: false, message: "Nur PNG, JPG, WebP oder SVG sind erlaubt." };
   if (file.size > 2.5 * 1024 * 1024) return { ok: false, message: "Das Booster-Bild darf maximal 2,5 MB gross sein." };
   return { ok: true, message: "Bild ist gueltig." };
+}
+
+function isAdminUploadedImageRef(image) {
+  const value = String(image || "");
+  return value.startsWith("pack-img-") || value.startsWith("asset-booster-") || Boolean(state.adminData?.packImages?.some((asset) => asset.id === value));
 }
 
 function renderAdminEvents() {
@@ -5136,14 +8321,20 @@ function resetAdminEventForm(type = "Spezial Event") {
   if (fields.description) fields.description.value = "";
 }
 
-function handleAdminNav(button) {
-  const section = button.dataset.adminSection;
+function handleAdminNav(button, requestedSection = "") {
+  const groupId = button.dataset.adminGroup || adminNavPageBySection(requestedSection || button.dataset.adminSection).group.id;
+  const group = ADMIN_NAV_GROUPS.find((item) => item.id === groupId) || firstAllowedAdminGroup();
+  let section = requestedSection || button.dataset.adminSection;
+  if (button.dataset.adminGroup && !canUseAdminModule(section)) {
+    section = firstAllowedAdminPageInGroup(group)?.section || section;
+  }
   if (!canUseAdminModule(section)) {
     setAdminStatus("Keine Berechtigung fuer dieses Admin-Modul.");
     showToast("Admin-Modul gesperrt.", "error");
     return;
   }
   setActiveAdminNav(section);
+  renderAdminNavigationShell(section);
   setAdminContentView(section);
   renderAdminDashboard();
   renderAdminPhase9Module(section);
@@ -5226,6 +8417,61 @@ function handleAdminNav(button) {
     export: { selector: ".admin-phase9-panel", message: "Datenexport geoeffnet." },
     backups: { selector: ".admin-phase9-panel", message: "Backups geoeffnet." },
     draftboard: { selector: ".admin-phase9-panel", message: "Draft-Board Belohnungen geoeffnet." },
+    "clubs-overview": { selector: ".admin-phase9-panel", message: "Vereine & Spieler Uebersicht geoeffnet." },
+    teams: { selector: ".admin-phase9-panel", message: "Mannschaften geoeffnet." },
+    squads: { selector: ".admin-database", message: "Kaderverwaltung geoeffnet.", run: renderAdminDatabase },
+    "player-images": { selector: ".admin-phase9-panel", message: "Profilbilder geoeffnet." },
+    "player-duplicates": { selector: ".admin-phase9-panel", message: "Duplikate geoeffnet." },
+    "season-archive": { selector: ".admin-database", message: "Saisonarchiv geoeffnet.", run: renderAdminDatabase },
+    "cards-overview": { selector: ".admin-database", message: "Kartenuebersicht geoeffnet.", run: renderAdminDatabase },
+    "card-designs": { selector: ".admin-phase9-panel", message: "Kartenrahmen & Designs geoeffnet." },
+    "card-values": { selector: ".admin-phase9-panel", message: "Kartenwerte geoeffnet." },
+    "level-system": { selector: ".admin-phase9-panel", message: "Levelsystem geoeffnet." },
+    "star-system": { selector: ".admin-phase9-panel", message: "Sternesystem geoeffnet." },
+    fusion: { selector: ".admin-phase9-panel", message: "Fusion geoeffnet." },
+    "deck-rules": { selector: ".admin-phase9-panel", message: "Deckregeln geoeffnet." },
+    "match-rules": { selector: ".admin-phase9-panel", message: "Matchregeln geoeffnet." },
+    "cpu-opponents": { selector: ".admin-phase9-panel", message: "KI-Gegner geoeffnet." },
+    "season-management": { selector: ".admin-phase9-panel", message: "Saisonverwaltung geoeffnet." },
+    tables: { selector: ".admin-phase9-panel", message: "Tabellen geoeffnet." },
+    schedules: { selector: ".admin-phase9-panel", message: "Spielplaene geoeffnet." },
+    "promotion-relegation": { selector: ".admin-phase9-panel", message: "Aufstieg & Abstieg geoeffnet." },
+    cups: { selector: ".admin-phase9-panel", message: "Pokale geoeffnet." },
+    tournaments: { selector: ".admin-phase9-panel", message: "Turniere geoeffnet." },
+    "economy-overview": { selector: ".admin-phase9-panel", message: "Wirtschaftsuebersicht geoeffnet." },
+    currencies: { selector: ".admin-phase9-panel", message: "Waehrungen geoeffnet." },
+    achievements: { selector: ".admin-phase9-panel", message: "Erfolge geoeffnet." },
+    "battle-pass": { selector: ".admin-phase9-panel", message: "Battle Pass geoeffnet." },
+    "daily-login": { selector: ".admin-phase9-panel", message: "Daily Login geoeffnet." },
+    "reward-pools": { selector: ".admin-reward-pools", message: "Belohnungspools geoeffnet.", run: renderAdminRewardPools },
+    mailbox: { selector: ".admin-phase9-panel", message: "Postfach geoeffnet." },
+    notifications: { selector: ".admin-phase9-panel", message: "Benachrichtigungen geoeffnet." },
+    support: { selector: ".admin-phase9-panel", message: "Support geoeffnet." },
+    "community-events": { selector: ".admin-calendar-board", message: "Community-Events geoeffnet." },
+    reports: { selector: ".admin-phase9-panel", message: "Meldungen geoeffnet." },
+    "community-dashboard": { selector: ".admin-phase9-panel", message: "Community Dashboard geoeffnet." },
+    "community-ideas": { selector: ".admin-phase9-panel", message: "Community-Ideen geoeffnet." },
+    "community-forum": { selector: ".admin-phase9-panel", message: "Community-Forum geoeffnet." },
+    "community-applications": { selector: ".admin-phase9-panel", message: "Community-Bewerbungen geoeffnet." },
+    "community-bugs": { selector: ".admin-phase9-panel", message: "Community-Fehlermeldungen geoeffnet." },
+    "community-messages": { selector: ".admin-phase9-panel", message: "Community-Nachrichten geoeffnet." },
+    "community-news": { selector: ".admin-phase9-panel", message: "Community-News geoeffnet." },
+    "community-roadmap": { selector: ".admin-phase9-panel", message: "Community-Roadmap geoeffnet." },
+    "community-settings": { selector: ".admin-phase9-panel", message: "Community-Einstellungen geoeffnet." },
+    rights: { selector: ".admin-phase9-panel", message: "Rechte geoeffnet." },
+    bans: { selector: ".admin-users", message: "Sperren geoeffnet.", run: renderAdminUsers },
+    "login-history": { selector: ".admin-phase9-panel", message: "Loginverlauf geoeffnet." },
+    "admin-audit": { selector: ".admin-phase9-panel", message: "Admin-Protokoll geoeffnet." },
+    "data-overview": { selector: ".admin-phase9-panel", message: "Datenverwaltung geoeffnet." },
+    "data-duplicates": { selector: ".admin-phase9-panel", message: "Daten-Duplikate geoeffnet." },
+    "season-mixing": { selector: ".admin-phase9-panel", message: "Saisonvermischung geoeffnet." },
+    migrations: { selector: ".admin-phase9-panel", message: "Migrationen geoeffnet." },
+    "error-log": { selector: ".admin-phase9-panel", message: "Fehlerprotokoll geoeffnet." },
+    "system-general": { selector: ".admin-phase9-panel", message: "Allgemein geoeffnet." },
+    "data-sources": { selector: ".admin-phase9-panel", message: "Datenquellen geoeffnet." },
+    storage: { selector: ".admin-phase9-panel", message: "Speicher geoeffnet." },
+    security: { selector: ".admin-phase9-panel", message: "Sicherheit geoeffnet." },
+    maintenance: { selector: ".admin-phase9-panel", message: "Wartung geoeffnet." },
   };
 
   const action = actions[section];
@@ -5235,9 +8481,15 @@ function handleAdminNav(button) {
 }
 
 function setActiveAdminNav(section) {
-  document.querySelectorAll(".admin-nav [data-admin-section]").forEach((item) => {
+  const active = adminNavPageBySection(section);
+  document.querySelectorAll(".admin-nav [data-admin-group]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.adminGroup === active.group.id);
+    item.setAttribute("aria-expanded", item.dataset.adminGroup === active.group.id ? "true" : "false");
+  });
+  document.querySelectorAll(".admin-subnav [data-admin-section]").forEach((item) => {
     item.classList.toggle("active", item.dataset.adminSection === section);
   });
+  renderAdminBreadcrumb(active.group.id, section);
 }
 
 function scrollAdminTo(selector) {
@@ -5251,7 +8503,7 @@ function setAdminContentView(section) {
     dashboard: [".admin-hero"],
     clubs: [".admin-database"],
     import: [".admin-import"],
-    cards: [".admin-database", ".admin-recent"],
+    cards: [".admin-database", ".admin-controls", ".admin-recent"],
     transfers: [".admin-transfers"],
     editor: [".admin-controls"],
     boosters: [".admin-boosters"],
@@ -5275,6 +8527,61 @@ function setAdminContentView(section) {
     export: [".admin-phase9-panel"],
     backups: [".admin-phase9-panel"],
     draftboard: [".admin-phase9-panel"],
+    "clubs-overview": [".admin-phase9-panel"],
+    teams: [".admin-phase9-panel"],
+    squads: [".admin-phase9-panel"],
+    "player-images": [".admin-phase9-panel"],
+    "player-duplicates": [".admin-phase9-panel"],
+    "season-archive": [".admin-database", ".admin-phase9-panel"],
+    "cards-overview": [".admin-database", ".admin-phase9-panel"],
+    "card-designs": [".admin-phase9-panel"],
+    "card-values": [".admin-phase9-panel"],
+    "level-system": [".admin-phase9-panel"],
+    "star-system": [".admin-phase9-panel"],
+    fusion: [".admin-phase9-panel"],
+    "deck-rules": [".admin-phase9-panel"],
+    "match-rules": [".admin-phase9-panel"],
+    "cpu-opponents": [".admin-phase9-panel"],
+    "season-management": [".admin-phase9-panel"],
+    tables: [".admin-phase9-panel"],
+    schedules: [".admin-phase9-panel"],
+    "promotion-relegation": [".admin-phase9-panel"],
+    cups: [".admin-phase9-panel"],
+    tournaments: [".admin-phase9-panel"],
+    "economy-overview": [".admin-phase9-panel"],
+    currencies: [".admin-phase9-panel"],
+    achievements: [".admin-phase9-panel"],
+    "battle-pass": [".admin-phase9-panel"],
+    "daily-login": [".admin-phase9-panel"],
+    "reward-pools": [".admin-reward-pools", ".admin-phase9-panel"],
+    mailbox: [".admin-phase9-panel"],
+    notifications: [".admin-phase9-panel"],
+    support: [".admin-phase9-panel"],
+    "community-events": [".admin-calendar-board", ".admin-phase9-panel"],
+    reports: [".admin-phase9-panel"],
+    "community-dashboard": [".admin-phase9-panel"],
+    "community-ideas": [".admin-phase9-panel"],
+    "community-forum": [".admin-phase9-panel"],
+    "community-applications": [".admin-phase9-panel"],
+    "community-bugs": [".admin-phase9-panel"],
+    "community-messages": [".admin-phase9-panel"],
+    "community-news": [".admin-phase9-panel"],
+    "community-roadmap": [".admin-phase9-panel"],
+    "community-settings": [".admin-phase9-panel"],
+    rights: [".admin-phase9-panel"],
+    bans: [".admin-users", ".admin-phase9-panel"],
+    "login-history": [".admin-phase9-panel"],
+    "admin-audit": [".admin-phase9-panel"],
+    "data-overview": [".admin-phase9-panel"],
+    "data-duplicates": [".admin-phase9-panel"],
+    "season-mixing": [".admin-phase9-panel"],
+    migrations: [".admin-phase9-panel"],
+    "error-log": [".admin-phase9-panel"],
+    "system-general": [".admin-phase9-panel"],
+    "data-sources": [".admin-phase9-panel"],
+    storage: [".admin-phase9-panel"],
+    security: [".admin-phase9-panel"],
+    maintenance: [".admin-phase9-panel"],
   };
   const visibleSelectors = new Set(viewMap[section] || []);
   document.querySelectorAll("[data-admin-view]").forEach((item) => {
@@ -5335,6 +8642,11 @@ function classSelectOptions() {
 
 function fillAdminDatabaseFilters() {
   fillValueSelect(
+    els.adminDbSeason,
+    DB_SEASONS
+  );
+  els.adminDbSeason.value = CURRENT_SEASON;
+  fillValueSelect(
     els.adminDbLeague,
     DB_LEAGUES.map((league) => ({ value: league, label: league }))
   );
@@ -5343,8 +8655,9 @@ function fillAdminDatabaseFilters() {
 }
 
 function updateAdminDatabaseDropdowns(changed) {
+  const selectedSeason = els.adminDbSeason.value || CURRENT_SEASON;
   const selectedLeague = els.adminDbLeague.value || "Alle Ligen";
-  if (changed === "league") {
+  if (changed === "season" || changed === "league") {
     els.adminDbClub.value = "Alle Vereine";
     els.adminDbPlayer.value = "Alle Spieler";
   }
@@ -5359,7 +8672,7 @@ function updateAdminDatabaseDropdowns(changed) {
   ]);
 
   const selectedClub = els.adminDbClub.value || "Alle Vereine";
-  const players = getFilteredCards(selectedLeague, selectedClub, "Alle Spieler");
+  const players = getFilteredCards(selectedLeague, selectedClub, "Alle Spieler", selectedSeason);
   fillValueSelect(els.adminDbPlayer, [
     { value: "Alle Spieler", label: "Alle Spieler" },
     ...players.map((card) => ({ value: card.id, label: card.name })),
@@ -5371,11 +8684,12 @@ function setAdminStatus(message) {
 }
 
 function renderAdminDatabase() {
+  const selectedSeason = els.adminDbSeason.value || CURRENT_SEASON;
   const selectedLeague = els.adminDbLeague.value || "Alle Ligen";
   const selectedClub = els.adminDbClub.value || "Alle Vereine";
   const selectedPlayer = els.adminDbPlayer.value || "Alle Spieler";
   const filteredClubs = getFilteredClubs(selectedLeague);
-  const filteredCards = getFilteredCards(selectedLeague, selectedClub, selectedPlayer);
+  const filteredCards = getFilteredCards(selectedLeague, selectedClub, selectedPlayer, selectedSeason);
 
   const clubMap = filteredCards.reduce((map, card) => {
     if (!map.has(card.club)) {
@@ -5392,12 +8706,15 @@ function renderAdminDatabase() {
     return rating(b) - rating(a);
   });
 
-  els.adminDbSummary.textContent = `${filteredClubs.length} Vereine, ${filteredCards.length} Karten angezeigt`;
+  els.adminDbSummary.textContent = `${filteredClubs.length} Vereine, ${filteredCards.length} Karten angezeigt | Saison ${selectedSeason === "all" ? "alle" : selectedSeason}`;
   els.adminClubList.innerHTML = clubs
     .map(([club, cards]) => {
       const best = cards.length ? Math.max(...cards.map((card) => rating(card))) : "-";
       const clubData = getClub(club);
-      return `<div class="admin-club-chip"><img src="${clubData.crest}" alt="${clubData.name} Wappen" /><strong>${clubData.name}</strong><span>${cards.length} Spieler | Top ${best}</span></div>`;
+      const activeCards = selectedSeason === CURRENT_SEASON ? cards.filter((card) => isCurrentSeasonCard(card)) : cards;
+      const roster = rosterBreakdown(activeCards);
+      const isWomenClub = String(clubData.league || "").includes("Frauen");
+      return `<div class="admin-club-chip"><img src="${clubData.crest}" alt="${clubData.name} Wappen" /><strong>${clubData.name}</strong><span>${activeCards.length} aktiv | TW ${roster.keeper} | ABW ${roster.defense} | MIT ${roster.midfield} | ST ${roster.attack} | Top ${best}</span><em>Kaderstand ${SEASON_2026_27_STATUS.lastSquadUpdate}</em><small>Mannschaften: ${isWomenClub ? "Frauen - 1. Mannschaft" : "Maenner - 1. Mannschaft"} | weitere Teams im Vereinsdatensatz vorbereiten</small></div>`;
     })
     .join("");
 
@@ -5408,17 +8725,32 @@ function renderAdminDatabase() {
         <tr class="${owned ? "player-row" : ""}">
           <td><span class="player-cell">${renderPlayerListPhoto(card)}${card.name}</span></td>
           <td><span class="club-cell"><img src="${getClub(card.club).crest}" alt="${card.club} Wappen" />${getClub(card.club).name}</span></td>
+          <td>${card.shirtNumber ?? "-"}</td>
           <td>${card.pos}</td>
+          <td>${escapeHtml(card.nationality || card.nation || "-")}</td>
           <td>${card.league}</td>
           <td>${teamClasses[card.cls]}</td>
           <td>${escapeHtml(cardSeriesLabel(card.series))}</td>
           <td>${rating(card)}</td>
           <td>${compactStatsText(card)}</td>
+          <td>${escapeHtml(cardSeasonStatusLabel(card))}</td>
+          <td>${escapeHtml(card.lastVerifiedAt || "-")}</td>
           <td>${owned ? "Im Besitz" : "Nicht gezogen"} | ${card.performance ? "Saisonwerte" : "Basiswerte"}</td>
         </tr>
       `;
     })
     .join("");
+}
+
+function rosterBreakdown(cards) {
+  return cards.reduce((summary, card) => {
+    const category = cardCategory(card);
+    if (category === "Torwart") summary.keeper += 1;
+    else if (category === "Verteidigung") summary.defense += 1;
+    else if (category === "Mittelfeld") summary.midfield += 1;
+    else summary.attack += 1;
+    return summary;
+  }, { keeper: 0, defense: 0, midfield: 0, attack: 0 });
 }
 
 function loadState() {
@@ -5437,24 +8769,27 @@ function createDefaultAdminData() {
   return {
     enabled: true,
     project: {
-      name: "Liga Clash Games",
-      version: "0.2.0 ALPHA",
+      name: "KickOff SuperCard",
+      version: "0.1 Alpha",
       season: "2026/27",
       status: "Alpha",
       build: "local-static",
-      releaseName: "Admin Center Phase 9",
+      releaseName: "KickOff SuperCard Rebranding",
       progress: 65,
       maintenance: false,
-      lastUpdated: "2026-07-12",
+      lastUpdated: SEASON_2026_27_STATUS.lastSquadUpdate,
     },
+    dataStatus: { ...SEASON_2026_27_STATUS },
+    seasonSources: SEASON_2026_27_DATA?.sourcePolicy || [],
     news: [],
     shopOffers: [],
     design: {
-      logo: "",
+      logo: "assets/branding/logo.png",
       background: "",
-      slogan: "The Football Card Game",
+      slogan: "Football Card Game",
       accent: "#79ff31",
     },
+    assets: [],
     texts: {
       home: "Hauptmenue",
       play: "Spielen",
@@ -5463,9 +8798,10 @@ function createDefaultAdminData() {
       adminDenied: "Kein Zugriff auf das Admin Center.",
     },
     packImages: [],
+    rolePermissions: Object.fromEntries(ADMIN_ROLES.map((role) => [role, adminPermissionsForStatic(role)])),
     platzpass: {
       seasonId: "platzpass-2026-27",
-      name: "Liga Clash Platzpass",
+      name: "KickOff SuperCard PlatzPass",
       startDate: "",
       endDate: "",
       maxLevel: 100,
@@ -5485,22 +8821,172 @@ function createDefaultAdminData() {
 function normalizeAdminData(data) {
   const fresh = createDefaultAdminData();
   const adminData = data && typeof data === "object" ? data : {};
-  return {
+  const normalized = {
     ...fresh,
     ...adminData,
     enabled: adminData.enabled !== false,
     project: { ...fresh.project, ...(adminData.project || {}) },
+    dataStatus: { ...fresh.dataStatus, ...(adminData.dataStatus || {}) },
+    seasonSources: Array.isArray(adminData.seasonSources) ? adminData.seasonSources : fresh.seasonSources,
     news: Array.isArray(adminData.news) ? adminData.news.map(normalizeAdminNewsItem) : fresh.news,
     shopOffers: Array.isArray(adminData.shopOffers) ? adminData.shopOffers.map(normalizeShopOffer) : fresh.shopOffers,
     design: { ...fresh.design, ...(adminData.design || {}) },
+    assets: normalizeAdminAssets(adminData.assets || fresh.assets),
     texts: { ...fresh.texts, ...(adminData.texts || {}) },
     packImages: Array.isArray(adminData.packImages) ? adminData.packImages.slice(0, 40) : fresh.packImages,
+    rolePermissions: normalizeRolePermissions(adminData.rolePermissions || fresh.rolePermissions),
     platzpass: { ...fresh.platzpass, ...(adminData.platzpass || {}) },
     exportHistory: Array.isArray(adminData.exportHistory) ? adminData.exportHistory.slice(0, 20) : fresh.exportHistory,
     backups: Array.isArray(adminData.backups) ? adminData.backups.slice(0, 10) : fresh.backups,
     auditLog: Array.isArray(adminData.auditLog) ? adminData.auditLog.slice(0, 80) : fresh.auditLog,
     validationReports: Array.isArray(adminData.validationReports) ? adminData.validationReports.slice(0, 20) : fresh.validationReports,
   };
+  return normalizeBrandingAdminData(normalized);
+}
+
+function normalizeBrandingAdminData(adminData) {
+  const fresh = createDefaultAdminData();
+  const projectName = String(adminData.project?.name || "");
+  const projectVersion = String(adminData.project?.version || "");
+  const designLogo = String(adminData.design?.logo || "");
+  const designSlogan = String(adminData.design?.slogan || "");
+  const platzPassName = String(adminData.platzpass?.name || "");
+  return {
+    ...adminData,
+    project: {
+      ...adminData.project,
+      name: /liga\s*clash/i.test(projectName) ? fresh.project.name : adminData.project.name,
+      version: /0\.2/i.test(projectVersion) ? fresh.project.version : adminData.project.version,
+    },
+    design: {
+      ...adminData.design,
+      logo: !designLogo || /assets\/logo\/logo\.png/i.test(designLogo) ? fresh.design.logo : adminData.design.logo,
+      slogan: /the football card game/i.test(designSlogan) ? fresh.design.slogan : adminData.design.slogan,
+    },
+    platzpass: {
+      ...adminData.platzpass,
+      name: /liga\s*clash/i.test(platzPassName) ? fresh.platzpass.name : adminData.platzpass.name,
+    },
+  };
+}
+
+function defaultPlayerSearchProviders() {
+  return {
+    local: {
+      enabled: true,
+      label: "Lokale Datenbank",
+      baseUrl: "",
+      requiresApiKey: false,
+      dailyLimit: 0,
+      monthlyLimit: 0,
+      lastSuccessfulConnection: "",
+      lastError: "",
+      dataDate: SEASON_2026_27_STATUS.lastSquadUpdate,
+    },
+    manualUrl: {
+      enabled: true,
+      label: "Manuelle Quellen-URL",
+      baseUrl: "",
+      requiresApiKey: false,
+      dailyLimit: 0,
+      monthlyLimit: 0,
+      lastSuccessfulConnection: "",
+      lastError: "",
+      dataDate: "",
+    },
+    footballApi: {
+      enabled: false,
+      label: "Fussball-Daten-API ueber sicheren Backend-Proxy",
+      baseUrl: "",
+      requiresApiKey: true,
+      apiKeyStorage: "server-only",
+      dailyLimit: 100,
+      monthlyLimit: 1000,
+      lastSuccessfulConnection: "",
+      lastError: "Statisches Frontend: geheime API-Keys duerfen hier nicht gespeichert werden.",
+      dataDate: "",
+    },
+  };
+}
+
+function normalizePlayerSearchProviders(providers = {}) {
+  const fresh = defaultPlayerSearchProviders();
+  return Object.fromEntries(Object.entries(fresh).map(([id, defaults]) => {
+    const source = providers[id] || {};
+    return [id, {
+      ...defaults,
+      ...source,
+      enabled: source.enabled ?? defaults.enabled,
+      label: String(source.label || defaults.label),
+      baseUrl: String(source.baseUrl || ""),
+      requiresApiKey: Boolean(source.requiresApiKey ?? defaults.requiresApiKey),
+      apiKeyStorage: defaults.requiresApiKey ? "server-only" : "none",
+      dailyLimit: Math.max(0, Math.round(Number(source.dailyLimit ?? defaults.dailyLimit) || 0)),
+      monthlyLimit: Math.max(0, Math.round(Number(source.monthlyLimit ?? defaults.monthlyLimit) || 0)),
+      lastSuccessfulConnection: String(source.lastSuccessfulConnection || ""),
+      lastError: String(source.lastError || ""),
+      dataDate: String(source.dataDate || defaults.dataDate || ""),
+    }];
+  }));
+}
+
+function defaultPlayerScoutState() {
+  return {
+    filters: {
+      name: "",
+      club: "Alle Vereine",
+      league: "Alle Ligen",
+      nationality: "",
+      position: "",
+      gender: "all",
+      season: SEASON_2026_27_STATUS.season,
+      source: "local",
+      sourceUrl: "",
+    },
+    results: [],
+    selectedId: "",
+    preview: null,
+    csvJsonInput: "",
+    isSaving: false,
+    lastMessage: "",
+  };
+}
+
+function normalizePlayerScoutState(scout = {}) {
+  const fresh = defaultPlayerScoutState();
+  return {
+    ...fresh,
+    ...scout,
+    filters: { ...fresh.filters, ...(scout.filters || {}) },
+    results: Array.isArray(scout.results) ? scout.results.map(normalizeScoutResult).slice(0, 100) : fresh.results,
+    selectedId: String(scout.selectedId || ""),
+    preview: scout.preview ? normalizeScoutResult(scout.preview) : null,
+    csvJsonInput: String(scout.csvJsonInput || ""),
+    isSaving: false,
+    lastMessage: String(scout.lastMessage || ""),
+  };
+}
+
+function normalizePlayerImports(imports = []) {
+  return Array.isArray(imports) ? imports.map(normalizeScoutImportedRecord).filter(Boolean).slice(0, 500) : [];
+}
+
+function normalizePlayerImportLogs(logs = []) {
+  return Array.isArray(logs) ? logs.map((log) => ({
+    id: String(log.id || `player-import-log-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    action: String(log.action || "player-import"),
+    playerId: String(log.playerId || ""),
+    cardId: String(log.cardId || ""),
+    performedByUserId: String(log.performedByUserId || ""),
+    sourceName: String(log.sourceName || ""),
+    sourceUrl: String(log.sourceUrl || ""),
+    importedAt: String(log.importedAt || new Date().toISOString()),
+    changedFields: Array.isArray(log.changedFields) ? log.changedFields.map(String) : [],
+    duplicateCheckResult: String(log.duplicateCheckResult || ""),
+    imageSource: String(log.imageSource || ""),
+    result: String(log.result || "success"),
+    warnings: Array.isArray(log.warnings) ? log.warnings.map(String) : [],
+  })).slice(0, 100) : [];
 }
 
 function normalizePlatzPassState(pass) {
@@ -5577,6 +9063,7 @@ function createInitialState() {
     activeMatch: null,
     matchHistory: [],
     pendingRewardBoard: null,
+    draftBoardSettings: defaultDraftBoardSettings(),
     cardFilters: defaultCardFilters(),
     leagueRows,
     record: { win: 0, draw: 0, loss: 0 },
@@ -5593,6 +9080,8 @@ function createInitialState() {
     adminData: createDefaultAdminData(),
     adminUsers: defaultAdminUsers(),
     activeUserId: ADMIN_OWNER_ID,
+    sessionLoggedOut: false,
+    schemaVersion: 2,
     career: defaultCareerState(),
     leagueSystem: createDefaultLeagueSystem(1),
     missionSystem: createDefaultMissionSystem(),
@@ -5601,7 +9090,10 @@ function createInitialState() {
 
 function normalizeState(saved) {
   const fresh = createInitialState();
-  const migratedDeck = ensureStarterDeckSize(Array.isArray(saved.deck) && saved.deck.length ? saved.deck.map(normalizeCard) : fresh.deck);
+  const boosterOverride = loadBoosterConfigOverride();
+  const deletedBoosterPackIds = boosterOverride?.deletedBoosterPackIds || (Array.isArray(saved.deletedBoosterPackIds) ? saved.deletedBoosterPackIds.filter(Boolean) : fresh.deletedBoosterPackIds);
+  const savedBoosterPacks = boosterOverride?.boosterPacks || (Array.isArray(saved.boosterPacks) ? saved.boosterPacks : fresh.boosterPacks);
+  const migratedDeck = ensureStarterDeckSize(removeTemporaryPlayerCards(Array.isArray(saved.deck) && saved.deck.length ? saved.deck : fresh.deck).map(normalizeCard));
   const migratedSelected = Array.isArray(saved.selected) && saved.selected.length ? migrateSelectedIds(saved.selected, migratedDeck) : fresh.selected;
   const migratedActiveDeck = normalizeActiveDeckState(saved.activeDeck, migratedDeck, migratedSelected, saved.formation || fresh.formation);
   const migratedEvents = Array.isArray(saved.events)
@@ -5616,6 +9108,8 @@ function normalizeState(saved) {
       activeMigratedUser.wallet = normalizeWallet({ coins: saved.coins ?? fresh.coins, gems: saved.gems ?? fresh.gems });
     }
   }
+  const normalizedDraftSettings = normalizeDraftBoardSettings(saved.draftBoardSettings);
+  const migratedUserData = migrateUserDataForUsers(migratedUsers, saved, migratedDeck, migratedActiveDeck, migratedSelected);
   return {
     ...fresh,
     ...saved,
@@ -5626,6 +9120,7 @@ function normalizeState(saved) {
     activeMatch: normalizeStoredMatch(saved.activeMatch),
     matchHistory: normalizeMatchHistory(saved.matchHistory),
     pendingRewardBoard: normalizePendingRewardBoard(saved.pendingRewardBoard),
+    draftBoardSettings: normalizedDraftSettings,
     gems: Number.isFinite(saved.gems) ? saved.gems : fresh.gems,
     dailyClaimed: Boolean(saved.dailyClaimed),
     mailGiftClaimed: Boolean(saved.mailGiftClaimed),
@@ -5634,8 +9129,8 @@ function normalizeState(saved) {
     record: { ...fresh.record, ...(saved.record || {}) },
     events: migratedEvents,
     selectedAdminEventId: migratedEvents.some((event) => event.id === saved.selectedAdminEventId) ? saved.selectedAdminEventId : migratedEvents[0]?.id || null,
-    deletedBoosterPackIds: Array.isArray(saved.deletedBoosterPackIds) ? saved.deletedBoosterPackIds.filter(Boolean) : fresh.deletedBoosterPackIds,
-    boosterPacks: mergeDefaultBoosterPacks(saved.boosterPacks && saved.boosterPacks.length ? saved.boosterPacks : fresh.boosterPacks, saved.deletedBoosterPackIds),
+    deletedBoosterPackIds,
+    boosterPacks: mergeDefaultBoosterPacks(savedBoosterPacks, deletedBoosterPackIds),
     boosterInventory: normalizeBoosterInventory(saved.boosterInventory),
     boosterTransactions: normalizeBoosterTransactions(saved.boosterTransactions),
     boosterOpenings: normalizeBoosterOpenings(saved.boosterOpenings),
@@ -5645,7 +9140,10 @@ function normalizeState(saved) {
     rewardPools: normalizeRewardPools(saved.rewardPools),
     adminData: normalizeAdminData(saved.adminData),
     adminUsers: migratedUsers,
+    userData: migratedUserData,
     activeUserId,
+    sessionLoggedOut: Boolean(saved.sessionLoggedOut),
+    schemaVersion: 2,
     career: normalizeCareerState(saved.career),
     cardFilters: normalizeCardFilters(saved.cardFilters),
     deck: migratedDeck,
@@ -6344,6 +9842,10 @@ function grantMissionReward(reward) {
     state.log = [`Draft-XP: ${reward.amount} Karriere-XP erhalten.`, ...state.log].slice(0, 8);
   } else if (reward.type === "card") {
     const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    if (!card) {
+      state.log = ["Missions-Kartenbelohnung konnte nicht erstellt werden: kein Kartenkatalog vorhanden.", ...state.log].slice(0, 8);
+      return;
+    }
     state.deck.push(card);
     recordGameEvent("card_received", { id: `mission-card-${card.id}`, count: 1 });
   } else {
@@ -6581,7 +10083,9 @@ function normalizeMatchHistory(history) {
 
 function normalizePendingRewardBoard(board) {
   if (!board || typeof board !== "object" || !board.matchId) return null;
-  const slots = Array.isArray(board.slots) ? board.slots.slice(0, 25).map((slot, index) => ({
+  const settings = normalizeDraftBoardSettings(board.settings || {});
+  const maxSlots = clamp(Math.round(Number(board.rows || settings.rows) || 5) * Math.round(Number(board.columns || settings.columns) || 5), 4, 64);
+  const slots = Array.isArray(board.slots) ? board.slots.slice(0, maxSlots).map((slot, index) => ({
     id: slot?.id || `slot-${index}`,
     index,
     revealed: Boolean(slot?.revealed),
@@ -6601,6 +10105,8 @@ function normalizePendingRewardBoard(board) {
     resetUnlocked: Boolean(board.resetUnlocked),
     lastMatchId: board.lastMatchId || board.matchId,
     createdAt: board.createdAt || new Date().toISOString(),
+    rows: clamp(Math.round(Number(board.rows || settings.rows) || 5), 2, 8),
+    columns: clamp(Math.round(Number(board.columns || settings.columns) || 5), 2, 8),
     slots,
     claimedSlots: Array.isArray(board.claimedSlots) ? board.claimedSlots : [],
     claimedRewards: Array.isArray(board.claimedRewards) ? board.claimedRewards.map(normalizeDraftReward) : [],
@@ -6704,6 +10210,120 @@ function normalizeRewardPool(pool, size = 5, fallback = null) {
   });
 }
 
+function defaultDraftBoardSettings() {
+  return {
+    enabled: true,
+    rows: 5,
+    columns: 5,
+    picksWin: 4,
+    picksDraw: 3,
+    picksLoss: 2,
+    resetWhenCompleted: false,
+    jackpotEnabled: true,
+    jackpotChance: 2,
+    maxRewardTier: teamClasses.length - 1,
+    leagueScaling: true,
+    seasonScaling: true,
+    rewardPool: normalizeRewardPool(null, 8),
+  };
+}
+
+function normalizeDraftBoardSettings(settings) {
+  const fresh = defaultDraftBoardSettings();
+  const source = settings && typeof settings === "object" ? settings : {};
+  const rows = clamp(Math.round(Number(source.rows ?? fresh.rows) || fresh.rows), 2, 8);
+  const columns = clamp(Math.round(Number(source.columns ?? fresh.columns) || fresh.columns), 2, 8);
+  return {
+    ...fresh,
+    ...source,
+    enabled: source.enabled !== false,
+    rows,
+    columns,
+    picksWin: clamp(Math.round(Number(source.picksWin ?? fresh.picksWin) || fresh.picksWin), 1, rows * columns),
+    picksDraw: clamp(Math.round(Number(source.picksDraw ?? fresh.picksDraw) || fresh.picksDraw), 1, rows * columns),
+    picksLoss: clamp(Math.round(Number(source.picksLoss ?? fresh.picksLoss) || fresh.picksLoss), 1, rows * columns),
+    resetWhenCompleted: Boolean(source.resetWhenCompleted),
+    jackpotEnabled: source.jackpotEnabled !== false,
+    jackpotChance: clamp(Number(source.jackpotChance ?? fresh.jackpotChance) || 0, 0, 100),
+    maxRewardTier: normalizeClassIndex(source.maxRewardTier ?? fresh.maxRewardTier),
+    leagueScaling: source.leagueScaling !== false,
+    seasonScaling: source.seasonScaling !== false,
+    rewardPool: normalizeRewardPool(source.rewardPool || source.rewards, 8),
+  };
+}
+
+function createDefaultUserData(userId, deck = [], activeDeck = null, selected = []) {
+  const normalizedDeck = removeTemporaryPlayerCards(deck).map(normalizeCard);
+  const normalizedActiveDeck = normalizeActiveDeckState(activeDeck, normalizedDeck, selected, DEFAULT_FORMATION);
+  return {
+    ownedCardInstances: normalizedDeck,
+    decks: [normalizedActiveDeck],
+    activeDeckId: normalizedActiveDeck.id || "main-deck",
+    activeDeck: normalizedActiveDeck,
+    selected: deckIds(normalizedActiveDeck).length ? deckIds(normalizedActiveDeck) : selected,
+    starterPack: { status: userId === ADMIN_OWNER_ID ? "completed" : "pending", cardIds: [], startedAt: "", completedAt: "" },
+    favorites: normalizedDeck.filter((card) => card.favorite).map((card) => card.instanceId || card.id),
+    progression: {},
+  };
+}
+
+function migrateUserDataForUsers(users, saved, migratedDeck, migratedActiveDeck, migratedSelected) {
+  const existing = saved.userData && typeof saved.userData === "object" ? saved.userData : {};
+  return Object.fromEntries(users.map((user) => {
+    const data = existing[user.id] || user.userData || (user.id === saved.activeUserId || user.id === ADMIN_OWNER_ID ? createDefaultUserData(user.id, migratedDeck, migratedActiveDeck, migratedSelected) : createDefaultUserData(user.id, [], null, []));
+    return [user.id, normalizeUserData(data, user.id)];
+  }));
+}
+
+function normalizeUserData(data, userId) {
+  const cards = removeTemporaryPlayerCards(Array.isArray(data?.ownedCardInstances) ? data.ownedCardInstances : Array.isArray(data?.deck) ? data.deck : [])
+    .map(normalizeCard)
+    .map((card) => ({ ...card, ownerUserId: userId }));
+  const activeDeck = normalizeActiveDeckState(data?.activeDeck || data?.decks?.[0], cards, data?.selected || [], DEFAULT_FORMATION);
+  const starter = data?.starterPack || {};
+  return {
+    ownedCardInstances: cards,
+    decks: Array.isArray(data?.decks) && data.decks.length ? data.decks.map((deck) => normalizeActiveDeckState(deck, cards, data?.selected || [], deck?.formationId || DEFAULT_FORMATION)) : [activeDeck],
+    activeDeckId: data?.activeDeckId || activeDeck.id || "main-deck",
+    activeDeck,
+    selected: Array.isArray(data?.selected) ? data.selected.filter(Boolean) : deckIds(activeDeck),
+    starterPack: {
+      status: ["pending", "opening", "completed"].includes(starter.status) ? starter.status : userId === ADMIN_OWNER_ID ? "completed" : "pending",
+      cardIds: Array.isArray(starter.cardIds) ? starter.cardIds : [],
+      startedAt: starter.startedAt || "",
+      completedAt: starter.completedAt || "",
+    },
+    favorites: Array.isArray(data?.favorites) ? data.favorites : cards.filter((card) => card.favorite).map((card) => card.instanceId || card.id),
+    progression: data?.progression && typeof data.progression === "object" ? data.progression : {},
+  };
+}
+
+function snapshotCurrentUserData(userId = state.activeUserId) {
+  if (!userId) return;
+  state.userData = state.userData || {};
+  state.userData[userId] = normalizeUserData({
+    ownedCardInstances: state.deck,
+    decks: state.savedDecks?.length ? state.savedDecks : [state.activeDeck],
+    activeDeckId: state.activeDeck?.id || "main-deck",
+    activeDeck: state.activeDeck,
+    selected: state.selected,
+    starterPack: state.userData?.[userId]?.starterPack,
+    favorites: state.deck.filter((card) => card.favorite).map((card) => card.instanceId || card.id),
+    progression: state.userData?.[userId]?.progression,
+  }, userId);
+}
+
+function applyUserData(userId) {
+  state.userData = state.userData || {};
+  const data = normalizeUserData(state.userData[userId] || createDefaultUserData(userId, [], null, []), userId);
+  state.userData[userId] = data;
+  state.deck = data.ownedCardInstances;
+  state.activeDeck = data.activeDeck;
+  state.savedDecks = data.decks;
+  state.selected = data.selected;
+  syncActiveDeckSelection();
+}
+
 function rewardTypeLabel(type) {
   return {
     coins: "Muenzen",
@@ -6756,6 +10376,8 @@ function normalizeAdminUser(user) {
     wallet: normalizeWallet(user.wallet),
     profile: normalizeUserProfile(user.profile, { id, name: ownerName || user.name, role }),
     stats: normalizeUserStats(user.stats),
+    extraPermissions: Array.isArray(user.extraPermissions) ? user.extraPermissions.filter(Boolean) : [],
+    userData: user.userData || null,
   };
 }
 
@@ -6913,12 +10535,47 @@ function defaultBoosterPacks() {
 
 function mergeDefaultBoosterPacks(savedPacks, deletedPackIds = []) {
   const deletedIds = new Set(Array.isArray(deletedPackIds) ? deletedPackIds.filter(Boolean) : []);
-  const normalizedSaved = Array.isArray(savedPacks) ? savedPacks.filter((pack) => !deletedIds.has(pack?.id)).map(normalizeBoosterPack) : [];
+  const normalizedSaved = Array.isArray(savedPacks)
+    ? savedPacks
+        .filter((pack) => pack?.id && !deletedIds.has(pack.id))
+        .map(normalizeBoosterPack)
+    : [];
   const savedIds = new Set(normalizedSaved.map((pack) => pack.id));
   const missingDefaults = defaultBoosterPacks()
     .filter((pack) => !savedIds.has(pack.id) && !deletedIds.has(pack.id))
     .map(normalizeBoosterPack);
   return [...normalizedSaved, ...missingDefaults];
+}
+
+function loadBoosterConfigOverride() {
+  try {
+    const raw = localStorage.getItem(BOOSTER_CONFIG_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      boosterPacks: Array.isArray(parsed.boosterPacks) ? parsed.boosterPacks : [],
+      deletedBoosterPackIds: Array.isArray(parsed.deletedBoosterPackIds) ? parsed.deletedBoosterPackIds.filter(Boolean) : [],
+      savedAt: parsed.savedAt || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveBoosterConfig() {
+  try {
+    localStorage.setItem(BOOSTER_CONFIG_STORAGE_KEY, JSON.stringify({
+      schemaVersion: 1,
+      savedAt: new Date().toISOString(),
+      boosterPacks: state.boosterPacks.map(normalizeBoosterPack),
+      deletedBoosterPackIds: Array.isArray(state.deletedBoosterPackIds) ? state.deletedBoosterPackIds.filter(Boolean) : [],
+    }));
+    return true;
+  } catch {
+    setAdminStatus("Booster gespeichert, aber Browser-Speicher ist voll. Bitte grosse Uploads entfernen.");
+    return false;
+  }
 }
 
 function normalizeBoosterPack(pack) {
@@ -7317,8 +10974,10 @@ function monthName(monthNumber) {
 }
 
 function saveState() {
-  syncActiveDeckSelection();
-  syncActiveUserWallet();
+  if (!state.sessionLoggedOut) {
+    syncActiveDeckSelection();
+    syncActiveUserWallet();
+  }
   try {
     localStorage.setItem("liga-clash-state-v1", JSON.stringify(state));
   } catch {
@@ -7340,8 +10999,8 @@ function render() {
   document.querySelector(".pitch")?.setAttribute("data-field-theme", state.fieldTheme);
   renderOverlayLogo();
   const lineup = getLineup();
-  const avgClass = Math.round(state.deck.reduce((sum, card) => sum + card.cls, 0) / state.deck.length);
-  state.teamClassIndex = Math.max(state.teamClassIndex, avgClass);
+  const avgClass = state.deck.length ? Math.round(state.deck.reduce((sum, card) => sum + normalizeClassIndex(card.cls), 0) / state.deck.length) : normalizeClassIndex(state.teamClassIndex);
+  state.teamClassIndex = Math.max(normalizeClassIndex(state.teamClassIndex), avgClass);
 
   els.playerLeague.textContent = leagues[state.leagueIndex];
   els.teamClass.textContent = teamClasses[state.teamClassIndex];
@@ -7426,7 +11085,7 @@ function renderProjectStatusStrip() {
   const missingImages = GAME_CARDS.filter((card) => resolvePlayerImage(card).fallback).length;
   strip.innerHTML = `
     <div>
-      <strong>${escapeHtml(project.name || "Liga Clash Games")}</strong>
+      <strong>${escapeHtml(project.name || "KickOff SuperCard")}</strong>
       <span>${escapeHtml(project.status || "Alpha")} | ${GAME_CARDS.length} Karten | ${CLUBS.length} Vereine | ${missingImages} Bilder offen</span>
     </div>
     <div class="project-status-meter"><i style="--project-progress:${percent}%"></i><b>${percent}%</b></div>
@@ -7499,7 +11158,7 @@ function fieldTeamCardChip(card, side) {
 
 function currentGameLogo() {
   const configured = String(state.adminData?.design?.logo || "").trim();
-  return configured || "assets/logo/logo.png";
+  return resolveAdminAssetUrl(configured) || "assets/branding/logo.png";
 }
 
 function renderOverlayLogo() {
@@ -7509,8 +11168,8 @@ function renderOverlayLogo() {
   if (src) {
     logo.classList.add("has-image-logo");
     logo.innerHTML = `
-      <img src="${escapeAttr(src)}" alt="Liga Clash Games Logo" />
-      <span>${escapeHtml(state.adminData?.design?.slogan || "THE FOOTBALL CARD GAME")}</span>
+      <img src="${escapeAttr(src)}" alt="KickOff SuperCard Logo" />
+      <span>${escapeHtml(state.adminData?.design?.slogan || "Football Card Game")}</span>
     `;
     return;
   }
@@ -8152,10 +11811,11 @@ function validateMatchDeck(cards, formationKey = DEFAULT_FORMATION, deckObject =
 function buildCpuDeck(difficultyKey, playerDeck) {
   const difficulty = CPU_DIFFICULTIES[normalizeCpuDifficulty(difficultyKey)];
   const targetClass = clamp(Math.round(playerDeck.reduce((sum, card) => sum + normalizeClassIndex(card.cls), 0) / Math.max(1, playerDeck.length)) + difficulty.classOffset, 0, teamClasses.length - 1);
-  const pool = GAME_CARDS
+  const gamePool = playableCardPool();
+  const pool = gamePool
     .filter((card) => Math.abs(normalizeClassIndex(card.cls) - targetClass) <= 2)
     .sort((a, b) => rating(b) - rating(a));
-  const source = pool.length ? pool : GAME_CARDS;
+  const source = pool.length ? pool : gamePool;
   const picked = [];
   const needs = [
     { role: "keeper", count: 1 },
@@ -8179,12 +11839,13 @@ function buildCpuDeck(difficultyKey, playerDeck) {
 
 function chooseCpuDeckCard(source, picked, role, difficulty) {
   const usedSources = new Set(picked.map((card) => sourceCardId(card)));
+  const gamePool = playableCardPool();
   const roleSource = role === "sub"
     ? source
     : source.filter((card) => positionFit(card, role).kind !== "wrong");
   const globalRoleSource = role === "sub"
-    ? GAME_CARDS
-    : GAME_CARDS.filter((card) => positionFit(card, role).kind !== "wrong");
+    ? gamePool
+    : gamePool.filter((card) => positionFit(card, role).kind !== "wrong");
   const candidates = (roleSource.length ? roleSource : globalRoleSource).filter((card) => !usedSources.has(sourceCardId(card)));
   const fallback = source.filter((card) => !usedSources.has(sourceCardId(card)));
   const sorted = [...(candidates.length ? candidates : fallback)].sort((a, b) => rating(b) - rating(a));
@@ -8418,9 +12079,10 @@ function summarizeMatch(match) {
 }
 
 function rewardSelectionsForResult(result) {
-  if (result === "win") return 4;
-  if (result === "loss") return 2;
-  return 2;
+  const settings = normalizeDraftBoardSettings(state.draftBoardSettings);
+  if (result === "win") return settings.picksWin;
+  if (result === "loss") return settings.picksLoss;
+  return settings.picksDraw;
 }
 
 function prepareRewardBoard(match) {
@@ -8430,23 +12092,46 @@ function prepareRewardBoard(match) {
 }
 
 function createDraftBoard(match) {
+  const settings = normalizeDraftBoardSettings(state.draftBoardSettings);
+  if (!settings.enabled) {
+    return {
+      id: `draft-${match.id}`,
+      matchId: match.id,
+      lastMatchId: match.id,
+      result: match.result,
+      selectionCount: 0,
+      picksRemaining: 0,
+      rewardTier: "disabled",
+      rewarded: true,
+      status: "completed",
+      deckStage: topDeckDraftStage(),
+      resetUnlocked: false,
+      createdAt: new Date().toISOString(),
+      slots: [],
+      rows: settings.rows,
+      columns: settings.columns,
+      claimedSlots: [],
+      claimedRewards: [],
+    };
+  }
   const existing = state.pendingRewardBoard;
   const selectionCount = rewardSelectionsForResult(match.result);
-  if (existing && Array.isArray(existing.slots) && existing.slots.length === 25 && !existing.resetUnlocked) {
+  const boardSize = settings.rows * settings.columns;
+  if (existing && Array.isArray(existing.slots) && existing.slots.length === boardSize && !existing.resetUnlocked) {
     existing.matchId = match.id;
     existing.result = match.result;
     existing.selectionCount = selectionCount;
-    existing.picksRemaining = Math.min(25, Math.max(0, Number(existing.picksRemaining) || 0) + selectionCount);
+    existing.picksRemaining = Math.min(boardSize, Math.max(0, Number(existing.picksRemaining) || 0) + selectionCount);
     existing.rewardTier = match.result === "win" ? "winner" : "consolation";
     existing.status = "ready";
     existing.lastMatchId = match.id;
     return existing;
   }
-  if (existing?.matchId === match.id && Array.isArray(existing.slots) && existing.slots.length === 25) return existing;
+  if (existing?.matchId === match.id && Array.isArray(existing.slots) && existing.slots.length === boardSize) return existing;
   const deckStage = topDeckDraftStage();
-  const slots = Array.from({ length: 25 }, (_, index) => createDraftRewardSlot(match, index, deckStage));
+  const slots = Array.from({ length: boardSize }, (_, index) => createDraftRewardSlot(match, index, deckStage));
   const tierIndex = rand(0, slots.length - 1);
-  slots[tierIndex].reward = createDraftTierCardReward(deckStage);
+  if (settings.jackpotEnabled) slots[tierIndex].reward = createDraftTierCardReward(deckStage);
   return {
     id: `draft-${match.id}`,
     matchId: match.id,
@@ -8461,6 +12146,8 @@ function createDraftBoard(match) {
     resetUnlocked: false,
     createdAt: new Date().toISOString(),
     slots,
+    rows: settings.rows,
+    columns: settings.columns,
     claimedSlots: [],
     claimedRewards: [],
   };
@@ -8486,7 +12173,8 @@ function topDeckDraftStage() {
 }
 
 function rollDraftReward(match, deckStage = topDeckDraftStage()) {
-  const pool = normalizeRewardPool(state.rewardPools?.draft, 8).filter((reward) => reward.active && reward.type !== "tierCard" && reward.chance > 0);
+  const settings = normalizeDraftBoardSettings(state.draftBoardSettings);
+  const pool = normalizeRewardPool(settings.rewardPool || state.rewardPools?.draft, 8).filter((reward) => reward.active && reward.type !== "tierCard" && reward.chance > 0);
   const fallback = normalizeRewardPool(defaultRewardPools().draft, 8).filter((reward) => reward.active && reward.type !== "tierCard");
   const source = pool.length ? pool : fallback;
   const total = source.reduce((sum, reward) => sum + reward.chance, 0);
@@ -8530,7 +12218,7 @@ function createDraftTierCardReward(deckStage = topDeckDraftStage()) {
 
 function renderDraftBoardFeature() {
   const board = state.pendingRewardBoard;
-  if (!board || !Array.isArray(board.slots) || board.slots.length !== 25) {
+  if (!board || !Array.isArray(board.slots) || !board.slots.length) {
     setFeature("Draft-Board", "Belohnungs-Draft", `<article class="feature-card"><h3>Kein Draft bereit</h3><p>Schliesse zuerst ein Match ab.</p></article>`);
     return;
   }
@@ -8553,7 +12241,7 @@ function renderDraftBoardFeature() {
           <span>Deckpower ${board.deckStage?.deckPower || 0}</span>
           <span>${board.resetUnlocked ? "Reset freigegeben" : "Reset gesperrt bis Stufenkarte"}</span>
         </div>
-        <div class="draft-board-grid">
+        <div class="draft-board-grid" style="--draft-columns:${Math.max(2, Number(board.columns) || 5)}">
           ${board.slots.map((slot) => draftBoardSlot(slot, done)).join("")}
         </div>
         <div class="draft-reward-log">
@@ -8613,10 +12301,18 @@ function grantDraftReward(reward) {
     grantFreePack(reward.packId, reward.amount);
   } else if (reward.type === "card") {
     const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    if (!card) {
+      state.log = ["Draft-Kartenbelohnung konnte nicht erstellt werden: kein Kartenkatalog vorhanden.", ...state.log].slice(0, 8);
+      return;
+    }
     state.deck.push(card);
     recordGameEvent("card_received", { id: `draft-card-${card.id}`, count: 1 });
   } else if (reward.type === "tierCard") {
     const card = drawGameCard(reward.classIndex, reward.classIndex, "mixed");
+    if (!card) {
+      state.log = ["Draft-Stufenkarte konnte nicht erstellt werden: kein Kartenkatalog vorhanden.", ...state.log].slice(0, 8);
+      return;
+    }
     card.series = "totw";
     state.deck.push(card);
     recordGameEvent("card_received", { id: `draft-tier-card-${card.id}`, count: 1 });
@@ -8632,16 +12328,8 @@ function roundLogLine(round) {
 }
 
 function openPack() {
-  if (state.coins < 100) {
-    state.log = ["Du brauchst 100 Coins fuer ein Scout-Pack.", ...state.log].slice(0, 8);
-    render();
-    return;
-  }
-  state.coins -= 100;
-  const nextClass = clamp(state.teamClassIndex + rand(-1, 2), 0, teamClasses.length - 1);
-  const card = generateCard(nextClass);
-  state.deck.push(card);
-  state.log = [`Scout-Pack: ${card.name} (${teamClasses[card.cls]}) kommt in deinen Kader.`, ...state.log].slice(0, 8);
+  state.log = ["Scout-Pack ist deaktiviert: Es sind keine offiziellen Karten im Katalog vorhanden.", ...state.log].slice(0, 8);
+  showToast("Keine Karten im Katalog vorhanden.", "warning");
   render();
 }
 
@@ -8658,61 +12346,201 @@ function createOpponent() {
 }
 
 function generateCard(cls) {
-  const first = ["Luca", "Mika", "Amira", "Jona", "Elif", "Noel", "Nina", "Ilyas", "Mira", "Toni"];
-  const last = ["Brandt", "Sahin", "Rossi", "Weber", "Diallo", "Fischer", "Costa", "Winter"];
-  const positions = ["ST", "ZM", "IV", "RA", "LV", "DM", "TW"];
-  const club = pick(CLUBS);
-  const bonus = cls * 4;
-  const name = `${pick(first)} ${pick(last)}`;
-  const pos = pick(positions);
-  const atk = clamp(rand(38, 70) + bonus, 20, 99);
-  const mid = clamp(rand(38, 70) + bonus, 20, 99);
-  const def = clamp(rand(38, 70) + bonus, 20, 99);
-  const performance = generatedSeasonPerformance(pos, atk, mid, def);
-  return {
-    id: `card-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name,
-    pos,
-    club: club.name,
-    league: club.league,
-    crest: club.crest,
-    photo: "",
-    cls,
-    atk,
-    mid,
-    def,
-    performance,
-    stats: buildCardStats(pos, atk, mid, def, cls, performance),
-  };
+  return drawGameCard(cls, cls);
 }
 
 function cardDef(id, name, pos, club, cls, atk, mid, def, photo = "", series = "standard") {
   const normalizedClass = normalizeClassIndex(cls);
   const performance = SEASON_PERFORMANCE_DATA[id] || generatedSeasonPerformance(pos, atk, mid, def);
-  const base = withClub({ id, cardId: id, playerId: id, name, pos, club, cls: normalizedClass, atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo, nation: "Deutschland", flag: "DE", level: 1, stars: 1, xp: 0, status: "active" });
+  const baseOverall = normalizeBaseOverall(null, normalizedClass);
+  const base = withClub({ id, cardId: id, playerId: id, name, pos, club, cls: normalizedClass, baseOverall, currentOverall: calculateCardOverall(baseOverall, 1, 1, 0), atk, mid, def, series: normalizeCardSeries(series), performance, stats: buildCardStats(pos, atk, mid, def, normalizedClass, performance), photo, nation: "Deutschland", flag: "DE", level: 1, stars: 1, xp: 0, status: "historical", season: "2025/26", squadStatus: "historical", isHistorical: true, isActiveSeasonCard: false, verifiedForSeason: false });
   return CARD_SYSTEM?.normalizeCardRecord ? CARD_SYSTEM.normalizeCardRecord(base, { rating: (card) => rating({ ...base, ...card }) }) : base;
 }
 
+function normalizeBundesligaSquadCard(entry) {
+  if (!Array.isArray(entry)) return null;
+  const [id, name, pos, club, cls = 4] = entry;
+  if (!id || !name || !pos || !club) return null;
+  const details = globalThis.LIGA_CLASH_2627_PLAYER_DETAILS?.[id];
+  const values = defaultCardValuesForPosition(pos, cls);
+  const card = markCurrentSeasonCard(cardDef(id, name, pos, club, cls, values.atk, values.mid, values.def, details?.image || details?.photo || ""));
+  if (!details) return card;
+  return {
+    ...card,
+    id: `${details.id}-base-2627`,
+    playerId: details.id,
+    cardId: `${details.id}-base-2627`,
+    sourceId: details.id,
+    firstName: details.firstName,
+    lastName: details.lastName,
+    name: details.displayName,
+    displayName: details.displayName,
+    dateOfBirth: details.dateOfBirth,
+    nationality: details.nationality,
+    nation: details.nationality,
+    position: details.position,
+    pos: details.position,
+    secondaryPositions: details.secondaryPositions || [],
+    shirtNumber: details.shirtNumber,
+    clubId: details.clubId,
+    leagueId: details.leagueId,
+    squadStatus: details.squadStatus,
+    squadSeason: details.squadSeason || CURRENT_SEASON,
+    teamId: details.teamId || teamIdForClubName(details.clubName || club, details.gender === "female" ? "women-first" : "men-first"),
+    currentClubId: details.currentClubId || details.clubId || club,
+    currentLeagueId: details.currentLeagueId || details.leagueId,
+    verifiedForSeason: details.verifiedForSeason !== false,
+    isHistorical: false,
+    isActiveSeasonCard: details.squadStatus !== "departed" && details.verifiedForSeason !== false,
+    loanStatus: details.loanStatus,
+    image: details.image,
+    photo: details.image,
+    isActive: details.isActive !== false,
+    isPackable: details.isPackable !== false,
+    lastVerifiedAt: details.lastVerifiedAt,
+    sourceStatus: details.sourceStatus,
+    cardSeries: "base",
+    series: "standard",
+  };
+}
+
+function markCurrentSeasonCard(card) {
+  const teamType = String(card.league || "").includes("Frauen") ? "women-first" : "men-first";
+  const playerId = card.playerId || sourceCardId(card);
+  const currentCardId = String(card.cardId || card.id || playerId).endsWith("-base-2627")
+    ? String(card.cardId || card.id || playerId)
+    : `${playerId}-base-2627`;
+  return {
+    ...card,
+    id: currentCardId,
+    cardId: currentCardId,
+    sourceId: playerId,
+    playerId,
+    season: CURRENT_SEASON,
+    squadSeason: CURRENT_SEASON,
+    teamId: card.teamId || teamIdForClubName(card.club, teamType),
+    currentClubId: card.currentClubId || card.club,
+    currentLeagueId: card.currentLeagueId || card.league,
+    lastVerifiedAt: SEASON_2026_27_STATUS.lastSquadUpdate,
+    dataStatus: SEASON_2026_27_STATUS.completeness,
+    squadStatus: "active",
+    verifiedForSeason: true,
+    isHistorical: false,
+    isActiveSeasonCard: true,
+    isActive: true,
+    isPackable: true,
+  };
+}
+
+function defaultCardValuesForPosition(position, cls = 4) {
+  const normalizedPosition = CARD_SYSTEM?.normalizePosition ? CARD_SYSTEM.normalizePosition(position) : String(position || "").toUpperCase();
+  const classBonus = normalizeClassIndex(cls) * 3;
+  const templates = {
+    TW: { atk: 35, mid: 62, def: 78 },
+    IV: { atk: 43, mid: 61, def: 77 },
+    LV: { atk: 62, mid: 70, def: 73 },
+    RV: { atk: 62, mid: 70, def: 73 },
+    ZDM: { atk: 58, mid: 74, def: 76 },
+    ZM: { atk: 67, mid: 77, def: 68 },
+    ZOM: { atk: 75, mid: 80, def: 54 },
+    LM: { atk: 74, mid: 76, def: 58 },
+    RM: { atk: 74, mid: 76, def: 58 },
+    LF: { atk: 80, mid: 72, def: 46 },
+    RF: { atk: 80, mid: 72, def: 46 },
+    ST: { atk: 82, mid: 64, def: 45 },
+  };
+  const base = templates[normalizedPosition] || templates.ST;
+  return {
+    atk: clamp(base.atk + classBonus, 30, 98),
+    mid: clamp(base.mid + classBonus, 30, 98),
+    def: clamp(base.def + classBonus, 30, 98),
+  };
+}
+
+function cardIdentityExists(cards, card) {
+  return cards.some((existing) => {
+    if (existing.id === card.id) return true;
+    if (card.season === CURRENT_SEASON) return false;
+    return existing.name === card.name && existing.club === card.club && cardSeries(existing) === cardSeries(card);
+  });
+}
+
+function applyPartOneRosterOverrides(cards) {
+  const partOnePlayers = Array.isArray(globalThis.LIGA_CLASH_2627_PART1_PLAYERS) ? globalThis.LIGA_CLASH_2627_PART1_PLAYERS : [];
+  if (!partOnePlayers.length) return;
+  const targetClubNames = new Set(partOnePlayers.map((player) => player.clubName));
+  const activePlayerIds = new Set(partOnePlayers.map((player) => player.id));
+  for (const card of cards) {
+    if (!targetClubNames.has(card.club) || card.season !== CURRENT_SEASON) continue;
+    if (activePlayerIds.has(card.playerId) || activePlayerIds.has(card.id)) continue;
+    card.currentClubId = null;
+    card.squadStatus = "departed";
+    card.verifiedForSeason = false;
+    card.isActiveSeasonCard = false;
+    card.isActive = false;
+    card.isPackable = false;
+    card.lastVerifiedAt = SEASON_2026_27_STATUS.lastSquadUpdate;
+  }
+}
+
+function clearTemporaryPlayerCatalog(cards) {
+  if (!Array.isArray(cards)) return 0;
+  const removed = cards.length;
+  cards.splice(0, cards.length);
+  return removed;
+}
+
+function isTemporaryPlayerCard(card) {
+  return Boolean(card?.isTestCard === true || card?.isPlaceholder === true);
+}
+
+function removeTemporaryPlayerCards(cards) {
+  return (Array.isArray(cards) ? cards : []).filter((card) => card && typeof card === "object" && !isTemporaryPlayerCard(card));
+}
+
+function playableCardPool(cards = GAME_CARDS) {
+  return currentSeasonCardPool(removeTemporaryPlayerCards(cards));
+}
+
 function cloneCardForCollection(card, prefix = "owned") {
+  if (!card) return null;
+  const instanceId = `${prefix}-${card.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return {
     ...card,
     photo: card.photo || "",
     sourceId: sourceCardId(card),
-    id: `${prefix}-${card.id}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id: instanceId,
+    instanceId,
+    ownerUserId: currentOwnerUserId(),
+    obtainedAt: new Date().toISOString(),
+    source: prefix,
     series: normalizeCardSeries(card.series),
     level: 1,
+    xp: 0,
+    stars: 1,
+    locked: false,
     proStars: 0,
     proQuality: "",
   };
+}
+
+function currentOwnerUserId() {
+  try {
+    return state?.activeUserId || ADMIN_OWNER_ID;
+  } catch {
+    return ADMIN_OWNER_ID;
+  }
 }
 
 function drawGameCard(minClass, maxClass, pool = "mixed", dropRates = null, positions = []) {
   const min = clamp(minClass, 0, teamClasses.length - 1);
   const max = clamp(maxClass, min, teamClasses.length - 1);
   const selectedClass = pickClassFromDropRates(normalizeDropRates(dropRates, min, max), min, max);
-  const candidates = GAME_CARDS.filter((card) => card.cls === selectedClass && cardMatchesPackPool(card, pool) && cardMatchesPackPositions(card, positions));
-  const fallback = GAME_CARDS.filter((card) => card.cls >= min && card.cls <= max && cardMatchesPackPool(card, pool) && cardMatchesPackPositions(card, positions));
-  return cloneCardForCollection(pick(candidates.length ? candidates : fallback.length ? fallback : GAME_CARDS));
+  const activePool = isHistoricalPackPool(pool) ? GAME_CARDS.filter(isHistoricalSeasonCard) : playableCardPool();
+  const candidates = activePool.filter((card) => card.cls === selectedClass && cardMatchesPackPool(card, pool) && cardMatchesPackPositions(card, positions));
+  const fallback = activePool.filter((card) => card.cls >= min && card.cls <= max && cardMatchesPackPool(card, pool) && cardMatchesPackPositions(card, positions));
+  const source = candidates.length ? candidates : fallback.length ? fallback : activePool;
+  return cloneCardForCollection(pick(source));
 }
 
 function pickClassFromDropRates(dropRates, minClass, maxClass) {
@@ -8730,7 +12558,9 @@ function pickClassFromDropRates(dropRates, minClass, maxClass) {
 }
 
 function cardMatchesPackPool(card, pool) {
-  if (pool === "men-bundesliga") return card.league === "1. Bundesliga";
+  if (!isHistoricalPackPool(pool) && !isCurrentSeasonCard(card)) return false;
+  if (isHistoricalPackPool(pool) && !isHistoricalSeasonCard(card)) return false;
+  if (pool === "men-bundesliga") return card.league === "1. Bundesliga" && (card.season !== CURRENT_SEASON || card.isPackable !== false);
   if (pool === "women-bundesliga") return card.league === "Google Pixel Frauen-Bundesliga";
   if (pool === "dfb-pokal") return ["1. Bundesliga", "2. Bundesliga", "3. Liga", "Google Pixel Frauen-Bundesliga", "2. Frauen-Bundesliga"].includes(card.league);
   if (pool === "totw") return cardSeries(card) === "totw" || rating(card) >= 78 || normalizeClassIndex(card.cls) >= 8;
@@ -8744,20 +12574,31 @@ function cardMatchesPackPositions(card, positions) {
 }
 
 function sourceCardId(card) {
-  return card.sourceId || card.id;
+  return card.sourceId || card.cardId || card.playerId || card.id;
 }
 
 function getFilteredClubs(league) {
   return CLUBS.filter((club) => league === "Alle Ligen" || club.league === league);
 }
 
-function getFilteredCards(league, club, player) {
+function getFilteredCards(league, club, player, season = CURRENT_SEASON) {
   return GAME_CARDS.filter((card) => {
+    const seasonMatches = season === "all"
+      || (season === CURRENT_SEASON ? isCurrentSeasonCard(card, season) : card.season === season && isHistoricalSeasonCard(card));
     const leagueMatches = league === "Alle Ligen" || card.league === league;
     const clubMatches = club === "Alle Vereine" || card.club === club;
     const playerMatches = player === "Alle Spieler" || card.id === player;
-    return leagueMatches && clubMatches && playerMatches;
+    return seasonMatches && leagueMatches && clubMatches && playerMatches;
   });
+}
+
+function cardSeasonStatusLabel(card) {
+  if (isCurrentSeasonCard(card)) return "AKTUELL";
+  if (isHistoricalSeasonCard(card)) return "HISTORISCH";
+  if (card.season === CURRENT_SEASON && card.squadStatus === "departed") return "ABGANG";
+  if (card.season === CURRENT_SEASON && card.squadStatus === "loaned-out") return "LEIHE";
+  if (card.season === CURRENT_SEASON) return "NICHT FUER 2026/27 BESTAETIGT";
+  return card.squadStatus || card.status || "-";
 }
 
 function defaultSeriesCards() {
@@ -9033,11 +12874,18 @@ function resetLeagueRows() {
 }
 
 function rating(card) {
+  if (Number.isFinite(Number(card?.currentOverall))) {
+    return clamp(Math.round(Number(card.currentOverall)), 20, 120);
+  }
+  if (Number.isFinite(Number(card?.baseOverall))) {
+    return calculateCardOverall(card.baseOverall, card.level, card.stars, card.proStars);
+  }
   const mainStats = statProfile(card).map((stat) => statValue(card, stat.key));
   const specialStats = SPECIAL_STATS.map((stat) => statValue(card, stat.key));
   const mainAverage = mainStats.reduce((sum, value) => sum + value, 0) / mainStats.length;
   const specialAverage = specialStats.reduce((sum, value) => sum + value, 0) / specialStats.length;
-  return clamp(Math.round(mainAverage * 0.86 + specialAverage * 0.14), 20, 299);
+  const derivedBase = normalizeBaseOverall(Math.round(mainAverage * 0.86 + specialAverage * 0.14), card?.cls);
+  return calculateCardOverall(derivedBase, card?.level, card?.stars, card?.proStars);
 }
 
 function rand(min, max) {
@@ -9049,6 +12897,7 @@ function clamp(value, min, max) {
 }
 
 function pick(items) {
+  if (!Array.isArray(items) || !items.length) return null;
   return items[rand(0, items.length - 1)];
 }
 
@@ -9105,12 +12954,21 @@ function withClub(card) {
 function normalizeCard(card) {
   const mappedClubName = LEGACY_CLUB_MAP[card.club] || card.club;
   const normalized = withClub({ ...card, club: mappedClubName, cls: normalizeClassIndex(card.cls), series: normalizeCardSeries(card.series) });
+  const instanceId = card.instanceId || (String(card.id || "").startsWith("owned-") || String(card.id || "").startsWith("opening-") || String(card.id || "").startsWith("card-") ? card.id : `inst-${card.id || "card"}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const cardSeason = normalized.season || card.season || "";
+  const isHistorical = card.isHistorical === true || HISTORICAL_SEASONS.has(cardSeason);
+  const verifiedForSeason = cardSeason === CURRENT_SEASON && card.verifiedForSeason === true && (card.squadStatus || normalized.squadStatus || "active") === "active" && !isHistorical;
+  const placeholderPlayer = card.playerId === null || normalized.isPlaceholder === true || normalized.isTestCard === true;
+  const baseOverall = normalizeBaseOverall(normalized.baseOverall ?? normalized.overall ?? normalized.rating, normalized.cls);
+  const currentOverall = calculateCardOverall(baseOverall, card.currentLevel ?? card.level, card.currentStars ?? card.stars ?? 1, card.proStars);
   normalized.performance = normalized.performance || SEASON_PERFORMANCE_DATA[sourceCardId(normalized)] || generatedSeasonPerformance(normalized.pos, normalized.atk, normalized.mid, normalized.def);
   normalized.stats = buildCardStats(normalized.pos, normalized.atk, normalized.mid, normalized.def, normalized.cls, normalized.performance);
   const base = {
     ...normalized,
     cardId: normalized.cardId || sourceCardId(normalized),
-    playerId: normalized.playerId || sourceCardId(normalized),
+    playerId: placeholderPlayer ? null : (normalized.playerId || sourceCardId(normalized)),
+    baseOverall,
+    currentOverall,
     nation: normalized.nation || "Deutschland",
     flag: normalized.flag || "DE",
     image: normalized.image || "",
@@ -9132,14 +12990,30 @@ function normalizeCard(card) {
     imageAttributionUrl: normalized.imageAttributionUrl || "",
     imageMatchConfidence: Number(normalized.imageMatchConfidence) || 0,
     imageManuallyVerified: Boolean(normalized.imageManuallyVerified),
-    sourceId: card.sourceId || matchingGameCardId(normalized) || card.id,
+    sourceId: card.sourceId || matchingGameCardId(normalized) || card.cardId || card.id,
+    instanceId,
+    id: instanceId,
+    ownerUserId: card.ownerUserId || currentOwnerUserId(),
+    obtainedAt: card.obtainedAt || "",
+    source: card.source || "migration",
+    locked: Boolean(card.locked),
     series: normalizeCardSeries(normalized.series),
     level: normalizeCardLevel(card.currentLevel ?? card.level),
     stars: normalizeCardStars(card.currentStars ?? card.stars ?? CARD_SYSTEM?.starsForLevel?.(normalizeCardLevel(card.level)) ?? 1),
     xp: Math.max(0, Number(card.currentXp ?? card.xp) || 0),
     totalXp: Math.max(0, Number(card.totalXp) || Number(card.xp) || 0),
+    season: cardSeason,
+    squadSeason: normalized.squadSeason || (cardSeason === CURRENT_SEASON ? CURRENT_SEASON : cardSeason),
+    teamId: normalized.teamId || (cardSeason === CURRENT_SEASON ? teamIdForClubName(normalized.club, String(normalized.league || "").includes("Frauen") ? "women-first" : "men-first") : ""),
+    currentClubId: normalized.currentClubId || (cardSeason === CURRENT_SEASON ? normalized.club : ""),
+    currentLeagueId: normalized.currentLeagueId || (cardSeason === CURRENT_SEASON ? normalized.league : ""),
+    squadStatus: isHistorical ? "historical" : (normalized.squadStatus || "active"),
+    verifiedForSeason,
+    isHistorical,
+    isActiveSeasonCard: cardSeason === CURRENT_SEASON && verifiedForSeason,
+    isPackable: isHistorical ? false : normalized.isPackable !== false,
     lastLeveledAt: normalized.lastLeveledAt || "",
-    status: normalized.status || "active",
+    status: isHistorical ? "historical" : (normalized.status || "active"),
     owned: true,
     ownedCount: Math.max(1, Number(normalized.ownedCount) || 1),
     duplicateCount: Math.max(0, Number(normalized.duplicateCount) || 0),
@@ -9154,6 +13028,29 @@ function normalizeClassIndex(value) {
   return clamp(Number(value) || 0, 0, teamClasses.length - 1);
 }
 
+function rarityConfigForClass(value) {
+  return CARD_CLASS_RANGES[normalizeClassIndex(value)] || CARD_CLASS_RANGES[0];
+}
+
+function baseOverallForClass(value) {
+  const range = rarityConfigForClass(value);
+  return Math.round((range.min + range.max) / 2);
+}
+
+function normalizeBaseOverall(value, classIndex = 0) {
+  const range = rarityConfigForClass(classIndex);
+  const numeric = Number.isFinite(Number(value)) ? Number(value) : baseOverallForClass(classIndex);
+  return clamp(Math.round(numeric), range.min, range.max);
+}
+
+function calculateCardOverall(baseOverall, level = 1, stars = 1, proStars = 0) {
+  const safeBase = Number.isFinite(Number(baseOverall)) ? Math.round(Number(baseOverall)) : 50;
+  const levelBonus = Math.floor((normalizeCardLevel(level) - 1) / 10);
+  const starBonus = Math.max(0, normalizeCardStars(stars) - 1) * 2;
+  const proBonus = Math.max(0, normalizeProStars(proStars)) * 3;
+  return clamp(safeBase + levelBonus + starBonus + proBonus, 20, 120);
+}
+
 function classRangeLabel(index) {
   const range = CARD_CLASS_RANGES[normalizeClassIndex(index)];
   return range ? `${range.min}-${range.max}` : "";
@@ -9162,7 +13059,7 @@ function classRangeLabel(index) {
 function classLabel(index) {
   const normalized = normalizeClassIndex(index);
   const range = classRangeLabel(normalized);
-  return `${teamClasses[normalized]}${range ? ` (${range})` : ""}`;
+  return `${CARD_CLASS_RANGES[normalized]?.label || teamClasses[normalized]}${range ? ` (${range})` : ""}`;
 }
 
 function normalizeCardSeries(series) {
@@ -9209,7 +13106,12 @@ function cardLevelCap(card) {
 function duplicateCardsFor(card) {
   if (!card) return [];
   const key = cardFusionBaseKey(card);
-  return state.deck.filter((candidate) => candidate.id !== card.id && cardFusionBaseKey(candidate) === key);
+  return state.deck.filter((candidate) => (
+    candidate.id !== card.id
+    && cardFusionBaseKey(candidate) === key
+    && !candidate.favorite
+    && !candidate.locked
+  ));
 }
 
 function starUpgradeInfo(card) {
@@ -9275,11 +13177,13 @@ function cardFusionBaseKey(card) {
 }
 
 function fusionPartnerFor(card) {
-  if (!card || cardLevel(card) < CARD_MAX_LEVEL || proStars(card) >= PRO_MAX_STARS) return null;
+  if (!card || card.favorite || card.locked || cardLevel(card) < CARD_MAX_LEVEL || proStars(card) >= PRO_MAX_STARS) return null;
   return state.deck.find((candidate) => (
     candidate.id !== card.id
     && cardFusionBaseKey(candidate) === cardFusionBaseKey(card)
     && cardLevel(candidate) >= CARD_MAX_LEVEL
+    && !candidate.favorite
+    && !candidate.locked
   )) || null;
 }
 
@@ -9345,6 +13249,10 @@ function levelCard(cardId, amount = 10) {
 function raiseCardStars(cardId) {
   const card = state.deck.find((item) => item.id === cardId);
   if (!card) return false;
+  if (card.favorite || card.locked) {
+    showToast("Favorisierte oder gesperrte Karten koennen nicht als Fusionsziel verwendet werden.", "error");
+    return false;
+  }
   const info = starUpgradeInfo(card);
   if (info.atMax) {
     showToast("Diese Karte hat bereits 5 Sterne.", "error");
@@ -9355,8 +13263,8 @@ function raiseCardStars(cardId) {
     return false;
   }
   const consumed = duplicateCardsFor(card).slice(0, info.duplicatesRequired);
-  if (consumed.some((item) => item.favorite)) {
-    showToast("Favorisierte Karten werden nicht als Sternmaterial verbraucht. Favorit zuerst entfernen.", "error");
+  if (consumed.some((item) => item.favorite || item.locked)) {
+    showToast("Favorisierte oder gesperrte Karten werden nicht als Sternmaterial verbraucht.", "error");
     return false;
   }
   const before = cardStars(card);
@@ -9378,12 +13286,16 @@ function fuseCardToPro(cardId) {
   let card = state.deck.find((item) => item.id === cardId);
   const partner = fusionPartnerFor(card);
   if (!card || !partner) return;
+  if (card.favorite || card.locked) {
+    showToast("Favorisierte oder gesperrte Karten koennen nicht fusioniert werden.", "error");
+    return;
+  }
   if (cardLevel(partner) > cardLevel(card)) {
     card = partner;
   }
   const consumed = card.id === partner.id ? state.deck.find((item) => item.id === cardId) : partner;
-  if (consumed?.favorite) {
-    showToast("Favorisierte Karten werden nicht fusioniert. Favorit zuerst entfernen.", "error");
+  if (consumed?.favorite || consumed?.locked) {
+    showToast("Favorisierte oder gesperrte Karten werden nicht fusioniert.", "error");
     return;
   }
   const nextStars = Math.min(PRO_MAX_STARS, proStars(card) + 1);
@@ -9466,3 +13378,4 @@ function migrateSelectedIds(selectedIds, deck) {
   const selected = result.length ? result : fallback;
   return [...new Set([...selected, ...fallback])].slice(0, MATCH_CARD_COUNT);
 }
+
