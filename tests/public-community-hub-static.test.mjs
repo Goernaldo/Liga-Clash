@@ -9,6 +9,8 @@ assert.match(index, /id="publicSplash"/, "public splash section must exist");
 assert.match(index, /Season 1/, "splash must show Season 1");
 assert.match(index, /Football Card Game/, "splash must show the public subtitle");
 assert.match(index, /assets\/splash\/splash_cards\.png/, "splash must use the combined splash cards artwork");
+assert.match(index, /<button id="splashStartButton" class="splash-progress"[\s\S]*<i id="splashProgressBar"><\/i>[\s\S]*<span id="splashStartLabel">Lade Ressourcen\.\.\.<\/span>[\s\S]*<\/button>/, "splash start text must live inside the progress bar button");
+assert.doesNotMatch(index, /<div class="splash-progress"><i id="splashProgressBar"><\/i><\/div>\s*<button id="splashStartButton"/, "splash must not render a separate progress bar and start button");
 assert.doesNotMatch(index, /card_common\.png|card_uncommon\.png|card_rare\.png/, "old individual splash placeholders must not be used");
 assert.doesNotMatch(index, /Mats Keller|Noah Stein|Leon Voss/, "old individual placeholder names must not be in the splash markup");
 assert.doesNotMatch(index, /<b>5[0-9]<\/b>|<b>6[0-9]<\/b>|<b>7[0-9]<\/b>/, "splash cards must not show OVR numbers");
@@ -30,6 +32,8 @@ assert.match(index, /id="communityHub"/, "community hub section must exist");
 
 assert.match(game, /function initPublicEntry\(\)/, "public entry initializer must exist");
 assert.match(game, /function openCommunityHub\(\)/, "splash must open community hub");
+assert.match(game, /const splashState = \{[\s\S]*progress: 0,[\s\S]*ready: false,[\s\S]*started: false,[\s\S]*\}/, "splash must track progress, ready and started state");
+assert.match(game, /Lade Ressourcen\.\.\. \$\{splashState\.progress\} %/, "splash loading label must include percentage");
 assert.match(game, /function handleDeveloperLogin\(form\)/, "developer login handler must exist");
 assert.match(game, /data-community-view="developer-login"/, "developer login entry must be rendered from the social view");
 assert.match(game, /publicGameUnlocked = true/, "developer login must unlock the game");
@@ -51,6 +55,8 @@ assert.match(styles, /\.community-tile-grid/, "community tile grid styles must e
 assert.match(styles, /\.community-admin-card/, "community admin card styles must exist");
 assert.match(styles, /\.forum-post-card/, "forum post card styles must exist");
 assert.match(styles, /\.splash-cards-art/, "combined splash artwork must be styled");
+assert.match(styles, /max-width: 620px/, "desktop splash cards must be reduced to the requested size range");
+assert.match(styles, /max-width: 360px/, "mobile splash cards must be reduced to the requested size range");
 assert.match(styles, /\.splash-card-row::before/, "splash cards must have a floodlight glow");
 assert.match(styles, /@media \(max-width: 720px\)/, "mobile layout must be covered");
 
