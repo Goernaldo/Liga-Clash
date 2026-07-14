@@ -28,18 +28,15 @@
   };
 
   const RARITIES = [
-    { id: "common", label: "Gew\u00f6hnlich", legacyIndex: 0, color: "#cfd7d5", animation: "soft-pulse", effect: "stone", dropChance: 28 },
-    { id: "uncommon", label: "Ungew\u00f6hnlich", legacyIndex: 1, color: "#72db83", animation: "green-glow", effect: "leaf", dropChance: 22 },
-    { id: "rare", label: "Selten", legacyIndex: 2, color: "#63caff", animation: "blue-shimmer", effect: "ice", dropChance: 16 },
-    { id: "special-rare", label: "Besonders Selten", legacyIndex: 3, color: "#238cff", animation: "deep-blue-flare", effect: "deep-ice", dropChance: 10 },
-    { id: "ultra-rare", label: "Ultra Selten", legacyIndex: 4, color: "#d253ff", animation: "violet-surge", effect: "violet", dropChance: 7 },
-    { id: "bronze", label: "Bronze", legacyIndex: 5, color: "#c47a3b", animation: "bronze-spark", effect: "metal-bronze", dropChance: 6 },
-    { id: "silver", label: "Silber", legacyIndex: 6, color: "#d9e4e8", animation: "silver-shine", effect: "metal-silver", dropChance: 4 },
-    { id: "gold", label: "Gold", legacyIndex: 7, color: "#ffe15a", animation: "gold-flash", effect: "metal-gold", dropChance: 3 },
-    { id: "epic", label: "Episch", legacyIndex: 8, color: "#ff8a1e", animation: "ember-glow", effect: "ember", dropChance: 2 },
-    { id: "legendary", label: "Legend\u00e4r", legacyIndex: 9, color: "#ffe66b", animation: "legend-aura", effect: "legend", dropChance: 1.2 },
-    { id: "elite", label: "Elite", legacyIndex: 10, color: "#ffd86b", animation: "elite-aura", effect: "elite", dropChance: 0.65 },
-    { id: "icon", label: "Icon", legacyIndex: 11, color: "#ffffff", animation: "icon-prism", effect: "icon", dropChance: 0.15 },
+    { id: "common", label: "Gew\u00f6hnlich", legacyIndex: 0, minOverall: 50, maxOverall: 59, color: "#cfd7d5", animation: "soft-pulse", effect: "stone", dropChance: 32 },
+    { id: "uncommon", label: "Ungew\u00f6hnlich", legacyIndex: 1, minOverall: 60, maxOverall: 69, color: "#72db83", animation: "green-glow", effect: "leaf", dropChance: 24 },
+    { id: "rare", label: "Selten", legacyIndex: 2, minOverall: 70, maxOverall: 74, color: "#63caff", animation: "blue-shimmer", effect: "ice", dropChance: 16 },
+    { id: "super-rare", label: "Besonders selten", legacyIndex: 3, minOverall: 75, maxOverall: 79, color: "#238cff", animation: "deep-blue-flare", effect: "deep-ice", dropChance: 10 },
+    { id: "ultra-rare", label: "Ultra selten", legacyIndex: 4, minOverall: 80, maxOverall: 84, color: "#d253ff", animation: "violet-surge", effect: "violet", dropChance: 7 },
+    { id: "epic", label: "Episch", legacyIndex: 5, minOverall: 85, maxOverall: 89, color: "#ff8a1e", animation: "ember-glow", effect: "ember", dropChance: 5 },
+    { id: "legendary", label: "Legend\u00e4r", legacyIndex: 6, minOverall: 90, maxOverall: 94, color: "#ffe66b", animation: "legend-aura", effect: "legend", dropChance: 3 },
+    { id: "elite", label: "Elite", legacyIndex: 7, minOverall: 95, maxOverall: 99, color: "#ffd86b", animation: "elite-aura", effect: "elite", dropChance: 2 },
+    { id: "icon", label: "Icon", legacyIndex: 8, minOverall: 96, maxOverall: 99, color: "#ffffff", animation: "icon-prism", effect: "icon", dropChance: 1 },
   ];
 
   const STAR_TIERS = [
@@ -111,12 +108,16 @@
     const level = Math.max(1, Math.min(100, Number(card.level) || 1));
     const stars = Math.max(Number(card.stars) || 0, starsForLevel(level), Number(card.proStars) || 0, 1);
     const maxLevel = maxLevelForStars(stars);
-    const overall = helpers.rating ? helpers.rating(card) : Number(card.overall) || Math.round(((Number(card.atk) || 50) + (Number(card.mid) || 50) + (Number(card.def) || 50)) / 3);
+    const baseOverall = Math.max(rarity.minOverall || 50, Math.min(rarity.maxOverall || 99, Number(card.baseOverall) || Math.round(((rarity.minOverall || 50) + (rarity.maxOverall || 99)) / 2)));
+    const helperOverall = helpers.rating ? helpers.rating({ ...card, baseOverall }) : Number(card.overall) || baseOverall;
+    const overall = Math.max(baseOverall, Number(helperOverall) || baseOverall);
     const sourceId = card.sourceId || card.cardId || card.id;
+    const placeholderPlayer = card.playerId === null || card.isPlaceholder === true || card.isTestCard === true;
     return {
       ...card,
       cardId: sourceId,
-      playerId: card.playerId || sourceId,
+      playerId: placeholderPlayer ? null : (card.playerId || sourceId),
+      baseOverall,
       rarityId: rarity.id,
       rarity: rarity.label,
       rarityColor: rarity.color,

@@ -19,10 +19,10 @@ assert.equal(JSON.stringify(system.POSITION_DEFINITIONS.map((position) => positi
 assert.equal(system.positionDefinition("CAM").id, "ZOM");
 assert.equal(system.positionDefinition("GK").category, "Torwart");
 
-assert.equal(system.RARITIES.length, 12);
+assert.equal(system.RARITIES.length, 9);
 assert.equal(system.RARITIES.at(-1).label, "Icon");
-assert.equal(system.rarityByIndex(10).label, "Elite");
-assert.equal(system.rarityByIndex(11).label, "Icon");
+assert.equal(system.rarityByIndex(7).label, "Elite");
+assert.equal(system.rarityByIndex(8).label, "Icon");
 
 assert.equal(system.maxLevelForStars(1), 10);
 assert.equal(system.maxLevelForStars(2), 20);
@@ -44,7 +44,7 @@ const normalized = system.normalizeCardRecord(
     club: "FC Bayern Muenchen",
     league: "1. Bundesliga",
     nation: "Deutschland",
-    cls: 10,
+    cls: 7,
     atk: 92,
     mid: 90,
     def: 62,
@@ -70,7 +70,7 @@ assert.equal(normalized.favorite, true);
 
 const records = [
   normalized,
-  system.normalizeCardRecord({ id: "popp", name: "Alexandra Popp", pos: "ST", club: "VfL Wolfsburg Frauen", league: "Google Pixel Frauen-Bundesliga", nation: "Deutschland", cls: 9, atk: 88, mid: 74, def: 55, level: 20, owned: false }, { rating }),
+  system.normalizeCardRecord({ id: "popp", name: "Alexandra Popp", pos: "ST", club: "VfL Wolfsburg Frauen", league: "Google Pixel Frauen-Bundesliga", nation: "Deutschland", cls: 6, atk: 88, mid: 74, def: 55, level: 20, owned: false }, { rating }),
   system.normalizeCardRecord({ id: "hain", name: "Karl Hain", pos: "GK", club: "Werder Bremen", league: "1. Bundesliga", nation: "Deutschland", cls: 1, atk: 42, mid: 65, def: 84, level: 8, owned: true }, { rating }),
 ];
 
@@ -80,7 +80,7 @@ assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, position
 assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, category: "Angriff" }).length, 1);
 assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, owned: "Nicht erhalten" }).length, 1);
 assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, favorite: "Favoriten" }).length, 1);
-assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, overall: "80-99" }).length, 1);
+assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, overall: "80-99" }).length, 2);
 assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, level: "1-10" }).length, 1);
 assert.equal(system.filterRecords(records, { ...system.DEFAULT_FILTERS, stars: "5" }).length, 1);
 

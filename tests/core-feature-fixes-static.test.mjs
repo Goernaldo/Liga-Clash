@@ -17,7 +17,8 @@ assert.ok(game.includes('data-battle-action="select-card"'), "Spielerkarten mues
 assert.ok(game.includes('data-battle-action="confirm-card"'), "Auswahl muss bestaetigt werden");
 
 assert.ok(game.includes("function createDraftBoard"), "Draft-Board-Erzeugung fehlt");
-assert.ok(game.includes("Array.from({ length: 25 }"), "Draft-Board muss 25 Slots erzeugen");
+assert.ok(game.includes("settings.rows * settings.columns"), "Draft-Board muss die Admin-Reihen und -Spalten verwenden");
+assert.ok(game.includes("normalizeDraftBoardSettings(state.draftBoardSettings)"), "Draft-Board muss die Admin-Einstellungen laden");
 assert.ok(game.includes("function claimDraftPick"), "Draft-Picks muessen claimbar sein");
 assert.ok(game.includes('data-feature-action="draft-pick"'), "Draft-Slots brauchen Feature-Actions");
 
